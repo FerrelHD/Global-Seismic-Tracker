@@ -30,3 +30,31 @@ body {
     linear-gradient(to right, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
 }
+
+/* Awwwards Typographic Mask Reveal Animations */
+@keyframes mask-reveal-up {
+  from {
+    transform: translateY(115%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-mask-reveal-1 {
+  animation: mask-reveal-up 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+}
+
+.animate-mask-reveal-2 {
+  animation: mask-reveal-up 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+}
+
+.animate-mask-reveal-3 {
+  animation: mask-reveal-up 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+}
+
+.animate-mask-reveal-4 {
+  animation: mask-reveal-up 1.1s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+}

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Lenis from 'lenis';
-import { CobeGlobe } from './components/ui/CobeGlobe';
+import { VectorGlobe, CameraCoordinates } from './components/ui/VectorGlobe';
+import { ViewportTechnicalFrame } from './components/ui/ViewportTechnicalFrame';
+import { HeroSection } from './components/hero/HeroSection';
 import { LiquidGlassFilter, LiquidCard } from './components/ui/liquid-glass';
 import { FloatingControllerDock } from './components/ui/FloatingControllerDock';
 import { BookmarkDrawer } from './components/ui/BookmarkDrawer';
@@ -21,7 +23,6 @@ import {
   RefreshCw,
   Bookmark as BookmarkIcon,
   ArrowDown,
-  ChevronDown,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -39,9 +40,16 @@ export const App: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<SeismicEvent | null>(null);
 
   // Scrollytelling & Navigation State
-  const [activeChapterIndex, setActiveChapterIndex] = useState(0);
+  const [activeChapterIndex, setActiveChapterIndex] = useState(-1); // -1 = Hero Section
   const [isObservatoryActive, setIsObservatoryActive] = useState(false);
-  const [globeProgress, setGlobeProgress] = useState(0); // 0 = at right (story mode), 1 = centered (observatory)
+  const [isHeroActive, setIsHeroActive] = useState(true);
+  const [heroExitProgress, setHeroExitProgress] = useState(0);
+  const [cameraCoords, setCameraCoords] = useState<CameraCoordinates>({ lat: 12.0, lon: 115.0 });
+
+  // Spatial continuous scroll translation (in vw units: 12vw = hero, 24vw = stories, 0vw = observatory)
+  const [globeOffsetVw, setGlobeOffsetVw] = useState(12);
+  const [globeScale, setGlobeScale] = useState(1.0);
+
   const lenisRef = useRef<Lenis | null>(null);
 
   // Filters & Controls
@@ -73,28 +81,69 @@ export const App: React.FC = () => {
   // Compute dynamic story chapters from active dataset
   const storyChapters = useMemo(() => buildStoryChapters(events), [events]);
 
-  // Continuous Scroll-based Globe Centering Calculation (smoothly glides without snapping)
-  const updateGlobeTransition = useCallback(() => {
-    const obsEl = document.getElementById('observatory-section');
-    if (!obsEl) return;
+  // Screen Width state for responsive translation
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
+  );
 
-    const rect = obsEl.getBoundingClientRect();
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 3-Phase Continuous Scroll Interpolation Choreography
+  const handleScrollUpdate = useCallback(() => {
+    const heroEl = document.getElementById('hero-section');
+    const obsEl = document.getElementById('observatory-section');
+    if (!heroEl || !obsEl) return;
+
+    const scrollY = window.scrollY;
+    const heroHeight = heroEl.offsetHeight || window.innerHeight;
     const windowHeight = window.innerHeight;
 
-    // As user scrolls from chapter 4 into chapter 5, calculate continuous 0 -> 1 progress
-    const distanceToView = rect.top - windowHeight * 0.15;
-    const travelRange = windowHeight * 0.85;
-    const rawProgress = 1 - Math.max(0, Math.min(travelRange, distanceToView)) / travelRange;
+    // Exit progress for Hero Section (0 at top, 1 when scrolled 380px down)
+    const exitP = Math.max(0, Math.min(1, scrollY / 380));
+    setHeroExitProgress(exitP);
 
-    // Smoothstep interpolation
-    const smooth = rawProgress * rawProgress * (3 - 2 * rawProgress);
-    setGlobeProgress(smooth);
+    const isHero = scrollY < heroHeight * 0.75;
+    setIsHeroActive(isHero);
 
-    if (rawProgress >= 0.9) {
-      setIsObservatoryActive(true);
-    } else {
+    // Phase 1: Leaving Hero into Chapter 1 (12vw -> 24vw, and scaling down from 1.0 to 0.65)
+    if (scrollY < heroHeight) {
+      const p = Math.max(0, Math.min(1, scrollY / (heroHeight * 0.85)));
+      const smoothP = p * p * (3 - 2 * p); // smoothstep
+      setGlobeOffsetVw(12 + smoothP * 12);
+      setGlobeScale(1.0 - smoothP * 0.35);
       setIsObservatoryActive(false);
+      return;
     }
+
+    // Phase 3: Leaving Chapter 4 into Observatory (24vw -> 0vw, and scaling up from 0.65 to 0.95)
+    const obsRect = obsEl.getBoundingClientRect();
+    const distanceToView = obsRect.top - windowHeight * 0.15;
+    const travelRange = windowHeight * 0.85;
+
+    if (distanceToView < travelRange) {
+      const rawProgress = 1 - Math.max(0, Math.min(travelRange, distanceToView)) / travelRange;
+      const smoothP = rawProgress * rawProgress * (3 - 2 * rawProgress);
+      setGlobeOffsetVw((1 - smoothP) * 24);
+      setGlobeScale(0.65 + smoothP * 0.30);
+
+      if (rawProgress >= 0.88) {
+        setIsObservatoryActive(true);
+      } else {
+        setIsObservatoryActive(false);
+      }
+      return;
+    }
+
+    // Phase 2: In Story Chapters 1 - 4 (Comfortably compact alongside chapter cards)
+    setGlobeOffsetVw(24);
+    setGlobeScale(0.65);
+    setIsObservatoryActive(false);
   }, []);
 
   // Initialize Lenis smooth momentum scroll engine
@@ -106,9 +155,8 @@ export const App: React.FC = () => {
     });
     lenisRef.current = lenis;
 
-    // Hook scroll listener to continuously update globe centering without discrete jumps
-    lenis.on('scroll', updateGlobeTransition);
-    window.addEventListener('scroll', updateGlobeTransition, { passive: true });
+    lenis.on('scroll', handleScrollUpdate);
+    window.addEventListener('scroll', handleScrollUpdate, { passive: true });
 
     let rafId: number;
     function raf(time: number) {
@@ -121,11 +169,11 @@ export const App: React.FC = () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
       lenisRef.current = null;
-      window.removeEventListener('scroll', updateGlobeTransition);
+      window.removeEventListener('scroll', handleScrollUpdate);
     };
-  }, [updateGlobeTransition]);
+  }, [handleScrollUpdate]);
 
-  // IntersectionObserver for tracking which story chapter is active & triggering camera fly-to
+  // IntersectionObserver for tracking story chapters & triggering camera fly-to
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -136,7 +184,7 @@ export const App: React.FC = () => {
               const idx = parseInt(indexAttr, 10);
               setActiveChapterIndex(idx);
 
-              // Fly globe camera to the chapter's epicenter
+              // Fly globe camera to chapter epicenter
               if (storyChapters[idx] && idx < storyChapters.length - 1) {
                 setTargetFocus(storyChapters[idx].coordinates);
               }
@@ -158,7 +206,15 @@ export const App: React.FC = () => {
     };
   }, [storyChapters]);
 
-  // Fast Travel Jump Actions
+  // Fast Travel Navigation Actions
+  const scrollToHero = () => {
+    lenisRef.current?.scrollTo('#hero-section', { duration: 1.2 });
+  };
+
+  const scrollToStories = () => {
+    lenisRef.current?.scrollTo('#chapter-section-0', { duration: 1.2 });
+  };
+
   const scrollToObservatory = () => {
     lenisRef.current?.scrollTo('#observatory-section', { duration: 1.4 });
   };
@@ -262,52 +318,47 @@ export const App: React.FC = () => {
     [events]
   );
 
-  const [isDesktop, setIsDesktop] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Compute smooth continuous translation offset
-  // On desktop: 24vw when globeProgress = 0, glides smoothly to 0vw when globeProgress = 1
-  const translateX = isDesktop ? `${(1 - globeProgress) * 24}vw` : '0px';
-  const currentScale = isDesktop ? 1 + globeProgress * 0.06 : 1;
+  const effectiveTranslateX = isDesktop ? `${globeOffsetVw}vw` : '0px';
 
   return (
-    <div className="relative min-h-screen w-full bg-white text-slate-900 hud-grid-bg selection:bg-slate-900 selection:text-white font-sans">
+    <div className="relative min-h-screen w-full bg-white text-slate-900 selection:bg-slate-900 selection:text-white font-sans">
       {/* 1. Global Liquid Glass SVG Refraction Filter */}
       <LiquidGlassFilter />
 
-      {/* 2. FIXED STICKY 3D COBE GLOBE LAYER — CONTINUOUS SCROLL INTERPOLATION WITHOUT SNAPPING */}
-      <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden">
+      {/* 2. Global Viewport Technical Blueprint Frame (Corner Crop Marks & Live Telemetry) */}
+      <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
+
+      {/* 3. FIXED STICKY 3D VECTOR GLOBE LAYER (MASSIVE 820px PRESENCE) */}
+      <div className="fixed inset-0 z-20 pointer-events-none flex items-center justify-center overflow-hidden">
         <div
           style={{
-            transform: `translate3d(${translateX}, 0, 0) scale(${currentScale})`,
+            transform: `translate3d(${effectiveTranslateX}, 0, 0) scale(${globeScale})`,
             willChange: 'transform',
           }}
-          className="w-full max-w-[530px] sm:max-w-[560px] aspect-square flex items-center justify-center transition-transform duration-100 ease-out"
+          className="relative w-full max-w-[640px] sm:max-w-[740px] lg:max-w-[820px] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-75 ease-out"
         >
-          <CobeGlobe
+          {/* No Art Architectural Vector Wireframe 3D Globe */}
+          <VectorGlobe
             events={filteredEvents}
             isRotating={isRotating}
             resetSignal={resetSignal}
             targetFocus={targetFocus}
             onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
-            interactive={isObservatoryActive}
+            interactive={true}
+            onCameraChange={setCameraCoords}
           />
         </div>
       </div>
 
-      {/* 3. AWWWARDS-STYLE FIXED HEADER NAVBAR — CLEAN & MINIMALIST */}
+      {/* 3. AWWWARDS FIXED HEADER NAVBAR */}
       <header className="fixed top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-3 sm:px-4 pointer-events-none select-none">
         <LiquidCard className="rounded-2xl sm:rounded-full shadow-xl pointer-events-auto">
           <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-2.5 sm:px-5 sm:py-3">
-            {/* Logo + Branding: Sharp, Crisp, Non-blurry Typography */}
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 shrink-0">
+            {/* Logo + Branding: Sharp, Crisp Typography */}
+            <div
+              onClick={scrollToHero}
+              className="flex items-center gap-2.5 sm:gap-3 min-w-0 shrink-0 cursor-pointer"
+            >
               <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
                 <GlobeIcon className="w-4 h-4" />
               </div>
@@ -325,7 +376,7 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Header Right Actions: Clean, Minimalist Button without AI-slop sparkles */}
+            {/* Header Right Actions: Clean & Minimalist */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 font-mono text-xs">
               {!isObservatoryActive ? (
                 <button
@@ -349,10 +400,10 @@ export const App: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Return to story tour button */}
+                  {/* Return to Hero / Tour */}
                   <button
-                    onClick={() => scrollToChapter(0)}
-                    title="Return to Story Tour"
+                    onClick={scrollToHero}
+                    title="Return to Hero"
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-700 hover:text-slate-950 transition-all text-[11px] font-semibold shadow-xs cursor-pointer whitespace-nowrap"
                   >
                     <span>TOUR</span>
@@ -392,38 +443,46 @@ export const App: React.FC = () => {
       {/* 4. STORY PROGRESS RAIL (FIXED RIGHT-HAND STEPPER) */}
       <StoryProgressRail
         chapters={storyChapters}
-        activeChapterIndex={activeChapterIndex}
+        activeChapterIndex={activeChapterIndex >= 0 ? activeChapterIndex : 0}
         onSelectChapter={scrollToChapter}
-        visible={!isObservatoryActive}
+        visible={!isObservatoryActive && activeChapterIndex >= 0}
       />
 
-      {/* 5. SCROLLING STORY SECTIONS LAYER */}
+      {/* 5. HERO SECTION (STAGE 0) */}
+      <HeroSection
+        onExploreClick={scrollToStories}
+        onDirectClick={scrollToObservatory}
+        exitProgress={heroExitProgress}
+        totalEvents={events.length || 2200}
+      />
+
+      {/* 6. SCROLLING STORY SECTIONS LAYER */}
       <div className="relative z-10 w-full pointer-events-none">
         {storyChapters.map((chapter, index) => {
           const isFinal = index === storyChapters.length - 1;
 
           if (isFinal) {
-            // Chapter 5: The Full Observatory Stage
+            // Chapter 5: Full Interactive Observatory Stage
             return (
               <section
                 key={chapter.id}
                 id="observatory-section"
                 data-chapter-index={index}
-                className="story-chapter-section min-h-screen w-full flex flex-col justify-between pt-24 pb-8 px-4 pointer-events-auto"
+                className="story-chapter-section min-h-screen w-full flex flex-col justify-between pt-24 pb-8 px-4 pointer-events-none"
               >
-                {/* Clean minimalist status indicator */}
-                <div className="w-full flex items-center justify-center pt-2">
+                {/* Minimalist Status Indicator */}
+                <div className="w-full flex items-center justify-center pt-2 pointer-events-auto">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-600 font-mono text-[10px] tracking-widest uppercase">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     <span>INTERACTIVE LABORATORY MODE</span>
                   </div>
                 </div>
 
-                {/* Center empty space for globe exploration */}
-                <div className="flex-1 w-full" />
+                {/* Center empty space for globe exploration (pointer-events-none allows direct click on 3D globe) */}
+                <div className="flex-1 w-full pointer-events-none" />
 
                 {/* Bottom Floating Controller Dock */}
-                <div className="w-full">
+                <div className="w-full pointer-events-auto">
                   <FloatingControllerDock
                     searchQuery={searchQuery}
                     onSearchChange={handleRegionChange}
@@ -460,21 +519,13 @@ export const App: React.FC = () => {
                   isActive={activeChapterIndex === index}
                   onExploreClick={scrollToObservatory}
                 />
-
-                {/* Minimalist Scroll Prompt on Chapter 1 */}
-                {index === 0 && (
-                  <div className="mt-6 flex items-center gap-2 text-slate-400 font-mono text-[11px] tracking-wider select-none">
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                    <span>SCROLL TO EXPLORE PLANETARY CRUST</span>
-                  </div>
-                )}
               </div>
             </section>
           );
         })}
       </div>
 
-      {/* 6. EVENT DETAIL & BOOKMARK MODAL */}
+      {/* 7. EVENT DETAIL & BOOKMARK MODAL */}
       <EventModal
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
@@ -482,7 +533,7 @@ export const App: React.FC = () => {
         onToggleBookmark={handleToggleBookmark}
       />
 
-      {/* 7. ACTIVE SEISMIC FEED DRAWER */}
+      {/* 8. ACTIVE SEISMIC FEED DRAWER */}
       <EventsListDrawer
         isOpen={isFeedOpen}
         onClose={() => setIsFeedOpen(false)}
@@ -496,7 +547,7 @@ export const App: React.FC = () => {
         onToggleBookmark={handleToggleBookmark}
       />
 
-      {/* 8. SAVED BOOKMARKS SLIDING DRAWER */}
+      {/* 9. SAVED BOOKMARKS SLIDING DRAWER */}
       <BookmarkDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
