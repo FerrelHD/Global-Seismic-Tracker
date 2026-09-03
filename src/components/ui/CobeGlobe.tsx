@@ -21,7 +21,7 @@ function cleanPlace(place: string | null): string {
 }
 
 /**
- * Exact mathematical projection formula matching Cobe's internal GLSL shader
+ * Exact mathematical projection matching Cobe's internal GLSL shader with true 0.8 sphere radius
  */
 function projectCobe(
   lat: number,
@@ -30,6 +30,7 @@ function projectCobe(
   theta: number,
   width: number
 ) {
+  const r = 0.8; // Cobe sphere exact physical radius (.64 = .8^2)
   const latRad = (lat * Math.PI) / 180;
   const lonRad = (lon * Math.PI) / 180 - Math.PI;
 
@@ -38,9 +39,9 @@ function projectCobe(
   const cosLon = Math.cos(lonRad);
   const sinLon = Math.sin(lonRad);
 
-  const t0 = -cosLat * cosLon;
-  const t1 = sinLat;
-  const t2 = cosLat * sinLon;
+  const t0 = -cosLat * cosLon * r;
+  const t1 = sinLat * r;
+  const t2 = cosLat * sinLon * r;
 
   const cosTheta = Math.cos(theta);
   const sinTheta = Math.sin(theta);
@@ -54,9 +55,37 @@ function projectCobe(
   return {
     x: ((c + 1) / 2) * width,
     y: ((-s + 1) / 2) * width,
-    visible: z >= 0.15, // Front-facing hemisphere threshold
+    visible: z >= 0.05, // Point is on visible hemisphere
   };
 }
+
+/**
+ * Geodesic interpolation so tectonic lines curve smoothly around the 3D sphere surface
+ */
+function densifyPlates(plates: [number, number][][], maxStep = 1.8): [number, number][][] {
+  return plates.map((plate) => {
+    const densePath: [number, number][] = [];
+    for (let i = 0; i < plate.length - 1; i++) {
+      const p1 = plate[i];
+      const p2 = plate[i + 1];
+      const dLat = p2[0] - p1[0];
+      let dLon = p2[1] - p1[1];
+      if (dLon > 180) dLon -= 360;
+      if (dLon < -180) dLon += 360;
+      const dist = Math.hypot(dLat, dLon);
+      const steps = Math.max(1, Math.ceil(dist / maxStep));
+      for (let s = 0; s < steps; s++) {
+        const t = s / steps;
+        densePath.push([p1[0] + dLat * t, p1[1] + dLon * t]);
+      }
+    }
+    densePath.push(plate[plate.length - 1]);
+    return densePath;
+  });
+}
+
+// Precompute dense continuous fault lines once
+const DENSE_TECTONIC_PLATES = densifyPlates(TECTONIC_PLATES);
 
 export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   events,
@@ -176,10 +205,6 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   const cobeMarkers = useMemo(() => {
     const sorted = [...events].sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0));
     return sorted.slice(0, 80).map((e) => {
-      // Depth-based color encoding:
-      // < 30km (Shallow): Electric Cyan [0.0, 0.85, 1.0]
-      // 30 - 100km (Mid): Sapphire Blue [0.15, 0.45, 0.95]
-      // > 100km (Deep mantle): Deep Indigo/Violet [0.55, 0.35, 0.95]
       let markerRgb: [number, number, number] = [0.15, 0.45, 0.95];
       if (e.depth < 30) {
         markerRgb = [0.0, 0.85, 1.0];
@@ -334,7 +359,6 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
     let animationFrameId: number;
     if (!canvasRef.current) return;
 
-    // Option A: 19,000 Fibonacci samples for sharp island definition (Indonesia, Japan, Philippines)
     const globe = createGlobe(canvasRef.current, {
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       width: 1000,
@@ -343,7 +367,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
       theta: 0.2,
       dark: 0,
       diffuse: 1.25,
-      mapSamples: 19000, // Double point density for crisp archipelago definition
+      mapSamples: 19000,
       mapBrightness: 4.8,
       mapBaseBrightness: 0.05,
       baseColor: [0.91, 0.92, 0.95],
@@ -357,7 +381,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
 
     globeRef.current = globe;
 
-    // Render Tectonic Plate Boundaries onto 2D overlay canvas
+    // Render continuous, unbroken Tectonic Plate Boundaries onto 2D overlay canvas
     function renderTectonicPlates(currentPhi: number, finalTheta: number) {
       const plateCanvas = plateCanvasRef.current;
       if (!plateCanvas) return;
@@ -376,24 +400,35 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
       ctx.save();
       ctx.scale(dpr, dpr);
 
-      // Subtle hairline tectonic fault line style
-      ctx.strokeStyle = 'rgba(244, 63, 94, 0.38)';
+      // Crimson tectonic fault line
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.45)';
       ctx.lineWidth = 1;
-      ctx.setLineDash([2.5, 3.5]);
+      ctx.setLineDash([3, 3]);
 
-      for (const plate of TECTONIC_PLATES) {
+      for (const plate of DENSE_TECTONIC_PLATES) {
         ctx.beginPath();
         let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
         for (let i = 0; i < plate.length; i++) {
           const [lat, lon] = plate[i];
           const p = projectCobe(lat, lon, currentPhi, finalTheta, w);
+
           if (p.visible) {
             if (!isDrawing) {
               ctx.moveTo(p.x, p.y);
               isDrawing = true;
             } else {
-              ctx.lineTo(p.x, p.y);
+              // Connect consecutive points only if within contiguous range on screen (prevent horizon wrapping)
+              if (Math.hypot(p.x - lastX, p.y - lastY) < 40) {
+                ctx.lineTo(p.x, p.y);
+              } else {
+                ctx.moveTo(p.x, p.y);
+              }
             }
+            lastX = p.x;
+            lastY = p.y;
           } else {
             isDrawing = false;
           }
@@ -542,7 +577,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
         }}
       />
 
-      {/* 2. Tectonic Plate Boundaries Hairline Overlay */}
+      {/* 2. Tectonic Plate Boundaries Hairline Overlay (Precision 0.8 r lock) */}
       <canvas
         ref={plateCanvasRef}
         style={{
