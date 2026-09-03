@@ -31,29 +31,30 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   eventCount,
   visible = true,
 }) => {
-  const pillGroup = 'flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80';
-  const pillBase = 'px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer';
+  const pillGroup = 'flex items-center gap-0.5 sm:gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shrink-0';
+  const pillBase = 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9.5px] sm:text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
   const pillActive = 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80';
   const pillInactive = 'text-slate-500 hover:text-slate-800 hover:bg-white/60';
-  const smallPillBase = 'px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer';
-  const divider = <div className="w-[1px] h-4 bg-slate-300/60" />;
+  const smallPillBase = 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
+  const divider = <div className="w-[1px] h-3 sm:h-3.5 bg-slate-300/60 shrink-0" />;
 
   return (
     <nav
       aria-label="Seismic Telemetry Controller"
-      className={`fixed bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-700 pointer-events-none ${
+      className={`fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-700 pointer-events-none ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 pointer-events-none'
       }`}
-      style={{ width: 'calc(100vw - 1.5rem)', maxWidth: '880px' }}
+      style={{ width: 'max-content', maxWidth: 'calc(100vw - 1rem)' }}
     >
       <div className="pointer-events-auto">
         <LiquidCard className="rounded-full shadow-xl">
-          {/* Horizontally scrollable inner content — hidden scrollbar */}
+          {/* Horizontally scrollable inner content on mobile, centered and fully visible on desktop */}
           <div
-            className="flex items-center gap-2 sm:gap-2.5 font-mono text-xs whitespace-nowrap px-3 py-2 sm:px-4 sm:py-1.5 overflow-x-auto text-slate-800"
+            className="flex items-center justify-start md:justify-center gap-1 sm:gap-2 font-mono text-xs whitespace-nowrap px-2 py-1 sm:px-3.5 sm:py-1.5 overflow-x-auto text-slate-800 touch-pan-x"
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
             }}
           >
             {/* Segment 1: Region Pills */}
@@ -62,28 +63,37 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                 onClick={() => onSearchChange('')}
                 className={`${pillBase} ${searchQuery === '' ? pillActive : pillInactive}`}
               >
-                GLOBAL
+                ALL NUSANTARA
               </button>
               <button
-                onClick={() => onSearchChange('indonesia')}
-                className={`${pillBase} ${searchQuery.toLowerCase() === 'indonesia' ? pillActive : pillInactive} flex items-center gap-1.5`}
+                onClick={() => onSearchChange('sumatra')}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'sumatra' ? pillActive : pillInactive}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
-                <span>IDN</span>
+                SUMATRA
               </button>
               <button
-                onClick={() => onSearchChange('japan')}
-                className={`${pillBase} ${searchQuery.toLowerCase() === 'japan' ? pillActive : pillInactive} flex items-center gap-1.5`}
+                onClick={() => onSearchChange('java')}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'java' ? pillActive : pillInactive}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block animate-pulse" />
-                <span>JPN</span>
+                JAVA
               </button>
               <button
-                onClick={() => onSearchChange('alaska')}
-                className={`${pillBase} ${searchQuery.toLowerCase() === 'alaska' ? pillActive : pillInactive} flex items-center gap-1.5`}
+                onClick={() => onSearchChange('sulawesi')}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'sulawesi' ? pillActive : pillInactive}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse" />
-                <span>USA</span>
+                SULAWESI
+              </button>
+              <button
+                onClick={() => onSearchChange('banda')}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'banda' ? pillActive : pillInactive}`}
+              >
+                BANDA
+              </button>
+              <button
+                onClick={() => onSearchChange('papua')}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'papua' ? pillActive : pillInactive}`}
+              >
+                PAPUA
               </button>
             </div>
 

@@ -10,10 +10,13 @@ import { EventsListDrawer } from './components/ui/EventsListDrawer';
 import { EventModal } from './components/ui/EventModal';
 import { StoryChapterCard } from './components/story/StoryChapterCard';
 import { StoryProgressRail } from './components/story/StoryProgressRail';
+import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark } from './types/seismic';
 import {
   fetchSeismicEvents,
+  fetchBMKGAutogempa,
+  BMKGAlert,
   getLocalBookmarks,
   saveLocalBookmark,
   removeLocalBookmark,
@@ -27,6 +30,7 @@ import {
 
 export const App: React.FC = () => {
   const [events, setEvents] = useState<SeismicEvent[]>([]);
+  const [bmkgAlert, setBmkgAlert] = useState<BMKGAlert | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Bookmarks state & Drawer
@@ -46,9 +50,10 @@ export const App: React.FC = () => {
   const [heroExitProgress, setHeroExitProgress] = useState(0);
   const [cameraCoords, setCameraCoords] = useState<CameraCoordinates>({ lat: 12.0, lon: 115.0 });
 
-  // Spatial continuous scroll translation (in vw units: 17vw = hero, 24vw = stories, 0vw = observatory)
-  const [globeOffsetVw, setGlobeOffsetVw] = useState(17);
+  // Spatial continuous scroll translation (in vw units: 0vw = hero center, 20vw = stories right, 0vw = observatory center)
+  const [globeOffsetVw, setGlobeOffsetVw] = useState(0);
   const [globeScale, setGlobeScale] = useState(1.0);
+  const [scrollRotation, setScrollRotation] = useState({ phi: 0, theta: 0 });
 
   const lenisRef = useRef<Lenis | null>(null);
 
@@ -71,6 +76,10 @@ export const App: React.FC = () => {
     } finally {
       setLoading(false);
     }
+
+    fetchBMKGAutogempa().then((res) => {
+      if (res) setBmkgAlert(res);
+    });
   };
 
   useEffect(() => {
@@ -111,17 +120,22 @@ export const App: React.FC = () => {
     const isHero = scrollY < heroHeight * 0.75;
     setIsHeroActive(isHero);
 
-    // Phase 1: Leaving Hero into Chapter 1 (17vw -> 20vw, and scaling gently from 1.0 to 0.95)
+    // Phase 1: Leaving Hero into Chapter 1 (0vw center -> 20vw right, kinetic 3D spin & tilt)
     if (scrollY < heroHeight) {
       const p = Math.max(0, Math.min(1, scrollY / (heroHeight * 0.85)));
       const smoothP = p * p * (3 - 2 * p); // smoothstep
-      setGlobeOffsetVw(17 + smoothP * 3);
+      setGlobeOffsetVw(smoothP * 20);
       setGlobeScale(1.0 - smoothP * 0.05);
+      // Kinetic 3D spin eastward and aerodynamic pitch tilt during the roll
+      setScrollRotation({
+        phi: -smoothP * (Math.PI * 1.35),
+        theta: Math.sin(smoothP * Math.PI) * 0.16,
+      });
       setIsObservatoryActive(false);
       return;
     }
 
-    // Phase 3: Leaving Chapter 4 into Observatory (20vw -> 0vw, and scaling up from 0.95 to 1.15)
+    // Phase 3: Leaving Chapter 4 into Observatory (20vw -> 0vw center, scaling comfortably up to 1.04)
     const obsRect = obsEl.getBoundingClientRect();
     const distanceToView = obsRect.top - windowHeight * 0.15;
     const travelRange = windowHeight * 0.85;
@@ -130,7 +144,11 @@ export const App: React.FC = () => {
       const rawProgress = 1 - Math.max(0, Math.min(travelRange, distanceToView)) / travelRange;
       const smoothP = rawProgress * rawProgress * (3 - 2 * rawProgress);
       setGlobeOffsetVw((1 - smoothP) * 20);
-      setGlobeScale(0.95 + smoothP * 0.20);
+      setGlobeScale(0.95 + smoothP * 0.09);
+      setScrollRotation({
+        phi: -(Math.PI * 1.35) - smoothP * (Math.PI * 0.75),
+        theta: 0,
+      });
 
       if (rawProgress >= 0.88) {
         setIsObservatoryActive(true);
@@ -140,9 +158,13 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Phase 2: In Story Chapters 1 - 4 (Comfortably matched alongside chapter cards)
+    // Phase 2: In Story Chapters 1 - 4 (Comfortably matched alongside chapter cards on the left)
     setGlobeOffsetVw(20);
     setGlobeScale(0.95);
+    setScrollRotation({
+      phi: -Math.PI * 1.35,
+      theta: 0,
+    });
     setIsObservatoryActive(false);
   }, []);
 
@@ -223,13 +245,34 @@ export const App: React.FC = () => {
     lenisRef.current?.scrollTo(`#chapter-section-${index}`, { duration: 1.1 });
   };
 
+// Geographic Coordinate Bounding Boxes for Indonesian Archipelago Sectors
+const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: number; maxLon: number }> = {
+  sumatra: { minLat: -6.0, maxLat: 6.0, minLon: 95.0, maxLon: 106.0 },
+  java: { minLat: -11.0, maxLat: -5.5, minLon: 105.0, maxLon: 116.0 },
+  sulawesi: { minLat: -6.0, maxLat: 2.5, minLon: 118.5, maxLon: 125.5 },
+  banda: { minLat: -11.0, maxLat: 2.0, minLon: 119.0, maxLon: 134.0 },
+  papua: { minLat: -10.0, maxLat: 1.0, minLon: 130.0, maxLon: 141.0 },
+};
+
   // Filtered Events Pipeline
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
       if (searchQuery.trim() !== '') {
-        const q = searchQuery.toLowerCase();
-        const matchPlace = e.place?.toLowerCase().includes(q) ?? false;
-        if (!matchPlace) return false;
+        const q = searchQuery.toLowerCase().trim();
+        const bounds = REGION_BOUNDS[q];
+        if (bounds) {
+          // Accurate geographic coordinate matching
+          const inBounds =
+            e.latitude >= bounds.minLat &&
+            e.latitude <= bounds.maxLat &&
+            e.longitude >= bounds.minLon &&
+            e.longitude <= bounds.maxLon;
+          if (!inBounds) return false;
+        } else {
+          // Freeform text search fallback
+          const matchPlace = e.place?.toLowerCase().includes(q) ?? false;
+          if (!matchPlace) return false;
+        }
       }
 
       if (timeFilter !== 'all') {
@@ -263,20 +306,71 @@ export const App: React.FC = () => {
     };
   }, [filteredEvents]);
 
-  // Region Preset Click Handler
+  // Region Preset Click Handler (Indonesian Archipelago Sectors)
   const handleRegionChange = (region: string) => {
     setSearchQuery(region);
     const lower = region.toLowerCase();
-    if (lower === 'indonesia') {
-      setTargetFocus([-0.7893, 113.9213]);
-    } else if (lower === 'japan') {
-      setTargetFocus([36.2048, 138.2529]);
-    } else if (lower === 'alaska') {
-      setTargetFocus([64.2008, -149.4937]);
+    if (lower === '' || lower === 'indonesia' || lower === 'all') {
+      setTargetFocus([-0.78, 118.0]);
+    } else if (lower === 'sumatra') {
+      setTargetFocus([-0.5897, 101.3431]);
+    } else if (lower === 'java') {
+      setTargetFocus([-7.6145, 110.7122]);
+    } else if (lower === 'sulawesi') {
+      setTargetFocus([-1.43, 121.4456]);
+    } else if (lower === 'banda') {
+      setTargetFocus([-5.5, 129.5]);
+    } else if (lower === 'papua') {
+      setTargetFocus([-3.8, 138.5]);
     } else {
-      setTargetFocus(null);
+      setTargetFocus([-0.78, 118.0]);
     }
   };
+
+  // Scientific English formatting for BMKG Ground Zero telemetry
+  const formattedBMKG = useMemo(() => {
+    if (!bmkgAlert) return null;
+    let loc = bmkgAlert.wilayah || 'Indonesia Archipelago';
+    loc = loc
+      .replace(/^Pusat gempa berada di\s*laut\s*/i, '')
+      .replace(/^Pusat gempa berada di\s*darat\s*/i, '')
+      .replace(/\butara\b/gi, 'N of')
+      .replace(/\bselatan\b/gi, 'S of')
+      .replace(/\bbarat\s*daya\b/gi, 'SW of')
+      .replace(/\bbarat\s*laut\b/gi, 'NW of')
+      .replace(/\btenggara\b/gi, 'SE of')
+      .replace(/\btimur\s*laut\b/gi, 'NE of')
+      .replace(/\bbarat\b/gi, 'W of')
+      .replace(/\btimur\b/gi, 'E of')
+      .replace(/(\d+)\s*km\s*/gi, '$1 KM ')
+      .replace(/\bkec\.\s*/gi, '')
+      .replace(/\bkab\.\s*/gi, '')
+      .replace(/\s*-\s*/g, ', ')
+      .trim();
+
+    let pot = 'NO TSUNAMI THREAT';
+    const pLower = (bmkgAlert.potensi || '').toLowerCase();
+    if (pLower.includes('tidak berpotensi tsunami')) {
+      pot = 'NO TSUNAMI THREAT';
+    } else if (pLower.includes('dirasakan')) {
+      pot = 'SHAKING FELT · NO TSUNAMI';
+    } else if (pLower.includes('berpotensi tsunami')) {
+      pot = 'TSUNAMI WARNING ACTIVE';
+    }
+
+    const dateStr = bmkgAlert.tanggal || '';
+    const timeStr = bmkgAlert.jam || '';
+    const fullTime = dateStr && timeStr ? `${dateStr} · ${timeStr} (GMT+7)` : dateStr || timeStr || 'RECENT RUPTURE';
+    const shortTime = dateStr && timeStr ? `${dateStr.slice(0, 6).trim()}, ${timeStr.slice(0, 5)} WIB` : dateStr || 'RECENT';
+
+    return {
+      location: loc.toUpperCase(),
+      depth: `${bmkgAlert.kedalaman} DEPTH`,
+      potensi: pot,
+      time: fullTime,
+      shortTime: shortTime,
+    };
+  }, [bmkgAlert]);
 
   const isEventBookmarked = useCallback(
     (event: SeismicEvent | null) => {
@@ -329,13 +423,13 @@ export const App: React.FC = () => {
       <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
 
       {/* 3. FIXED STICKY 3D VECTOR GLOBE LAYER (RESPONSIVE EDITORIAL PRESENCE) */}
-      <div className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
+      <div className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center pt-16 sm:pt-20 pb-20 sm:pb-24 px-4 overflow-hidden">
         <div
           style={{
-            transform: `translate3d(${effectiveTranslateX}, ${!isDesktop && heroExitProgress < 0.8 ? '28px' : '0px'}, 0) scale(${globeScale})`,
+            transform: `translate3d(${effectiveTranslateX}, 0px, 0) scale(${globeScale})`,
             willChange: 'transform',
           }}
-          className="relative w-[min(88vw,66vh,320px)] sm:w-[min(88vw,66vh,440px)] md:w-[min(85vw,66vh,500px)] lg:w-[min(46vw,66vh,560px)] xl:w-[min(44vw,68vh,620px)] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-75 ease-out"
+          className="relative w-[min(82vw,calc(100dvh-170px),340px)] sm:w-[min(72vw,calc(100dvh-170px),460px)] md:w-[min(65vw,calc(100dvh-160px),540px)] lg:w-[min(54vw,calc(100dvh-150px),640px)] xl:w-[min(52vw,calc(100dvh-140px),720px)] 2xl:w-[min(50vw,calc(100dvh-140px),780px)] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-75 ease-out"
         >
           {/* No Art Architectural Vector Wireframe 3D Globe */}
           <VectorGlobe
@@ -346,6 +440,8 @@ export const App: React.FC = () => {
             onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
             interactive={true}
             onCameraChange={setCameraCoords}
+            scrollPhi={scrollRotation.phi}
+            scrollTheta={scrollRotation.theta}
           />
         </div>
       </div>
@@ -445,7 +541,7 @@ export const App: React.FC = () => {
         chapters={storyChapters}
         activeChapterIndex={activeChapterIndex >= 0 ? activeChapterIndex : 0}
         onSelectChapter={scrollToChapter}
-        visible={!isObservatoryActive && activeChapterIndex >= 0}
+        visible={!isObservatoryActive && !isHeroActive && heroExitProgress > 0.5 && activeChapterIndex >= 0}
       />
 
       {/* 5. HERO SECTION (STAGE 0) */}
@@ -468,13 +564,39 @@ export const App: React.FC = () => {
                 key={chapter.id}
                 id="observatory-section"
                 data-chapter-index={index}
-                className="story-chapter-section min-h-screen w-full flex flex-col justify-between pt-24 pb-8 px-4 pointer-events-none"
+                className="story-chapter-section min-h-screen w-full flex flex-col justify-between pt-24 pb-8 px-4 sm:px-8 lg:px-12 xl:px-16 pointer-events-none"
               >
-                {/* Minimalist Status Indicator */}
-                <div className="w-full flex items-center justify-center pt-2 pointer-events-auto">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-600 font-mono text-[10px] tracking-widest uppercase">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>INTERACTIVE LABORATORY MODE</span>
+                {/* Top Row: Left-Aligned Epicenter Card (Never blocks the globe!) + Right Status Pill */}
+                <div className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-2 sm:gap-4 pointer-events-none pt-1">
+                  {/* Left Side: Interactive 3D Epicenter Survey Card */}
+                  <div className="pointer-events-auto">
+                    {bmkgAlert && formattedBMKG && (
+                      <EpicenterMapCard
+                        location={formattedBMKG.location}
+                        coordinates={bmkgAlert.coordinates}
+                        magnitude={bmkgAlert.magnitude}
+                        depth={formattedBMKG.depth}
+                        time={formattedBMKG.time}
+                        shortTime={formattedBMKG.shortTime}
+                        potensi={formattedBMKG.potensi}
+                        onFocusEpicenter={() => {
+                          const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
+                          if (coordsMatch) {
+                            const lat = parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1);
+                            const lon = parseFloat(coordsMatch[2]);
+                            setTargetFocus([lat, lon]);
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Right Side: Observatory Live Telemetry Pill */}
+                  <div className="pointer-events-auto self-end sm:self-auto">
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-600 font-mono text-[10px] tracking-widest uppercase">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span>NUSANTARA REAL-TIME TELEMETRY</span>
+                    </div>
                   </div>
                 </div>
 
@@ -493,7 +615,7 @@ export const App: React.FC = () => {
                     isRotating={isRotating}
                     onToggleRotation={() => setIsRotating((prev) => !prev)}
                     onResetView={() => {
-                      setTargetFocus(null);
+                      setTargetFocus([-0.78, 118.0]);
                       setResetSignal((prev) => prev + 1);
                     }}
                     onOpenFeed={() => setIsFeedOpen(true)}
@@ -518,6 +640,7 @@ export const App: React.FC = () => {
                   chapter={chapter}
                   isActive={activeChapterIndex === index}
                   onExploreClick={scrollToObservatory}
+                  onFocusSector={(coords) => setTargetFocus(coords)}
                 />
               </div>
             </section>
@@ -531,6 +654,7 @@ export const App: React.FC = () => {
         onClose={() => setSelectedEvent(null)}
         isBookmarked={isEventBookmarked(selectedEvent)}
         onToggleBookmark={handleToggleBookmark}
+        onFocusGlobe={(evt) => setTargetFocus([evt.latitude, evt.longitude])}
       />
 
       {/* 8. ACTIVE SEISMIC FEED DRAWER */}

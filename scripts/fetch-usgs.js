@@ -5,7 +5,10 @@ try {
   process.loadEnvFile?.();
 } catch {}
 
-const USGS_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson';
+const USGS_INDO_URL =
+  'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5&minlatitude=-11.0&maxlatitude=6.0&minlongitude=95.0&maxlongitude=141.0&limit=1000';
+const USGS_GLOBAL_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -17,13 +20,33 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 export async function syncUSGS() {
-  console.log(`[ETL] Fetching feed from USGS...`);
-  const res = await fetch(USGS_URL);
-  if (!res.ok) throw new Error(`USGS HTTP ${res.status}: ${res.statusText}`);
+  console.log(`[ETL] Fetching Indonesian seismic events feed from USGS...`);
+  let features = [];
 
-  const data = await res.json();
-  const features = data.features || [];
-  console.log(`[ETL] Received ${features.length} features.`);
+  try {
+    const res = await fetch(USGS_INDO_URL);
+    if (res.ok) {
+      const data = await res.json();
+      features = data.features || [];
+      console.log(`[ETL] Received ${features.length} Indonesian features from USGS Bounding Box query.`);
+    }
+  } catch (err) {
+    console.warn(`[ETL] Bounding box query failed, falling back to global feed:`, err.message);
+  }
+
+  if (features.length === 0) {
+    console.log(`[ETL] Fetching global feed fallback...`);
+    const res = await fetch(USGS_GLOBAL_URL);
+    if (!res.ok) throw new Error(`USGS HTTP ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+    features = (data.features || []).filter((f) => {
+      const coords = f.geometry?.coordinates;
+      if (!coords || coords.length < 2) return false;
+      const [lon, lat] = coords;
+      return lat >= -11.0 && lat <= 6.0 && lon >= 95.0 && lon <= 141.0;
+    });
+    console.log(`[ETL] Filtered ${features.length} Indonesian events from global feed.`);
+  }
 
   // USGS geometry.coordinates format: [longitude, latitude, depth]
   const records = features
@@ -36,7 +59,7 @@ export async function syncUSGS() {
         depth: Number(depth),
         latitude: Number(latitude),
         longitude: Number(longitude),
-        place: f.properties?.place || 'Unknown',
+        place: f.properties?.place || 'Indonesia Archipelago',
         occurred_at: new Date(f.properties?.time).toISOString(),
       };
     });

@@ -17,6 +17,8 @@ interface VectorGlobeProps {
   onSelectEvent?: (event: SeismicEvent) => void;
   interactive?: boolean;
   onCameraChange?: (coords: CameraCoordinates) => void;
+  scrollPhi?: number;
+  scrollTheta?: number;
 }
 
 interface PrecomputedRing {
@@ -144,6 +146,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   onSelectEvent,
   interactive = true,
   onCameraChange,
+  scrollPhi = 0,
+  scrollTheta = 0,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -151,11 +155,23 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const [countries, setCountries] = useState<PrecomputedFeature[]>([]);
   const containerWidthRef = useRef(560);
 
-  // Direct Interactive Physics Refs
+  // Direct Interactive Physics Refs - Default centered on Indonesian archipelago (Lat -0.78, Lon 118.0)
+  const indoPhi = -((118.0 + 90) * Math.PI) / 180;
   const phiRef = useRef(0);
-  const phiOffsetRef = useRef(0);
-  const thetaOffsetRef = useRef(0.2);
+  const phiOffsetRef = useRef(indoPhi);
+  const thetaOffsetRef = useRef(-0.013);
   const velocityRef = useRef(0);
+
+  // Scroll-driven kinetic rotation refs
+  const scrollPhiTargetRef = useRef(scrollPhi);
+  const scrollPhiCurrentRef = useRef(scrollPhi);
+  const scrollThetaTargetRef = useRef(scrollTheta);
+  const scrollThetaCurrentRef = useRef(scrollTheta);
+
+  useEffect(() => {
+    scrollPhiTargetRef.current = scrollPhi;
+    scrollThetaTargetRef.current = scrollTheta;
+  }, [scrollPhi, scrollTheta]);
 
   // Tooltip & DOM Refs
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -208,19 +224,22 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const majorEventsRef = useRef(majorEvents);
   majorEventsRef.current = majorEvents;
 
-  // Load clean 110m countries vector data & precompute all vectors once
+  // Load world countries vector and high-resolution Indonesian archipelago islands
   useEffect(() => {
-    fetch('/data/world_countries_110m.json')
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.features) return;
+    Promise.all([
+      fetch('/data/world_countries_110m.json').then((res) => res.json()).catch(() => null),
+      fetch('/data/indonesia_islands.json').then((res) => res.json()).catch(() => null),
+    ])
+      .then(([worldData, indoData]) => {
         const features: PrecomputedFeature[] = [];
-        for (const feat of data.features) {
-          const geom = feat.geometry;
-          if (!geom) continue;
-          const polys = geom.type === 'Polygon'
-            ? [geom.coordinates as number[][][]]
-            : (geom.coordinates as number[][][][]);
+
+        const parseFeat = (feat: any) => {
+          const geom = feat?.geometry;
+          if (!geom) return null;
+          const polys =
+            geom.type === 'Polygon'
+              ? [geom.coordinates as number[][][]]
+              : (geom.coordinates as number[][][][]);
 
           const rings: PrecomputedRing[] = [];
           for (const poly of polys) {
@@ -237,13 +256,30 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               rings.push({ vectors, count: ring.length });
             }
           }
-          if (rings.length > 0) {
-            features.push({ rings });
+          return rings.length > 0 ? { rings } : null;
+        };
+
+        // 1. World countries (exclude coarse Indonesia polygon if high-res archipelago is available)
+        if (worldData?.features) {
+          for (const feat of worldData.features) {
+            const isIndo = feat.properties?.name === 'Indonesia' || feat.id === 'IDN';
+            if (isIndo && indoData?.features) continue; // Replaced by high-resolution islands!
+            const parsed = parseFeat(feat);
+            if (parsed) features.push(parsed);
           }
         }
+
+        // 2. High-resolution Indonesian archipelago (1,000+ detailed islands)
+        if (indoData?.features) {
+          for (const feat of indoData.features) {
+            const parsed = parseFeat(feat);
+            if (parsed) features.push(parsed);
+          }
+        }
+
         setCountries(features);
       })
-      .catch((err) => console.error('Failed to load world countries vector:', err));
+      .catch((err) => console.error('Failed to load world & indonesia vector:', err));
   }, []);
 
   // Measure container width dynamically for responsive high-res rendering
@@ -263,15 +299,15 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   useEffect(() => {
     if (!targetFocus) return;
     const [targetLat, targetLon] = targetFocus;
-    const targetPhi = -(targetLon * Math.PI) / 180 + Math.PI / 2;
+    const targetPhi = -((targetLon + 90) * Math.PI) / 180;
     const targetTheta = (targetLat * Math.PI) / 180;
 
-    let startPhi = phiRef.current + phiOffsetRef.current;
+    let startPhi = phiRef.current + phiOffsetRef.current + scrollPhiCurrentRef.current;
     let diff = (targetPhi - startPhi) % (Math.PI * 2);
     if (diff > Math.PI) diff -= Math.PI * 2;
     if (diff < -Math.PI) diff -= Math.PI * 2;
 
-    const startTheta = thetaOffsetRef.current;
+    const startTheta = thetaOffsetRef.current + scrollThetaCurrentRef.current;
     const startTime = performance.now();
     const duration = 1200;
 
@@ -280,8 +316,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       const progress = Math.min(elapsed / duration, 1);
       const ease = 1 - Math.pow(1 - progress, 4);
 
-      phiOffsetRef.current = startPhi + diff * ease - phiRef.current;
-      thetaOffsetRef.current = startTheta + (targetTheta - startTheta) * ease;
+      phiOffsetRef.current = startPhi + diff * ease - phiRef.current - scrollPhiCurrentRef.current;
+      thetaOffsetRef.current = startTheta + (targetTheta - startTheta) * ease - scrollThetaCurrentRef.current;
 
       if (progress < 1) {
         requestAnimationFrame(animateCamera);
@@ -291,11 +327,11 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     requestAnimationFrame(animateCamera);
   }, [targetFocus]);
 
-  // Handle Reset Signal
+  // Handle Reset Signal - Reset to Indonesia
   useEffect(() => {
     if (resetSignal === 0) return;
-    phiOffsetRef.current = 0;
-    thetaOffsetRef.current = 0.2;
+    phiOffsetRef.current = indoPhi;
+    thetaOffsetRef.current = 0.05;
     velocityRef.current = 0;
   }, [resetSignal]);
 
@@ -313,8 +349,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       const mouseY = e.clientY - rect.top;
       const w = containerWidthRef.current;
 
-      const currentPhi = phiRef.current + phiOffsetRef.current;
-      const currentTheta = thetaOffsetRef.current;
+      const currentPhi = phiRef.current + phiOffsetRef.current + scrollPhiCurrentRef.current;
+      const currentTheta = Math.max(-0.85, Math.min(1.0, thetaOffsetRef.current + scrollThetaCurrentRef.current));
       const matrix = getCameraMatrix(currentPhi, currentTheta, w);
 
       let closestEvt: SeismicEvent | null = null;
@@ -411,10 +447,11 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           isDraggingRef.current = true;
         }
 
-        phiOffsetRef.current += deltaX * 0.005;
-        thetaOffsetRef.current = Math.max(-0.8, Math.min(1.0, thetaOffsetRef.current - deltaY * 0.004));
+        // Natural direct grab: dragging right moves globe right, dragging down moves globe down
+        phiOffsetRef.current -= deltaX * 0.005;
+        thetaOffsetRef.current = Math.max(-0.8, Math.min(1.0, thetaOffsetRef.current + deltaY * 0.004));
 
-        velocityRef.current = (e.clientX - lastX) * 0.003;
+        velocityRef.current = -(e.clientX - lastX) * 0.003;
         lastX = e.clientX;
         pointerInteracting.current = { x: e.clientX, y: e.clientY };
       }
@@ -437,7 +474,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     const onWheel = (e: WheelEvent) => {
       if (pointerInteracting.current !== null) {
         e.preventDefault();
-        phiOffsetRef.current += e.deltaY * 0.0015;
+        phiOffsetRef.current -= e.deltaY * 0.0015;
       }
     };
 
@@ -475,13 +512,17 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           velocityRef.current *= 0.92;
         }
 
-        const currentPhi = phiRef.current + phiOffsetRef.current;
-        const currentTheta = thetaOffsetRef.current;
+        // Lerp scroll rotation for fluid continuous momentum
+        scrollPhiCurrentRef.current += (scrollPhiTargetRef.current - scrollPhiCurrentRef.current) * 0.14;
+        scrollThetaCurrentRef.current += (scrollThetaTargetRef.current - scrollThetaCurrentRef.current) * 0.14;
+
+        const currentPhi = phiRef.current + phiOffsetRef.current + scrollPhiCurrentRef.current;
+        const currentTheta = Math.max(-0.85, Math.min(1.0, thetaOffsetRef.current + scrollThetaCurrentRef.current));
 
         // Emit live camera coordinates to HUD
         if (onCameraChangeRef.current) {
           const lat = (currentTheta * 180) / Math.PI;
-          let lon = ((-currentPhi + Math.PI / 2) * 180) / Math.PI;
+          let lon = -90 - (currentPhi * 180) / Math.PI;
           lon = (((lon + 180) % 360) + 360) % 360 - 180;
           onCameraChangeRef.current({ lat, lon });
         }
