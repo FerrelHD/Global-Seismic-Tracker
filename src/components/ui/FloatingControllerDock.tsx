@@ -29,55 +29,54 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   onOpenFeed,
   eventCount,
 }) => {
+  const pillGroup = 'flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80';
+  const pillBase = 'px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer';
+  const pillActive = 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80';
+  const pillInactive = 'text-slate-500 hover:text-slate-800 hover:bg-white/60';
+  const smallPillBase = 'px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer';
+  const divider = <div className="w-[1px] h-4 bg-slate-300/60" />;
+
   return (
     <nav
       aria-label="Seismic Telemetry Controller"
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-auto select-none animate-in fade-in slide-in-from-bottom-6 duration-700 pointer-events-none"
+      className="fixed bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none animate-in fade-in slide-in-from-bottom-6 duration-700 pointer-events-none"
+      style={{ width: 'calc(100vw - 1.5rem)', maxWidth: '880px' }}
     >
       <div className="pointer-events-auto">
-        <LiquidCard className="rounded-full px-3 py-1.5 sm:px-4 sm:py-1.5 shadow-xl border border-slate-200/80">
-          <div className="flex items-center gap-2 sm:gap-2.5 font-mono text-xs text-slate-800 whitespace-nowrap">
-            {/* Segment 1: Clean Minimalist Grey Region Pills */}
-            <div className="flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80">
+        <LiquidCard className="rounded-full shadow-xl">
+          {/* Horizontally scrollable inner content — hidden scrollbar */}
+          <div
+            className="flex items-center gap-2 sm:gap-2.5 font-mono text-xs whitespace-nowrap px-3 py-2 sm:px-4 sm:py-1.5 overflow-x-auto text-slate-800"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {/* Segment 1: Region Pills */}
+            <div className={pillGroup}>
               <button
                 onClick={() => onSearchChange('')}
-                className={`px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                  searchQuery === ''
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${pillBase} ${searchQuery === '' ? pillActive : pillInactive}`}
               >
                 GLOBAL
               </button>
               <button
                 onClick={() => onSearchChange('indonesia')}
-                className={`px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                  searchQuery.toLowerCase() === 'indonesia'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'indonesia' ? pillActive : pillInactive} flex items-center gap-1.5`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block animate-pulse" />
                 <span>IDN</span>
               </button>
               <button
                 onClick={() => onSearchChange('japan')}
-                className={`px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                  searchQuery.toLowerCase() === 'japan'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'japan' ? pillActive : pillInactive} flex items-center gap-1.5`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block animate-pulse" />
                 <span>JPN</span>
               </button>
               <button
                 onClick={() => onSearchChange('alaska')}
-                className={`px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                  searchQuery.toLowerCase() === 'alaska'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'alaska' ? pillActive : pillInactive} flex items-center gap-1.5`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block animate-pulse" />
                 <span>USA</span>
@@ -85,75 +84,51 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
             </div>
 
             {/* Segment 2: Divider */}
-            <div className="w-[1px] h-4 bg-slate-300/60" />
+            {divider}
 
             {/* Segment 3: Time Horizon Scrubber Pills */}
-            <div className="flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80">
+            <div className={pillGroup}>
               <button
                 onClick={() => onTimeFilterChange('all')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                  timeFilter === 'all'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${smallPillBase} ${timeFilter === 'all' ? pillActive : pillInactive}`}
               >
                 ALL TIME
               </button>
               <button
                 onClick={() => onTimeFilterChange('24h')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                  timeFilter === '24h'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${smallPillBase} ${timeFilter === '24h' ? pillActive : pillInactive}`}
               >
                 24H
               </button>
               <button
                 onClick={() => onTimeFilterChange('7d')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                  timeFilter === '7d'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${smallPillBase} ${timeFilter === '7d' ? pillActive : pillInactive}`}
               >
                 7D
               </button>
             </div>
 
             {/* Segment 4: Divider */}
-            <div className="w-[1px] h-4 bg-slate-300/60" />
+            {divider}
 
-            {/* Segment 5: Clean Minimalist Grey Depth Toggle */}
-            <div className="flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80">
+            {/* Segment 5: Depth Toggle */}
+            <div className={pillGroup}>
               <button
                 onClick={() => onDepthFilterChange('all')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${
-                  depthFilter === 'all'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${smallPillBase} ${depthFilter === 'all' ? pillActive : pillInactive}`}
               >
                 ALL
               </button>
               <button
                 onClick={() => onDepthFilterChange('shallow')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                  depthFilter === 'shallow'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive} flex items-center gap-1.5`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 inline-block animate-pulse" />
                 &lt;30km
               </button>
               <button
                 onClick={() => onDepthFilterChange('deep')}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer flex items-center gap-1.5 ${
-                  depthFilter === 'deep'
-                    ? 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80'
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/60'
-                }`}
+                className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive} flex items-center gap-1.5`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
                 &gt;100km
@@ -161,9 +136,9 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
             </div>
 
             {/* Segment 6: Divider */}
-            <div className="w-[1px] h-4 bg-slate-300/60" />
+            {divider}
 
-            {/* Segment 7: Clean Minimalist Grey Feed Button */}
+            {/* Segment 7: Feed Button */}
             {onOpenFeed && (
               <>
                 <button
@@ -179,11 +154,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     </span>
                   )}
                 </button>
-                <div className="w-[1px] h-4 bg-slate-300/60" />
+                {divider}
               </>
             )}
 
-            {/* Segment 8: Action Toggles in Clean Grey */}
+            {/* Segment 8: Action Toggles */}
             <div className="flex items-center gap-1">
               <button
                 onClick={onToggleRotation}

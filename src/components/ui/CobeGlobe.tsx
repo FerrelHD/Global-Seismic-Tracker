@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useMemo } from 'react';
 import createGlobe from 'cobe';
 import { SeismicEvent } from '../../types/seismic';
-import { TECTONIC_PLATES } from '../../data/tectonicPlates';
 
 interface CobeGlobeProps {
   events: SeismicEvent[];
@@ -59,34 +58,6 @@ function projectCobe(
   };
 }
 
-/**
- * Geodesic interpolation so tectonic lines curve smoothly around the 3D sphere surface
- */
-function densifyPlates(plates: [number, number][][], maxStep = 1.8): [number, number][][] {
-  return plates.map((plate) => {
-    const densePath: [number, number][] = [];
-    for (let i = 0; i < plate.length - 1; i++) {
-      const p1 = plate[i];
-      const p2 = plate[i + 1];
-      const dLat = p2[0] - p1[0];
-      let dLon = p2[1] - p1[1];
-      if (dLon > 180) dLon -= 360;
-      if (dLon < -180) dLon += 360;
-      const dist = Math.hypot(dLat, dLon);
-      const steps = Math.max(1, Math.ceil(dist / maxStep));
-      for (let s = 0; s < steps; s++) {
-        const t = s / steps;
-        densePath.push([p1[0] + dLat * t, p1[1] + dLon * t]);
-      }
-    }
-    densePath.push(plate[plate.length - 1]);
-    return densePath;
-  });
-}
-
-// Precompute dense continuous fault lines once
-const DENSE_TECTONIC_PLATES = densifyPlates(TECTONIC_PLATES);
-
 export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   events,
   className = '',
@@ -97,7 +68,6 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   onSelectEvent,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const plateCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof createGlobe> | null>(null);
 
@@ -129,77 +99,25 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   const onSelectEventRef = useRef(onSelectEvent);
   onSelectEventRef.current = onSelectEvent;
 
-  // Cache container width
-  useEffect(() => {
-    const updateSize = () => {
-      if (containerRef.current) {
-        containerWidthRef.current = containerRef.current.offsetWidth || 540;
-      }
-    };
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-
-  // Smooth camera orientation transition to focus coordinates
-  useEffect(() => {
-    if (!targetFocus) return;
-    const [targetLat, targetLon] = targetFocus;
-    const destPhi = Math.PI / 2 - (targetLon * Math.PI) / 180;
-    const destTheta = -(targetLat * Math.PI) / 180 * 0.45;
-
-    let progress = 0;
-    const startPhi = phiOffsetRef.current;
-    const startTheta = thetaOffsetRef.current;
-
-    let diff = (destPhi - startPhi) % (Math.PI * 2);
-    if (diff > Math.PI) diff -= Math.PI * 2;
-    if (diff < -Math.PI) diff += Math.PI * 2;
-
-    const anim = setInterval(() => {
-      progress += 0.08;
-      const ease = 1 - Math.pow(1 - progress, 3);
-      phiOffsetRef.current = startPhi + diff * ease;
-      thetaOffsetRef.current = startTheta + (destTheta - startTheta) * ease;
-      if (progress >= 1) clearInterval(anim);
-    }, 16);
-
-    return () => clearInterval(anim);
-  }, [targetFocus]);
-
-  // Reset view when resetSignal triggers
-  useEffect(() => {
-    if (resetSignal > 0) {
-      phiOffsetRef.current = 0;
-      thetaOffsetRef.current = 0.2;
-      velocityRef.current = 0;
-    }
-  }, [resetSignal]);
-
-  // Select candidate events sorted strictly by magnitude descending
+  // Selected Top Major Earthquakes for Label Callouts (max 2 visible at once)
   const topEvents = useMemo(() => {
     return [...events]
-      .filter((e) => (e.magnitude ?? 0) >= 3.0)
       .sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0))
       .slice(0, 10);
-  }, [events]);
-
-  // Major events (M >= 5.8) for expanding seismic sonar shockwaves
-  const majorEvents = useMemo(() => {
-    return [...events]
-      .filter((e) => (e.magnitude ?? 0) >= 5.8)
-      .sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0))
-      .slice(0, 5);
   }, [events]);
 
   const topEventsRef = useRef(topEvents);
   topEventsRef.current = topEvents;
 
+  // Major earthquakes (M >= 5.8) that receive pulsing sonar rings
+  const majorEvents = useMemo(() => {
+    return events
+      .filter((e) => (e.magnitude ?? 0) >= 5.8)
+      .slice(0, 8);
+  }, [events]);
+
   const majorEventsRef = useRef(majorEvents);
   majorEventsRef.current = majorEvents;
-
-  const eventsRef = useRef(events);
-  eventsRef.current = events;
 
   // Markers for Cobe with Depth-Based Scientific Color Spectrum
   const cobeMarkers = useMemo(() => {
@@ -227,57 +145,56 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
     }
   }, [cobeMarkers]);
 
-  // 1-to-1 Responsive Drag & Fast Proximity Hover
+  // Handle Target Focus
+  useEffect(() => {
+    if (!targetFocus) return;
+    const [targetLat, targetLon] = targetFocus;
+    const targetPhi = -(targetLon * Math.PI) / 180 + Math.PI / 2;
+    const targetTheta = (targetLat * Math.PI) / 180;
+
+    let startPhi = phiRef.current + phiOffsetRef.current;
+    let diff = (targetPhi - startPhi) % (Math.PI * 2);
+    if (diff > Math.PI) diff -= Math.PI * 2;
+    if (diff < -Math.PI) diff += Math.PI * 2;
+
+    const finalTargetPhi = startPhi + diff;
+    const startTheta = thetaOffsetRef.current;
+    const startTime = performance.now();
+    const duration = 1200;
+
+    const animateCamera = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4);
+
+      phiOffsetRef.current = startPhi + diff * ease - phiRef.current;
+      thetaOffsetRef.current = startTheta + (targetTheta - startTheta) * ease;
+
+      if (progress < 1) {
+        requestAnimationFrame(animateCamera);
+      }
+    };
+
+    requestAnimationFrame(animateCamera);
+  }, [targetFocus]);
+
+  // Handle Reset Signal
+  useEffect(() => {
+    if (resetSignal === 0) return;
+    phiOffsetRef.current = 0;
+    thetaOffsetRef.current = 0.2;
+    velocityRef.current = 0;
+  }, [resetSignal]);
+
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+
+  // Track Proximity Hover with Raycasting
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    let lastX = 0;
-    let lastY = 0;
-
-    const onPointerDown = (e: PointerEvent) => {
-      if ((e.target as HTMLElement).closest('.label-tag')) return;
-      pointerInteracting.current = { x: e.clientX, y: e.clientY };
-      lastX = e.clientX;
-      lastY = e.clientY;
-      velocityRef.current = 0;
-      isDraggingRef.current = false;
-      container.style.cursor = 'grabbing';
-    };
-
     const onPointerMove = (e: PointerEvent) => {
-      if (pointerInteracting.current !== null) {
-        const deltaX = e.clientX - lastX;
-        const deltaY = e.clientY - lastY;
-        lastX = e.clientX;
-        lastY = e.clientY;
-
-        if (Math.hypot(e.clientX - pointerInteracting.current.x, e.clientY - pointerInteracting.current.y) > 4) {
-          isDraggingRef.current = true;
-          if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-          hoveredEventRef.current = null;
-        }
-
-        const sensitivity = 0.006;
-        phiOffsetRef.current += deltaX * sensitivity;
-        thetaOffsetRef.current = Math.max(
-          -0.85,
-          Math.min(0.85, thetaOffsetRef.current + deltaY * (sensitivity * 0.7))
-        );
-
-        velocityRef.current = deltaX * sensitivity;
-      }
-    };
-
-    // Fast proximity hover on the globe container only
-    let lastCheck = 0;
-    const onContainerPointerMove = (e: PointerEvent) => {
-      if (pointerInteracting.current !== null) return;
-
-      const now = performance.now();
-      if (now - lastCheck < 35) return;
-      lastCheck = now;
-
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -286,68 +203,110 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
       const currentPhi = phiRef.current + phiOffsetRef.current;
       const currentTheta = thetaOffsetRef.current;
 
-      let closest: SeismicEvent | null = null;
-      let minDist = 22;
-      let hitX = 0;
-      let hitY = 0;
+      let closestEvt: SeismicEvent | null = null;
+      let minDistance = 24;
+      let closestX = 0;
+      let closestY = 0;
 
-      const activeEvents = eventsRef.current.slice(0, 35);
-      for (let i = 0; i < activeEvents.length; i++) {
-        const evt = activeEvents[i];
+      for (const evt of eventsRef.current) {
         const proj = projectCobe(evt.latitude, evt.longitude, currentPhi, currentTheta, w);
         if (proj.visible) {
-          const dist = Math.hypot(mouseX - proj.x, mouseY - proj.y);
-          if (dist < minDist) {
-            minDist = dist;
-            closest = evt;
-            hitX = proj.x;
-            hitY = proj.y;
+          const dist = Math.hypot(proj.x - mouseX, proj.y - mouseY);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestEvt = evt;
+            closestX = proj.x;
+            closestY = proj.y;
           }
         }
       }
 
-      if (closest && tooltipRef.current) {
-        hoveredEventRef.current = closest;
+      if (closestEvt && tooltipRef.current) {
+        hoveredEventRef.current = closestEvt;
         tooltipRef.current.style.display = 'block';
-        tooltipRef.current.style.transform = `translate3d(${hitX}px, ${hitY}px, 0) translate(-50%, -100%) translateY(-12px)`;
-        if (tooltipTitleRef.current) tooltipTitleRef.current.textContent = closest.place || 'Epicenter';
-        if (tooltipMagRef.current) tooltipMagRef.current.textContent = `M${closest.magnitude?.toFixed(1) ?? 'N/A'}`;
-        if (tooltipDepthRef.current) tooltipDepthRef.current.textContent = `Depth: ${closest.depth.toFixed(1)}km`;
-        container.style.cursor = 'pointer';
-      } else {
+        tooltipRef.current.style.transform = `translate3d(${closestX}px, ${closestY}px, 0) translate(-50%, -125%)`;
+
+        if (tooltipTitleRef.current) {
+          tooltipTitleRef.current.innerText = cleanPlace(closestEvt.place);
+        }
+        if (tooltipMagRef.current) {
+          tooltipMagRef.current.innerText = `M${closestEvt.magnitude?.toFixed(1) ?? '?'}`;
+        }
+        if (tooltipDepthRef.current) {
+          tooltipDepthRef.current.innerText = `Depth: ${closestEvt.depth.toFixed(1)}km`;
+        }
+      } else if (tooltipRef.current) {
         hoveredEventRef.current = null;
-        if (tooltipRef.current) tooltipRef.current.style.display = 'none';
-        container.style.cursor = 'grab';
+        tooltipRef.current.style.display = 'none';
+      }
+    };
+
+    container.addEventListener('pointermove', onPointerMove, { passive: true });
+    return () => {
+      container.removeEventListener('pointermove', onPointerMove);
+    };
+  }, []);
+
+  // Pointer Interaction (Drag, Inertia, Click)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      pointerInteracting.current = { x: e.clientX, y: e.clientY };
+      startX = e.clientX;
+      startY = e.clientY;
+      lastX = e.clientX;
+      velocityRef.current = 0;
+      isDraggingRef.current = false;
+      container.style.cursor = 'grabbing';
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (pointerInteracting.current !== null) {
+        const deltaX = e.clientX - pointerInteracting.current.x;
+        const deltaY = e.clientY - pointerInteracting.current.y;
+
+        if (Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
+          isDraggingRef.current = true;
+        }
+
+        phiOffsetRef.current += deltaX * 0.005;
+        thetaOffsetRef.current = Math.max(-0.8, Math.min(1.0, thetaOffsetRef.current - deltaY * 0.004));
+
+        velocityRef.current = (e.clientX - lastX) * 0.003;
+        lastX = e.clientX;
+        pointerInteracting.current = { x: e.clientX, y: e.clientY };
       }
     };
 
     const onPointerUp = () => {
-      if (!isDraggingRef.current && hoveredEventRef.current) {
-        onSelectEventRef.current?.(hoveredEventRef.current);
+      if (pointerInteracting.current !== null) {
+        pointerInteracting.current = null;
+        container.style.cursor = 'grab';
+
+        if (!isDraggingRef.current && hoveredEventRef.current) {
+          onSelectEventRef.current?.(hoveredEventRef.current);
+        }
       }
-      pointerInteracting.current = null;
-      isDraggingRef.current = false;
-      if (container) container.style.cursor = 'grab';
     };
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      phiOffsetRef.current += e.deltaX * 0.003;
-      thetaOffsetRef.current = Math.max(
-        -0.85,
-        Math.min(0.85, thetaOffsetRef.current + e.deltaY * 0.003)
-      );
+      phiOffsetRef.current += e.deltaY * 0.0015;
     };
 
     container.addEventListener('pointerdown', onPointerDown);
-    container.addEventListener('pointermove', onContainerPointerMove, { passive: true });
-    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     container.addEventListener('wheel', onWheel, { passive: false });
 
     return () => {
       container.removeEventListener('pointerdown', onPointerDown);
-      container.removeEventListener('pointermove', onContainerPointerMove);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       container.removeEventListener('wheel', onWheel);
@@ -380,63 +339,6 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
     });
 
     globeRef.current = globe;
-
-    // Render continuous, unbroken Tectonic Plate Boundaries onto 2D overlay canvas
-    function renderTectonicPlates(currentPhi: number, finalTheta: number) {
-      const plateCanvas = plateCanvasRef.current;
-      if (!plateCanvas) return;
-      const ctx = plateCanvas.getContext('2d');
-      if (!ctx) return;
-
-      const w = containerWidthRef.current;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-      if (plateCanvas.width !== w * dpr) {
-        plateCanvas.width = w * dpr;
-        plateCanvas.height = w * dpr;
-      }
-
-      ctx.clearRect(0, 0, w * dpr, w * dpr);
-      ctx.save();
-      ctx.scale(dpr, dpr);
-
-      // Crimson tectonic fault line
-      ctx.strokeStyle = 'rgba(244, 63, 94, 0.45)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
-
-      for (const plate of DENSE_TECTONIC_PLATES) {
-        ctx.beginPath();
-        let isDrawing = false;
-        let lastX = 0;
-        let lastY = 0;
-
-        for (let i = 0; i < plate.length; i++) {
-          const [lat, lon] = plate[i];
-          const p = projectCobe(lat, lon, currentPhi, finalTheta, w);
-
-          if (p.visible) {
-            if (!isDrawing) {
-              ctx.moveTo(p.x, p.y);
-              isDrawing = true;
-            } else {
-              // Connect consecutive points only if within contiguous range on screen (prevent horizon wrapping)
-              if (Math.hypot(p.x - lastX, p.y - lastY) < 40) {
-                ctx.lineTo(p.x, p.y);
-              } else {
-                ctx.moveTo(p.x, p.y);
-              }
-            }
-            lastX = p.x;
-            lastY = p.y;
-          } else {
-            isDrawing = false;
-          }
-        }
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
 
     // Smart Label Occlusion & Anti-Collision Engine + Sonar Shockwaves
     function updateDomLabels(currentPhi: number, currentTheta: number) {
@@ -531,7 +433,6 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
           theta: finalTheta,
         });
 
-        renderTectonicPlates(currentPhi, finalTheta);
         updateDomLabels(currentPhi, finalTheta);
       }
 
@@ -577,22 +478,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
         }}
       />
 
-      {/* 2. Tectonic Plate Boundaries Hairline Overlay (Precision 0.8 r lock) */}
-      <canvas
-        ref={plateCanvasRef}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          maxWidth: '560px',
-          maxHeight: '560px',
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* 3. Expanding Sonar Shockwave Rings on Major Earthquakes (M >= 5.8) */}
+      {/* 2. Expanding Sonar Shockwave Rings on Major Earthquakes (M >= 5.8) */}
       <div ref={shockwavesContainerRef} className="absolute inset-0 pointer-events-none overflow-hidden">
         {majorEvents.map((evt) => (
           <div
@@ -612,7 +498,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
         ))}
       </div>
 
-      {/* 4. Floating Frosted Glass Badges (Strictly 1-2 facing tags, clean grey palette) */}
+      {/* 3. Floating Frosted Glass Badges (Strictly 1-2 facing tags, clean grey palette) */}
       <div ref={labelsContainerRef} className="absolute inset-0 pointer-events-none">
         {topEvents.map((evt) => (
           <div
@@ -638,7 +524,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
         ))}
       </div>
 
-      {/* 5. Instant Hover Tooltip in Frosted Acrylic Glass */}
+      {/* 4. Instant Hover Tooltip in Frosted Acrylic Glass */}
       <div
         ref={tooltipRef}
         style={{ display: 'none', position: 'absolute', top: 0, left: 0 }}

@@ -53,116 +53,86 @@ export const App: React.FC = () => {
     setBookmarks(getLocalBookmarks());
   }, []);
 
-  // Keyboard shortcut: ESC to close drawers & modal
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsDrawerOpen(false);
-        setIsFeedOpen(false);
-        setSelectedEvent(null);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
+  // Filtered Events Pipeline
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
-      if (searchQuery.trim()) {
+      // 1. Text Search Filter (Place matching)
+      if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase();
-        const place = (e.place || '').toLowerCase();
-
-        // Smart Indonesia Detection (Text + Geocoordinates Bounding Box: -11.5 to 6.5 Lat, 95 to 141.5 Lon)
-        if (q === 'indonesia' || q === 'indo' || q === 'idn') {
-          const inGeoBounds =
-            e.latitude >= -11.5 && e.latitude <= 6.5 && e.longitude >= 95.0 && e.longitude <= 141.5;
-          const hasKeyword =
-            place.includes('indonesia') ||
-            place.includes('sumatra') ||
-            place.includes('java') ||
-            place.includes('bali') ||
-            place.includes('sulawesi') ||
-            place.includes('maluku') ||
-            place.includes('papua') ||
-            place.includes('banda sea');
-          if (!inGeoBounds && !hasKeyword) return false;
-        } else if (!place.includes(q)) {
-          return false;
-        }
+        const matchPlace = e.place?.toLowerCase().includes(q) ?? false;
+        if (!matchPlace) return false;
       }
 
-      // Time horizon filter
+      // 2. Time Horizon Scrubber Filter
       if (timeFilter !== 'all') {
-        const now = Date.now();
         const eventTime = new Date(e.occurred_at).getTime();
+        const now = Date.now();
         const diffHours = (now - eventTime) / (1000 * 60 * 60);
+
         if (timeFilter === '24h' && diffHours > 24) return false;
         if (timeFilter === '7d' && diffHours > 24 * 7) return false;
       }
 
-      // Depth filter
-      if (depthFilter === 'shallow' && e.depth > 30) return false;
-      if (depthFilter === 'mid' && (e.depth <= 30 || e.depth > 100)) return false;
+      // 3. Depth Range Filter
+      if (depthFilter === 'shallow' && e.depth >= 30) return false;
+      if (depthFilter === 'mid' && (e.depth < 30 || e.depth > 100)) return false;
       if (depthFilter === 'deep' && e.depth <= 100) return false;
 
       return true;
     });
   }, [events, searchQuery, timeFilter, depthFilter]);
 
-  const topEvent = useMemo(() => {
-    if (filteredEvents.length === 0) return null;
-    return [...filteredEvents].sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0))[0];
-  }, [filteredEvents]);
-
+  // Statistics Pipeline
   const stats = useMemo(() => {
-    if (filteredEvents.length === 0) return { count: 0, maxMag: '0.0', avgDepth: '0.0' };
-    const maxMag = topEvent?.magnitude ?? 0;
-    const avgDepth = filteredEvents.reduce((acc, e) => acc + e.depth, 0) / filteredEvents.length;
+    if (filteredEvents.length === 0) {
+      return { count: 0, maxMag: '0.0', avgDepth: '0.0' };
+    }
+    const max = Math.max(...filteredEvents.map((e) => e.magnitude ?? 0));
+    const sumDepth = filteredEvents.reduce((acc, curr) => acc + curr.depth, 0);
     return {
       count: filteredEvents.length,
-      maxMag: maxMag.toFixed(1),
-      avgDepth: avgDepth.toFixed(1),
+      maxMag: max.toFixed(1),
+      avgDepth: (sumDepth / filteredEvents.length).toFixed(1),
     };
-  }, [filteredEvents, topEvent]);
+  }, [filteredEvents]);
 
-  // Region change with auto-focus camera animation
-  const handleRegionChange = useCallback((val: string) => {
-    setSearchQuery(val);
-    const q = val.toLowerCase();
-    if (q === 'indonesia') {
-      setTargetFocus([-2.5, 120.0]);
-    } else if (q === 'japan') {
-      setTargetFocus([36.0, 138.0]);
-    } else if (q === 'alaska') {
-      setTargetFocus([58.0, -150.0]);
+  // Region Preset Click Handler
+  const handleRegionChange = (region: string) => {
+    setSearchQuery(region);
+    const lower = region.toLowerCase();
+    if (lower === 'indonesia') {
+      setTargetFocus([-0.7893, 113.9213]);
+    } else if (lower === 'japan') {
+      setTargetFocus([36.2048, 138.2529]);
+    } else if (lower === 'alaska') {
+      setTargetFocus([64.2008, -149.4937]);
     } else {
       setTargetFocus(null);
     }
-  }, []);
+  };
 
-  // Bookmark actions
   const isEventBookmarked = useCallback(
     (event: SeismicEvent | null) => {
       if (!event) return false;
-      return bookmarks.some(
-        (b) => b.event_id === event.id || b.event.usgs_id === event.usgs_id
-      );
+      return bookmarks.some((b) => b.event_id === event.id || b.event.usgs_id === event.usgs_id);
     },
     [bookmarks]
   );
 
   const handleToggleBookmark = useCallback(
     (event: SeismicEvent, note = '') => {
-      const exists = isEventBookmarked(event);
-      if (exists) {
-        const updated = removeLocalBookmark(event.id || event.usgs_id);
-        setBookmarks(updated);
+      const isAlready = bookmarks.some(
+        (b) => b.event_id === event.id || b.event.usgs_id === event.usgs_id
+      );
+      let updated: Bookmark[];
+      if (isAlready) {
+        updated = removeLocalBookmark(event.id || event.usgs_id);
       } else {
-        const updated = saveLocalBookmark(event, note);
-        setBookmarks(updated);
+        updated = saveLocalBookmark(event, note);
       }
+      setBookmarks(updated);
     },
-    [isEventBookmarked]
+    [bookmarks]
   );
 
   const handleRemoveBookmark = useCallback((id: string) => {
@@ -187,56 +157,58 @@ export const App: React.FC = () => {
       <LiquidGlassFilter />
 
       {/* 2. AWWWARDS-STYLE LIQUID GLASS NAVBAR */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-4 pointer-events-none select-none">
-        <LiquidCard className="rounded-2xl sm:rounded-full p-2.5 sm:px-6 sm:py-2.5 shadow-xl pointer-events-auto">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
-                <GlobeIcon className="w-3.5 h-3.5" />
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-3 sm:px-4 pointer-events-none select-none">
+        <LiquidCard className="rounded-2xl sm:rounded-full shadow-xl pointer-events-auto">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-2.5 sm:px-5 sm:py-3">
+            {/* LEFT: Logo + Observatory Branding */}
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 shrink-0">
+              <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                <GlobeIcon className="w-4 h-4" />
               </div>
-              <div>
-                <h1 className="text-xs sm:text-sm font-bold tracking-widest uppercase font-mono text-slate-950 flex items-center gap-2">
-                  SEISMIC OBSERVATORY
-                  <span className="text-slate-300 font-normal hidden sm:inline">//</span>
-                  <span className="text-slate-600 font-display font-black tracking-tight hidden sm:inline text-xs">
+              <div className="min-w-0">
+                <h1 className="font-bold tracking-widest uppercase font-mono text-slate-950 leading-none flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm">
+                  <span className="whitespace-nowrap">SEISMIC OBSERVATORY</span>
+                  <span className="hidden md:inline text-slate-300 font-normal">//</span>
+                  <span className="hidden md:inline text-slate-600 font-display font-black tracking-tight text-[11px]">
                     GLOBAL TECTONICS
                   </span>
-                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-slate-100 text-slate-800 border border-slate-300/80 font-mono tracking-wider font-semibold">
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300/80 font-mono tracking-wider font-semibold whitespace-nowrap">
                     LIVE 3D
                   </span>
                 </h1>
               </div>
             </div>
 
-            {/* Header Right Actions */}
-            <div className="flex items-center gap-3 font-mono text-xs">
-              {/* Telemetry Counters */}
-              <div className="hidden md:flex items-center gap-4 px-3.5 py-1 rounded-full bg-white/50 border border-white/80 shadow-xs text-[11px] font-mono tracking-wider">
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-medium">TOTAL SHOCKS</span>
-                  <span className="font-bold text-slate-900">{loading ? '...' : `${stats.count}`}</span>
-                </div>
-                <div className="w-[1px] h-4 bg-slate-200" />
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-medium">PEAK SHOCK</span>
-                  <span className="font-bold text-slate-900">{loading ? '...' : `M${stats.maxMag}`}</span>
-                </div>
-                <div className="w-[1px] h-4 bg-slate-200" />
-                <div>
-                  <span className="text-[9px] text-slate-400 block font-medium">AVG DEPTH</span>
-                  <span className="font-bold text-slate-900">{loading ? '...' : `${stats.avgDepth} km`}</span>
-                </div>
+            {/* CENTER: Telemetry Counters — visible on lg+ */}
+            <div className="hidden lg:flex items-center gap-4 px-4 py-1.5 rounded-full bg-white/50 border border-white/80 shadow-xs text-[11px] font-mono tracking-wider shrink-0">
+              <div className="text-center">
+                <span className="text-[9px] text-slate-400 block font-medium">TOTAL SHOCKS</span>
+                <span className="font-bold text-slate-900">{loading ? '—' : stats.count}</span>
               </div>
+              <div className="w-px h-5 bg-slate-200" />
+              <div className="text-center">
+                <span className="text-[9px] text-slate-400 block font-medium">PEAK SHOCK</span>
+                <span className="font-bold text-slate-900">{loading ? '—' : `M${stats.maxMag}`}</span>
+              </div>
+              <div className="w-px h-5 bg-slate-200" />
+              <div className="text-center">
+                <span className="text-[9px] text-slate-400 block font-medium">AVG DEPTH</span>
+                <span className="font-bold text-slate-900">{loading ? '—' : `${stats.avgDepth}km`}</span>
+              </div>
+            </div>
 
+            {/* RIGHT: Actions */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 font-mono text-xs">
               {/* Bookmarks Drawer Toggle Button */}
               <button
+                id="bookmarks-btn"
                 onClick={() => setIsDrawerOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-900 transition-all font-mono tracking-wider text-xs font-semibold shadow-xs cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-900 transition-all font-mono tracking-wider text-xs font-semibold shadow-xs cursor-pointer whitespace-nowrap"
               >
-                <BookmarkIcon className="w-3.5 h-3.5 text-slate-700" />
-                <span>SAVED</span>
+                <BookmarkIcon className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                <span className="hidden sm:inline">SAVED</span>
                 {bookmarks.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-slate-900 text-white text-[10px] font-mono">
+                  <span className="px-1.5 py-0.5 rounded-full bg-slate-900 text-white text-[9px] font-mono leading-none">
                     {bookmarks.length}
                   </span>
                 )}
@@ -244,9 +216,10 @@ export const App: React.FC = () => {
 
               {/* Refresh Button */}
               <button
+                id="refresh-btn"
                 onClick={loadData}
                 title="Reload Telemetry"
-                className="p-1.5 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-700 hover:text-slate-950 transition-all shadow-xs cursor-pointer"
+                className="p-2 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-700 hover:text-slate-950 transition-all shadow-xs cursor-pointer shrink-0"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               </button>
@@ -255,7 +228,7 @@ export const App: React.FC = () => {
         </LiquidCard>
       </div>
 
-      {/* 3. CENTERPIECE: 3D COBE GLOBE WITH 100% UNRESTRICTED VIEWPORT */}
+      {/* 3. CENTERPIECE: 3D COBE GLOBE */}
       <main className="relative flex-1 flex items-center justify-center p-0 z-10 w-full h-full overflow-hidden">
         <div className="w-full max-w-[530px] sm:max-w-[560px] aspect-square flex items-center justify-center pt-8 pb-4">
           <CobeGlobe
@@ -268,7 +241,7 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* 5. AWWWARDS-STYLE REFINED LABORATORY DOCK */}
+      {/* 4. AWWWARDS-STYLE REFINED LABORATORY DOCK */}
       <FloatingControllerDock
         searchQuery={searchQuery}
         onSearchChange={handleRegionChange}
@@ -286,7 +259,7 @@ export const App: React.FC = () => {
         eventCount={filteredEvents.length}
       />
 
-      {/* 6. EVENT DETAIL & BOOKMARK MODAL (LIQUID CARD) */}
+      {/* 5. EVENT DETAIL & BOOKMARK MODAL (LIQUID CARD) */}
       <EventModal
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
@@ -294,7 +267,7 @@ export const App: React.FC = () => {
         onToggleBookmark={handleToggleBookmark}
       />
 
-      {/* 7. ACTIVE SEISMIC FEED DRAWER */}
+      {/* 6. ACTIVE SEISMIC FEED DRAWER */}
       <EventsListDrawer
         isOpen={isFeedOpen}
         onClose={() => setIsFeedOpen(false)}
@@ -308,7 +281,7 @@ export const App: React.FC = () => {
         onToggleBookmark={handleToggleBookmark}
       />
 
-      {/* 8. SAVED BOOKMARKS SLIDING DRAWER */}
+      {/* 7. SAVED BOOKMARKS SLIDING DRAWER */}
       <BookmarkDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -322,4 +295,5 @@ export const App: React.FC = () => {
     </div>
   );
 };
+
 export default App;
