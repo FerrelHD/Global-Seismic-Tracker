@@ -10,6 +10,7 @@ interface CobeGlobeProps {
   resetSignal?: number;
   targetFocus?: [number, number] | null;
   onSelectEvent?: (event: SeismicEvent) => void;
+  interactive?: boolean;
 }
 
 function cleanPlace(place: string | null): string {
@@ -66,10 +67,14 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   resetSignal = 0,
   targetFocus = null,
   onSelectEvent,
+  interactive = true,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const globeRef = useRef<ReturnType<typeof createGlobe> | null>(null);
+
+  const interactiveRef = useRef(interactive);
+  interactiveRef.current = interactive;
 
   // Cached container width
   const containerWidthRef = useRef(540);
@@ -257,6 +262,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
     let lastX = 0;
 
     const onPointerDown = (e: PointerEvent) => {
+      if (!interactiveRef.current) return;
       pointerInteracting.current = { x: e.clientX, y: e.clientY };
       startX = e.clientX;
       startY = e.clientY;
@@ -296,6 +302,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
     };
 
     const onWheel = (e: WheelEvent) => {
+      if (!interactiveRef.current) return;
       e.preventDefault();
       phiOffsetRef.current += e.deltaY * 0.0015;
     };
@@ -451,7 +458,7 @@ export const CobeGlobe: React.FC<CobeGlobeProps> = ({
   return (
     <div
       ref={containerRef}
-      style={{ cursor: 'grab', touchAction: 'none' }}
+      style={{ cursor: interactive ? 'grab' : 'default', touchAction: interactive ? 'none' : 'auto' }}
       className={`relative w-full aspect-square max-w-[560px] select-none mx-auto flex items-center justify-center will-change-transform ${className}`}
     >
       {/* Ambient Atmospheric Optical Glow */}

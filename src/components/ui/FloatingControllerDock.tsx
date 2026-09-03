@@ -14,6 +14,7 @@ interface FloatingControllerDockProps {
   onResetView: () => void;
   onOpenFeed?: () => void;
   eventCount?: number;
+  visible?: boolean;
 }
 
 export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
@@ -28,6 +29,7 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   onResetView,
   onOpenFeed,
   eventCount,
+  visible = true,
 }) => {
   const pillGroup = 'flex items-center gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80';
   const pillBase = 'px-3 py-1 rounded-full text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer';
@@ -39,7 +41,9 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   return (
     <nav
       aria-label="Seismic Telemetry Controller"
-      className="fixed bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none animate-in fade-in slide-in-from-bottom-6 duration-700 pointer-events-none"
+      className={`fixed bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-700 pointer-events-none ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 pointer-events-none'
+      }`}
       style={{ width: 'calc(100vw - 1.5rem)', maxWidth: '880px' }}
     >
       <div className="pointer-events-auto">
