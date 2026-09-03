@@ -8,8 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-8.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-Personal_Portfolio-slate?style=for-the-badge)](#-license)
 
 <br />
 
@@ -266,4 +265,4 @@ vercel
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is created as a **Personal Portfolio & Showcase Project**. All rights reserved. Code is provided for review, evaluation, and demonstration purposes.

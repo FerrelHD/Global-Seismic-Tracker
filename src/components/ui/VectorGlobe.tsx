@@ -351,10 +351,10 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           tooltipTitleRef.current.innerText = cleanPlace(closestEvt.place);
         }
         if (tooltipMagRef.current) {
-          tooltipMagRef.current.innerText = `M${closestEvt.magnitude?.toFixed(1) ?? '?'}`;
+          tooltipMagRef.current.innerText = `${closestEvt.magnitude?.toFixed(1) ?? '?'}`;
         }
         if (tooltipDepthRef.current) {
-          tooltipDepthRef.current.innerText = `Depth: ${closestEvt.depth.toFixed(1)}km`;
+          tooltipDepthRef.current.innerText = `${closestEvt.depth.toFixed(0)}km`;
         }
       } else if (tooltipRef.current) {
         hoveredEventRef.current = null;
@@ -765,60 +765,73 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         })}
       </div>
 
-      {/* 3. Floating Frosted Glass Badges */}
+      {/* 3. Floating Architectural Blueprint Tags (No Clumsy Oval Capsules) */}
       <div ref={labelsContainerRef} className="absolute inset-0 pointer-events-none">
         {topEvents.map((item) => {
           const evt = item.evt;
+          const mag = evt.magnitude?.toFixed(1) ?? '';
+          const isMajor = (evt.magnitude ?? 0) >= 6.0;
+
           return (
             <div
               key={evt.usgs_id || evt.id}
-              className="label-tag absolute top-0 left-0 transition-opacity duration-200 z-20 cursor-pointer pointer-events-auto will-change-transform"
+              className="label-tag absolute top-0 left-0 transition-opacity duration-200 z-20 cursor-pointer pointer-events-auto will-change-transform flex flex-col items-center"
               style={{ opacity: 0 }}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectEventRef.current?.(evt);
               }}
             >
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/92 hover:bg-white text-slate-900 font-mono text-[10px] font-semibold tracking-wider shadow-md border border-slate-200/90 whitespace-nowrap hover:scale-105 active:scale-95 transition-all backdrop-blur-md">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
+              {/* Architectural Precision Data Flag */}
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 hover:bg-white text-slate-900 font-mono text-[10px] tracking-wide shadow-xs border border-slate-300/80 whitespace-nowrap hover:scale-105 active:scale-95 transition-all backdrop-blur-md">
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isMajor
+                      ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)] animate-pulse'
+                      : 'bg-blue-600'
+                  }`}
+                />
+                <span className="font-semibold text-slate-900 tracking-wider">
+                  {cleanPlace(evt.place)}
                 </span>
-                <span className="text-slate-800">{cleanPlace(evt.place)}</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-[9px] font-bold text-slate-700 border border-slate-200">
-                  M{evt.magnitude?.toFixed(1) ?? ''}
+                <span className="text-slate-300 font-light">/</span>
+                <span
+                  className={`font-bold tabular-nums ${
+                    isMajor ? 'text-rose-600' : 'text-slate-900'
+                  }`}
+                >
+                  {mag}
                 </span>
               </div>
+              {/* 1px Hairline Leader Stem pointing to epicenter */}
+              <div className="w-px h-1.5 bg-slate-400/80" />
             </div>
           );
         })}
       </div>
 
-      {/* 4. Instant Hover Tooltip in Frosted Acrylic Glass */}
+      {/* 4. Precision Micro-Telemetry Strip (Floating HUD Reticle) */}
       <div
         ref={tooltipRef}
         style={{ display: 'none', position: 'absolute', top: 0, left: 0 }}
         className="z-30 pointer-events-none will-change-transform"
       >
-        <div className="px-3.5 py-2 rounded-xl bg-white/95 text-slate-900 font-sans text-xs shadow-xl border border-slate-200/90 flex flex-col gap-0.5 whitespace-nowrap backdrop-blur-xl">
-          <div className="flex items-center gap-2">
-            <span
-              ref={tooltipMagRef}
-              className="px-1.5 py-0.2 rounded-md bg-slate-100 text-[10px] font-mono font-bold text-slate-900 border border-slate-200"
-            >
-              M5.0
-            </span>
-            <span
-              ref={tooltipTitleRef}
-              className="font-semibold text-slate-900 truncate max-w-[200px]"
-            >
-              Location
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-3 text-[10px] text-slate-500 font-mono mt-1">
-            <span ref={tooltipDepthRef}>Depth: 10km</span>
-            <span className="text-blue-600 font-medium">Click to inspect</span>
-          </div>
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-950/90 text-white font-mono text-[11px] shadow-xl border border-slate-800 whitespace-nowrap backdrop-blur-xl">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+          <span ref={tooltipMagRef} className="font-bold text-white tabular-nums">
+            5.0
+          </span>
+          <span className="text-slate-600 font-light">|</span>
+          <span
+            ref={tooltipTitleRef}
+            className="font-medium text-slate-200 tracking-wide truncate max-w-[200px]"
+          >
+            Location
+          </span>
+          <span className="text-slate-600 font-light">·</span>
+          <span ref={tooltipDepthRef} className="text-slate-400 tabular-nums">
+            10km
+          </span>
         </div>
       </div>
     </div>
