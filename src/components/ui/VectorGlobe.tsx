@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { SeismicEvent } from '../../types/seismic';
-import { PRECOMPUTED_GRATICULES, GraticuleLine } from '../../utils/graticule';
+import { PRECOMPUTED_GRATICULES } from '../../utils/graticule';
 
 export interface CameraCoordinates {
   lat: number;
@@ -19,11 +19,32 @@ interface VectorGlobeProps {
   onCameraChange?: (coords: CameraCoordinates) => void;
 }
 
-interface CountryFeature {
-  geometry: {
-    type: 'Polygon' | 'MultiPolygon';
-    coordinates: number[][][] | number[][][][];
-  };
+interface PrecomputedRing {
+  vectors: Float32Array; // Flattened [t0, t1, t2, ...]
+  count: number;
+}
+
+interface PrecomputedFeature {
+  rings: PrecomputedRing[];
+}
+
+interface PrecomputedEvent {
+  evt: SeismicEvent;
+  t0: number;
+  t1: number;
+  t2: number;
+}
+
+interface CameraMatrix {
+  m00: number;
+  m02: number;
+  m10: number;
+  m11: number;
+  m12: number;
+  m20: number;
+  m21: number;
+  m22: number;
+  width: number;
 }
 
 function cleanPlace(place: string | null): string {
@@ -34,16 +55,10 @@ function cleanPlace(place: string | null): string {
 }
 
 /**
- * 3D Spherical orthographic projection matching physical 0.85 sphere radius.
+ * Precomputes 3D Cartesian spherical coordinate [t0, t1, t2] on a sphere of radius 0.82.
+ * This runs ONCE when data loads, eliminating all per-frame trigonometry.
  */
-function projectSphere(
-  lat: number,
-  lon: number,
-  phi: number,
-  theta: number,
-  width: number,
-  radius = 0.82
-) {
+function geoToSphereVector(lat: number, lon: number, radius = 0.82): [number, number, number] {
   const latRad = (lat * Math.PI) / 180;
   const lonRad = (lon * Math.PI) / 180 - Math.PI;
 
@@ -52,26 +67,72 @@ function projectSphere(
   const cosLon = Math.cos(lonRad);
   const sinLon = Math.sin(lonRad);
 
-  const t0 = -cosLat * cosLon * radius;
-  const t1 = sinLat * radius;
-  const t2 = cosLat * sinLon * radius;
+  return [
+    -cosLat * cosLon * radius,
+    sinLat * radius,
+    cosLat * sinLon * radius,
+  ];
+}
 
+/**
+ * Creates camera transformation matrix once per frame.
+ */
+function getCameraMatrix(phi: number, theta: number, width: number): CameraMatrix {
   const cosTheta = Math.cos(theta);
   const sinTheta = Math.sin(theta);
   const cosPhi = Math.cos(phi);
   const sinPhi = Math.sin(phi);
 
-  const c = cosPhi * t0 + sinPhi * t2;
-  const s = sinPhi * sinTheta * t0 + cosTheta * t1 - cosPhi * sinTheta * t2;
-  const z = -sinPhi * cosTheta * t0 + sinTheta * t1 + cosPhi * cosTheta * t2;
-
   return {
-    x: ((c + 1) / 2) * width,
-    y: ((-s + 1) / 2) * width,
-    z,
-    visible: z >= 0.03, // Visible front hemisphere
+    m00: cosPhi,
+    m02: sinPhi,
+    m10: sinPhi * sinTheta,
+    m11: cosTheta,
+    m12: -cosPhi * sinTheta,
+    m20: -sinPhi * cosTheta,
+    m21: sinTheta,
+    m22: cosPhi * cosTheta,
+    width,
   };
 }
+
+/**
+ * Fallback projection helper for single coordinates
+ */
+export function projectSphere(
+  lat: number,
+  lon: number,
+  phi: number,
+  theta: number,
+  width: number,
+  radius = 0.82
+) {
+  const [t0, t1, t2] = geoToSphereVector(lat, lon, radius);
+  const m = getCameraMatrix(phi, theta, width);
+  const c = m.m00 * t0 + m.m02 * t2;
+  const s = m.m10 * t0 + m.m11 * t1 + m.m12 * t2;
+  const z = m.m20 * t0 + m.m21 * t1 + m.m22 * t2;
+
+  return {
+    x: ((c + 1) * 0.5) * width,
+    y: ((-s + 1) * 0.5) * width,
+    z,
+    visible: z >= 0.03,
+  };
+}
+
+// Precompute graticules once at module load
+const PRECOMPUTED_GRATICULE_RINGS: PrecomputedRing[] = PRECOMPUTED_GRATICULES.map((line) => {
+  const vectors = new Float32Array(line.points.length * 3);
+  for (let i = 0; i < line.points.length; i++) {
+    const [lat, lon] = line.points[i];
+    const [t0, t1, t2] = geoToSphereVector(lat, lon, 0.82);
+    vectors[i * 3] = t0;
+    vectors[i * 3 + 1] = t1;
+    vectors[i * 3 + 2] = t2;
+  }
+  return { vectors, count: line.points.length };
+});
 
 export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   events,
@@ -87,7 +148,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [countries, setCountries] = useState<CountryFeature[]>([]);
+  const [countries, setCountries] = useState<PrecomputedFeature[]>([]);
   const containerWidthRef = useRef(560);
 
   // Direct Interactive Physics Refs
@@ -121,36 +182,71 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const onCameraChangeRef = useRef(onCameraChange);
   onCameraChangeRef.current = onCameraChange;
 
+  // Precompute seismic events vectors whenever events prop updates
+  const precomputedEvents = useMemo(() => {
+    return events.map((evt) => {
+      const [t0, t1, t2] = geoToSphereVector(evt.latitude, evt.longitude, 0.82);
+      return { evt, t0, t1, t2 };
+    });
+  }, [events]);
+  const precomputedEventsRef = useRef<PrecomputedEvent[]>(precomputedEvents);
+  precomputedEventsRef.current = precomputedEvents;
+
   // Selected top earthquakes for floating callout tags
   const topEvents = useMemo(() => {
-    return [...events]
-      .sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0))
+    return [...precomputedEvents]
+      .sort((a, b) => (b.evt.magnitude ?? 0) - (a.evt.magnitude ?? 0))
       .slice(0, 10);
-  }, [events]);
+  }, [precomputedEvents]);
   const topEventsRef = useRef(topEvents);
   topEventsRef.current = topEvents;
 
   // Major earthquakes (M >= 5.8) for pulsing shockwave ripples
   const majorEvents = useMemo(() => {
-    return events.filter((e) => (e.magnitude ?? 0) >= 5.8).slice(0, 8);
-  }, [events]);
+    return precomputedEvents.filter((e) => (e.evt.magnitude ?? 0) >= 5.8).slice(0, 8);
+  }, [precomputedEvents]);
   const majorEventsRef = useRef(majorEvents);
   majorEventsRef.current = majorEvents;
 
-  const eventsRef = useRef(events);
-  eventsRef.current = events;
-
-  // Load clean 110m countries vector data
+  // Load clean 110m countries vector data & precompute all vectors once
   useEffect(() => {
     fetch('/data/world_countries_110m.json')
       .then((res) => res.json())
       .then((data) => {
-        if (data.features) setCountries(data.features);
+        if (!data.features) return;
+        const features: PrecomputedFeature[] = [];
+        for (const feat of data.features) {
+          const geom = feat.geometry;
+          if (!geom) continue;
+          const polys = geom.type === 'Polygon'
+            ? [geom.coordinates as number[][][]]
+            : (geom.coordinates as number[][][][]);
+
+          const rings: PrecomputedRing[] = [];
+          for (const poly of polys) {
+            for (const ring of poly) {
+              if (ring.length < 3) continue;
+              const vectors = new Float32Array(ring.length * 3);
+              for (let i = 0; i < ring.length; i++) {
+                const [lon, lat] = ring[i];
+                const [t0, t1, t2] = geoToSphereVector(lat, lon, 0.82);
+                vectors[i * 3] = t0;
+                vectors[i * 3 + 1] = t1;
+                vectors[i * 3 + 2] = t2;
+              }
+              rings.push({ vectors, count: ring.length });
+            }
+          }
+          if (rings.length > 0) {
+            features.push({ rings });
+          }
+        }
+        setCountries(features);
       })
       .catch((err) => console.error('Failed to load world countries vector:', err));
   }, []);
 
-  // Measure container width dynamically for responsive high-res rendering up to 820px
+  // Measure container width dynamically for responsive high-res rendering
   useEffect(() => {
     const updateSize = () => {
       if (containerRef.current) {
@@ -173,7 +269,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     let startPhi = phiRef.current + phiOffsetRef.current;
     let diff = (targetPhi - startPhi) % (Math.PI * 2);
     if (diff > Math.PI) diff -= Math.PI * 2;
-    if (diff < -Math.PI) diff += Math.PI * 2;
+    if (diff < -Math.PI) diff -= Math.PI * 2;
 
     const startTheta = thetaOffsetRef.current;
     const startTime = performance.now();
@@ -203,12 +299,15 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     velocityRef.current = 0;
   }, [resetSignal]);
 
-  // Proximity Hover Raycasting
+  // Proximity Hover Raycasting with AnimationFrame Throttling
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const onPointerMove = (e: PointerEvent) => {
+    let scheduled = false;
+    let lastPointerEvent: PointerEvent | null = null;
+
+    const checkProximity = (e: PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -216,21 +315,29 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
       const currentPhi = phiRef.current + phiOffsetRef.current;
       const currentTheta = thetaOffsetRef.current;
+      const matrix = getCameraMatrix(currentPhi, currentTheta, w);
 
       let closestEvt: SeismicEvent | null = null;
       let minDistance = 24;
       let closestX = 0;
       let closestY = 0;
 
-      for (const evt of eventsRef.current) {
-        const proj = projectSphere(evt.latitude, evt.longitude, currentPhi, currentTheta, w);
-        if (proj.visible) {
-          const dist = Math.hypot(proj.x - mouseX, proj.y - mouseY);
+      const activeEvents = precomputedEventsRef.current;
+      for (let i = 0; i < activeEvents.length; i++) {
+        const item = activeEvents[i];
+        const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
+        const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
+        const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
+
+        if (z >= 0.03) {
+          const px = ((c + 1) * 0.5) * w;
+          const py = ((-s + 1) * 0.5) * w;
+          const dist = Math.hypot(px - mouseX, py - mouseY);
           if (dist < minDistance) {
             minDistance = dist;
-            closestEvt = evt;
-            closestX = proj.x;
-            closestY = proj.y;
+            closestEvt = item.evt;
+            closestX = px;
+            closestY = py;
           }
         }
       }
@@ -252,6 +359,17 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       } else if (tooltipRef.current) {
         hoveredEventRef.current = null;
         tooltipRef.current.style.display = 'none';
+      }
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      lastPointerEvent = e;
+      if (!scheduled) {
+        scheduled = true;
+        requestAnimationFrame(() => {
+          scheduled = false;
+          if (lastPointerEvent) checkProximity(lastPointerEvent);
+        });
       }
     };
 
@@ -317,12 +435,10 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     };
 
     const onWheel = (e: WheelEvent) => {
-      // If user is actively dragging the globe, allow wheel to fine-tune yaw
       if (pointerInteracting.current !== null) {
         e.preventDefault();
         phiOffsetRef.current += e.deltaY * 0.0015;
       }
-      // Otherwise let wheel scroll naturally through the web page!
     };
 
     container.addEventListener('pointerdown', onPointerDown);
@@ -338,7 +454,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     };
   }, []);
 
-  // Main 60-120fps Vector Rendering Engine
+  // Main 60fps Vector Rendering Engine with Precomputed Vector Pipeline
   useEffect(() => {
     let animationFrameId: number;
     const canvas = canvasRef.current;
@@ -371,14 +487,16 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         }
 
         const w = containerWidthRef.current;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const isMobile = window.innerWidth < 768;
+        const maxDpr = isMobile ? 1.25 : 1.5;
+        const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
 
-        if (canvas.width !== w * dpr) {
-          canvas.width = w * dpr;
-          canvas.height = w * dpr;
+        if (canvas.width !== Math.round(w * dpr)) {
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(w * dpr);
         }
 
-        ctx.clearRect(0, 0, w * dpr, w * dpr);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.scale(dpr, dpr);
 
@@ -386,10 +504,17 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         const cy = w / 2;
         const sphereRadius = (w / 2) * 0.82;
 
-        // 1. Solid Matte Base Sphere with Subtle Atmospheric Gradient
+        // 1. Solid Matte Base Sphere with Atmospheric Gradient
         ctx.beginPath();
         ctx.arc(cx, cy, sphereRadius, 0, Math.PI * 2);
-        const grad = ctx.createRadialGradient(cx - sphereRadius * 0.3, cy - sphereRadius * 0.3, sphereRadius * 0.1, cx, cy, sphereRadius);
+        const grad = ctx.createRadialGradient(
+          cx - sphereRadius * 0.3,
+          cy - sphereRadius * 0.3,
+          sphereRadius * 0.1,
+          cx,
+          cy,
+          sphereRadius
+        );
         grad.addColorStop(0, '#ffffff');
         grad.addColorStop(0.8, '#f8fafc');
         grad.addColorStop(1, '#e2e8f0');
@@ -401,27 +526,43 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         ctx.strokeStyle = '#334155';
         ctx.stroke();
 
-        // Clip subsequent vector drawings to the sphere interior
+        // Clip subsequent drawings to sphere interior
         ctx.save();
         ctx.beginPath();
         ctx.arc(cx, cy, sphereRadius, 0, Math.PI * 2);
         ctx.clip();
 
-        // 2. Curved Wireframe Graticules (Latitude Parallels & Longitude Meridians)
+        // Construct frame camera matrix
+        const matrix = getCameraMatrix(currentPhi, currentTheta, w);
+
+        // 2. Precomputed Curved Wireframe Graticules
         ctx.lineWidth = 0.65;
         ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
-        for (const line of PRECOMPUTED_GRATICULES) {
+        for (let g = 0; g < PRECOMPUTED_GRATICULE_RINGS.length; g++) {
+          const line = PRECOMPUTED_GRATICULE_RINGS[g];
+          const vec = line.vectors;
+          const count = line.count;
           ctx.beginPath();
           let drawing = false;
-          for (let i = 0; i < line.points.length; i++) {
-            const [lat, lon] = line.points[i];
-            const p = projectSphere(lat, lon, currentPhi, currentTheta, w);
-            if (p.visible) {
+
+          for (let i = 0; i < count; i++) {
+            const idx = i * 3;
+            const t0 = vec[idx];
+            const t1 = vec[idx + 1];
+            const t2 = vec[idx + 2];
+
+            const c = matrix.m00 * t0 + matrix.m02 * t2;
+            const s = matrix.m10 * t0 + matrix.m11 * t1 + matrix.m12 * t2;
+            const z = matrix.m20 * t0 + matrix.m21 * t1 + matrix.m22 * t2;
+
+            if (z >= 0.03) {
+              const px = ((c + 1) * 0.5) * w;
+              const py = ((-s + 1) * 0.5) * w;
               if (!drawing) {
-                ctx.moveTo(p.x, p.y);
+                ctx.moveTo(px, py);
                 drawing = true;
               } else {
-                ctx.lineTo(p.x, p.y);
+                ctx.lineTo(px, py);
               }
             } else {
               drawing = false;
@@ -430,7 +571,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           ctx.stroke();
         }
 
-        // 3. Vector Continental & Country Outlines
+        // 3. Precomputed Continental & Country Vector Outlines
         if (countries.length > 0) {
           ctx.fillStyle = 'rgba(241, 245, 249, 0.92)';
           ctx.strokeStyle = '#475569';
@@ -438,56 +579,69 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           ctx.lineJoin = 'round';
           ctx.lineCap = 'round';
 
-          for (const feature of countries) {
-            const geom = feature.geometry;
-            const polys = geom.type === 'Polygon' ? [geom.coordinates as number[][][]] : (geom.coordinates as number[][][][]);
+          for (let f = 0; f < countries.length; f++) {
+            const feature = countries[f];
+            for (let r = 0; r < feature.rings.length; r++) {
+              const ring = feature.rings[r];
+              const vec = ring.vectors;
+              const count = ring.count;
+              ctx.beginPath();
+              let hasVisible = false;
+              let drawing = false;
 
-            for (const poly of polys) {
-              for (const ring of poly) {
-                ctx.beginPath();
-                let hasVisible = false;
-                let drawing = false;
+              for (let i = 0; i < count; i++) {
+                const idx = i * 3;
+                const t0 = vec[idx];
+                const t1 = vec[idx + 1];
+                const t2 = vec[idx + 2];
 
-                for (let i = 0; i < ring.length; i++) {
-                  const [lon, lat] = ring[i];
-                  const p = projectSphere(lat, lon, currentPhi, currentTheta, w);
-                  if (p.visible) {
-                    hasVisible = true;
-                    if (!drawing) {
-                      ctx.moveTo(p.x, p.y);
-                      drawing = true;
-                    } else {
-                      ctx.lineTo(p.x, p.y);
-                    }
+                const c = matrix.m00 * t0 + matrix.m02 * t2;
+                const s = matrix.m10 * t0 + matrix.m11 * t1 + matrix.m12 * t2;
+                const z = matrix.m20 * t0 + matrix.m21 * t1 + matrix.m22 * t2;
+
+                if (z >= 0.03) {
+                  hasVisible = true;
+                  const px = ((c + 1) * 0.5) * w;
+                  const py = ((-s + 1) * 0.5) * w;
+                  if (!drawing) {
+                    ctx.moveTo(px, py);
+                    drawing = true;
                   } else {
-                    drawing = false;
+                    ctx.lineTo(px, py);
                   }
+                } else {
+                  drawing = false;
                 }
+              }
 
-                if (hasVisible) {
-                  ctx.fill();
-                  ctx.stroke();
-                }
+              if (hasVisible) {
+                ctx.fill();
+                ctx.stroke();
               }
             }
           }
         }
 
-        // 4. Seismic Event Markers (Clean Architectural Red Dots / Squares)
-        const activeEvents = eventsRef.current;
+        // 4. Precomputed Seismic Event Markers
+        const activeEvents = precomputedEventsRef.current;
         for (let i = 0; i < activeEvents.length; i++) {
-          const evt = activeEvents[i];
-          const proj = projectSphere(evt.latitude, evt.longitude, currentPhi, currentTheta, w);
-          if (proj.visible) {
-            const mag = evt.magnitude ?? 3.5;
+          const item = activeEvents[i];
+          const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
+          const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
+          const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
+
+          if (z >= 0.03) {
+            const px = ((c + 1) * 0.5) * w;
+            const py = ((-s + 1) * 0.5) * w;
+            const mag = item.evt.magnitude ?? 3.5;
             const size = Math.max(2.5, Math.min(6.5, (mag / 7.0) * 5.5));
 
             ctx.fillStyle = mag >= 5.5 ? '#ef4444' : '#3b82f6';
             ctx.beginPath();
-            ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+            ctx.arc(px, py, size, 0, Math.PI * 2);
             ctx.fill();
 
-            // Hairline border around marker
+            // Hairline white border around marker
             ctx.lineWidth = 0.5;
             ctx.strokeStyle = '#ffffff';
             ctx.stroke();
@@ -504,10 +658,15 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
           const candidates: { elIndex: number; x: number; y: number; mag: number }[] = [];
           for (let i = 0; i < items.length && i < children.length; i++) {
-            const evt = items[i];
-            const proj = projectSphere(evt.latitude, evt.longitude, currentPhi, currentTheta, w);
-            if (proj.visible) {
-              candidates.push({ elIndex: i, x: proj.x, y: proj.y, mag: evt.magnitude ?? 0 });
+            const item = items[i];
+            const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
+            const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
+            const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
+
+            if (z >= 0.03) {
+              const px = ((c + 1) * 0.5) * w;
+              const py = ((-s + 1) * 0.5) * w;
+              candidates.push({ elIndex: i, x: px, y: py, mag: item.evt.magnitude ?? 0 });
             }
           }
 
@@ -544,12 +703,17 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           const shockwaveChildren = shockwavesContainerRef.current.children;
           const mItems = majorEventsRef.current;
           for (let i = 0; i < mItems.length && i < shockwaveChildren.length; i++) {
-            const evt = mItems[i];
-            const proj = projectSphere(evt.latitude, evt.longitude, currentPhi, currentTheta, w);
+            const item = mItems[i];
+            const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
+            const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
+            const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
             const el = shockwaveChildren[i] as HTMLElement;
-            if (proj.visible) {
+
+            if (z >= 0.03) {
+              const px = ((c + 1) * 0.5) * w;
+              const py = ((-s + 1) * 0.5) * w;
               el.style.opacity = '1';
-              el.style.transform = `translate3d(${proj.x}px, ${proj.y}px, 0) translate(-50%, -50%)`;
+              el.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
             } else {
               el.style.opacity = '0';
             }
@@ -568,7 +732,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     <div
       ref={containerRef}
       style={{ cursor: interactive ? 'grab' : 'default', touchAction: interactive ? 'none' : 'auto' }}
-      className={`relative w-full aspect-square max-w-[620px] sm:max-w-[740px] lg:max-w-[820px] select-none mx-auto flex items-center justify-center will-change-transform ${className}`}
+      className={`relative w-full h-full aspect-square select-none mx-auto flex items-center justify-center will-change-transform ${className}`}
     >
       {/* 1. Vector 2D WebGL Canvas */}
       <canvas
@@ -583,45 +747,51 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
       {/* 2. Expanding Sonar Shockwave Rings on Major Earthquakes (M >= 5.8) */}
       <div ref={shockwavesContainerRef} className="absolute inset-0 pointer-events-none overflow-hidden">
-        {majorEvents.map((evt) => (
-          <div
-            key={`shockwave-${evt.usgs_id || evt.id}`}
-            className="absolute top-0 left-0 transition-opacity duration-300 pointer-events-none"
-            style={{ opacity: 0 }}
-          >
-            <span className="relative flex items-center justify-center">
-              <span className="absolute w-14 h-14 rounded-full border border-rose-500/50 animate-ping duration-1000" />
-              <span className="absolute w-8 h-8 rounded-full border border-rose-400/60 animate-pulse" />
-              <span className="relative w-2 h-2 rounded-full bg-rose-500 shadow-sm" />
-            </span>
-          </div>
-        ))}
+        {majorEvents.map((item) => {
+          const evt = item.evt;
+          return (
+            <div
+              key={`shockwave-${evt.usgs_id || evt.id}`}
+              className="absolute top-0 left-0 transition-opacity duration-300 pointer-events-none"
+              style={{ opacity: 0 }}
+            >
+              <span className="relative flex items-center justify-center">
+                <span className="absolute w-14 h-14 rounded-full border border-rose-500/50 animate-ping duration-1000" />
+                <span className="absolute w-8 h-8 rounded-full border border-rose-400/60 animate-pulse" />
+                <span className="relative w-2 h-2 rounded-full bg-rose-500 shadow-sm" />
+              </span>
+            </div>
+          );
+        })}
       </div>
 
       {/* 3. Floating Frosted Glass Badges */}
       <div ref={labelsContainerRef} className="absolute inset-0 pointer-events-none">
-        {topEvents.map((evt) => (
-          <div
-            key={evt.usgs_id || evt.id}
-            className="label-tag absolute top-0 left-0 transition-opacity duration-200 z-20 cursor-pointer pointer-events-auto will-change-transform"
-            style={{ opacity: 0 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectEventRef.current?.(evt);
-            }}
-          >
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/92 hover:bg-white text-slate-900 font-mono text-[10px] font-semibold tracking-wider shadow-md border border-slate-200/90 whitespace-nowrap hover:scale-105 active:scale-95 transition-all backdrop-blur-md">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
-              </span>
-              <span className="text-slate-800">{cleanPlace(evt.place)}</span>
-              <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-[9px] font-bold text-slate-700 border border-slate-200">
-                M{evt.magnitude?.toFixed(1) ?? ''}
-              </span>
+        {topEvents.map((item) => {
+          const evt = item.evt;
+          return (
+            <div
+              key={evt.usgs_id || evt.id}
+              className="label-tag absolute top-0 left-0 transition-opacity duration-200 z-20 cursor-pointer pointer-events-auto will-change-transform"
+              style={{ opacity: 0 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectEventRef.current?.(evt);
+              }}
+            >
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/92 hover:bg-white text-slate-900 font-mono text-[10px] font-semibold tracking-wider shadow-md border border-slate-200/90 whitespace-nowrap hover:scale-105 active:scale-95 transition-all backdrop-blur-md">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
+                </span>
+                <span className="text-slate-800">{cleanPlace(evt.place)}</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-slate-100 text-[9px] font-bold text-slate-700 border border-slate-200">
+                  M{evt.magnitude?.toFixed(1) ?? ''}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* 4. Instant Hover Tooltip in Frosted Acrylic Glass */}

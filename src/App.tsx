@@ -46,8 +46,8 @@ export const App: React.FC = () => {
   const [heroExitProgress, setHeroExitProgress] = useState(0);
   const [cameraCoords, setCameraCoords] = useState<CameraCoordinates>({ lat: 12.0, lon: 115.0 });
 
-  // Spatial continuous scroll translation (in vw units: 12vw = hero, 24vw = stories, 0vw = observatory)
-  const [globeOffsetVw, setGlobeOffsetVw] = useState(12);
+  // Spatial continuous scroll translation (in vw units: 17vw = hero, 24vw = stories, 0vw = observatory)
+  const [globeOffsetVw, setGlobeOffsetVw] = useState(17);
   const [globeScale, setGlobeScale] = useState(1.0);
 
   const lenisRef = useRef<Lenis | null>(null);
@@ -111,17 +111,17 @@ export const App: React.FC = () => {
     const isHero = scrollY < heroHeight * 0.75;
     setIsHeroActive(isHero);
 
-    // Phase 1: Leaving Hero into Chapter 1 (12vw -> 24vw, and scaling down from 1.0 to 0.65)
+    // Phase 1: Leaving Hero into Chapter 1 (17vw -> 20vw, and scaling gently from 1.0 to 0.95)
     if (scrollY < heroHeight) {
       const p = Math.max(0, Math.min(1, scrollY / (heroHeight * 0.85)));
       const smoothP = p * p * (3 - 2 * p); // smoothstep
-      setGlobeOffsetVw(12 + smoothP * 12);
-      setGlobeScale(1.0 - smoothP * 0.35);
+      setGlobeOffsetVw(17 + smoothP * 3);
+      setGlobeScale(1.0 - smoothP * 0.05);
       setIsObservatoryActive(false);
       return;
     }
 
-    // Phase 3: Leaving Chapter 4 into Observatory (24vw -> 0vw, and scaling up from 0.65 to 0.95)
+    // Phase 3: Leaving Chapter 4 into Observatory (20vw -> 0vw, and scaling up from 0.95 to 1.15)
     const obsRect = obsEl.getBoundingClientRect();
     const distanceToView = obsRect.top - windowHeight * 0.15;
     const travelRange = windowHeight * 0.85;
@@ -129,8 +129,8 @@ export const App: React.FC = () => {
     if (distanceToView < travelRange) {
       const rawProgress = 1 - Math.max(0, Math.min(travelRange, distanceToView)) / travelRange;
       const smoothP = rawProgress * rawProgress * (3 - 2 * rawProgress);
-      setGlobeOffsetVw((1 - smoothP) * 24);
-      setGlobeScale(0.65 + smoothP * 0.30);
+      setGlobeOffsetVw((1 - smoothP) * 20);
+      setGlobeScale(0.95 + smoothP * 0.20);
 
       if (rawProgress >= 0.88) {
         setIsObservatoryActive(true);
@@ -140,9 +140,9 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Phase 2: In Story Chapters 1 - 4 (Comfortably compact alongside chapter cards)
-    setGlobeOffsetVw(24);
-    setGlobeScale(0.65);
+    // Phase 2: In Story Chapters 1 - 4 (Comfortably matched alongside chapter cards)
+    setGlobeOffsetVw(20);
+    setGlobeScale(0.95);
     setIsObservatoryActive(false);
   }, []);
 
@@ -328,14 +328,14 @@ export const App: React.FC = () => {
       {/* 2. Global Viewport Technical Blueprint Frame (Corner Crop Marks & Live Telemetry) */}
       <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
 
-      {/* 3. FIXED STICKY 3D VECTOR GLOBE LAYER (MASSIVE 820px PRESENCE) */}
-      <div className="fixed inset-0 z-20 pointer-events-none flex items-center justify-center overflow-hidden">
+      {/* 3. FIXED STICKY 3D VECTOR GLOBE LAYER (RESPONSIVE EDITORIAL PRESENCE) */}
+      <div className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center overflow-hidden">
         <div
           style={{
-            transform: `translate3d(${effectiveTranslateX}, 0, 0) scale(${globeScale})`,
+            transform: `translate3d(${effectiveTranslateX}, ${!isDesktop && heroExitProgress < 0.8 ? '28px' : '0px'}, 0) scale(${globeScale})`,
             willChange: 'transform',
           }}
-          className="relative w-full max-w-[640px] sm:max-w-[740px] lg:max-w-[820px] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-75 ease-out"
+          className="relative w-[min(88vw,66vh,320px)] sm:w-[min(88vw,66vh,440px)] md:w-[min(85vw,66vh,500px)] lg:w-[min(46vw,66vh,560px)] xl:w-[min(44vw,68vh,620px)] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-75 ease-out"
         >
           {/* No Art Architectural Vector Wireframe 3D Globe */}
           <VectorGlobe
