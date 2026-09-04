@@ -2,17 +2,13 @@ import React from 'react';
 import { CameraCoordinates } from './VectorGlobe';
 
 interface ViewportTechnicalFrameProps {
-  coordinates: CameraCoordinates;
+  coordinates?: CameraCoordinates;
   visible?: boolean;
 }
 
 export const ViewportTechnicalFrame: React.FC<ViewportTechnicalFrameProps> = ({
-  coordinates,
   visible = true,
 }) => {
-  const latStr = `${Math.abs(coordinates.lat).toFixed(4)}° ${coordinates.lat >= 0 ? 'N' : 'S'}`;
-  const lonStr = `${Math.abs(coordinates.lon).toFixed(4)}° ${coordinates.lon >= 0 ? 'E' : 'W'}`;
-
   return (
     <div
       className={`fixed inset-0 pointer-events-none select-none z-30 transition-opacity duration-700 ${
@@ -40,18 +36,7 @@ export const ViewportTechnicalFrame: React.FC<ViewportTechnicalFrameProps> = ({
       <div className="absolute top-1/2 right-2 sm:right-4 -translate-y-1/2 text-slate-400 font-mono text-xs sm:text-sm leading-none">
         ┤
       </div>
-
-      {/* 3. Live Camera Telemetry Readout (Fixed in Bottom-Left Screen Corner, hidden on mobile) */}
-      <div className="hidden sm:flex absolute bottom-14 sm:bottom-16 left-6 sm:left-9 flex-col font-mono text-[10px] sm:text-[11px] tracking-wider text-slate-500 pointer-events-none">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-medium">LAT:</span>
-          <span className="font-bold text-slate-900 tabular-nums">{latStr}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-medium">LON:</span>
-          <span className="font-bold text-slate-900 tabular-nums">{lonStr}</span>
-        </div>
-      </div>
     </div>
   );
 };
+

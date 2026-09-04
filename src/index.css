@@ -1,26 +1,63 @@
-@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=Geist:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Cabinet Grotesk", Geist, system-ui, -apple-system, sans-serif;
+  --font-display: "Onest", "Cabinet Grotesk", Geist, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-sans: Geist, system-ui, -apple-system, sans-serif;
+  --font-sans: "Onest", Geist, system-ui, -apple-system, sans-serif;
 }
 
 :root {
   color-scheme: light;
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --brand: #2563c9;
+  --brand-deep: #0f2f63;
+  --brand-light: #5790e6;
+  --accent-teal: #0b6e97;
+  --surface: #f4f4f4;
+  --surface-card: #ffffff;
+  --ink: #0a0a0a;
+  --ink-soft: #717784;
+  --ghost: #d7dae1;
+  --hairline: #e6e8ec;
+  --on-brand: #ffffff;
+
+  /* radii */
+  --radius-card: 1.5rem;
+  --radius-card-lg: 2rem;
+  --radius-pill: 62.5rem;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #FFFFFF;
-  color: #0F172A;
+  background-color: var(--background);
+  color: var(--ink);
   font-family: var(--font-sans);
   overflow-x: hidden;
   user-select: none;
+}
+
+/* Modern Minimalist Hairline Scrollbars (Eliminate thick OS bars) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.22);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.12) transparent;
 }
 
 /* Subtle architectural grid on white */

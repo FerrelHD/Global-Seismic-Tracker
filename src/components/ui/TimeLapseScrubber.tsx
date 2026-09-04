@@ -89,7 +89,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
 
             {/* Center Live Simulation Timestamp */}
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 border border-slate-200/80 text-slate-800 font-semibold tracking-wider text-[11px]">
-              <Clock className="w-3 h-3 text-cyan-600 animate-pulse" />
+              <Clock className="w-3 h-3 text-slate-600" />
               <span>{formatWIB(currentTime)}</span>
             </div>
 
@@ -112,7 +112,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
 
           {/* Mobile Timestamp View */}
           <div className="flex sm:hidden items-center justify-center gap-1.5 text-[10px] font-mono text-slate-700">
-            <Clock className="w-2.5 h-2.5 text-cyan-600 animate-pulse" />
+            <Clock className="w-2.5 h-2.5 text-slate-500" />
             <span className="font-semibold">{formatWIB(currentTime)}</span>
           </div>
 
@@ -121,7 +121,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
             {/* Background Track */}
             <div className="absolute inset-x-0 h-1.5 bg-slate-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-linear-to-r from-blue-500 via-cyan-500 to-rose-500 rounded-full transition-all duration-75"
+                className="h-full bg-[#0f2f63] rounded-full transition-all duration-75"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
@@ -140,7 +140,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
 
             {/* Visual Custom Playhead Thumb */}
             <div
-              className="absolute w-3.5 h-3.5 bg-white border-2 border-cyan-500 rounded-full shadow-md pointer-events-none -translate-x-1/2 group-hover:scale-125 transition-transform"
+              className="absolute w-3.5 h-3.5 bg-white border-2 border-[#0f2f63] rounded-full shadow-xs pointer-events-none -translate-x-1/2 group-hover:scale-125 transition-transform"
               style={{ left: `${progressPercent}%` }}
             />
           </div>

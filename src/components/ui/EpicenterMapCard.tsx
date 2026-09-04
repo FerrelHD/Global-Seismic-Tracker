@@ -429,7 +429,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                             className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-slate-900 text-slate-700 hover:text-white border border-slate-300/80 font-mono text-[9.5px] tracking-wider transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 uppercase font-semibold"
                             title="Monitor Seismograf Real-Time"
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#0f2f63]" />
                             <span>WAVEFORM</span>
                           </button>
                         )}

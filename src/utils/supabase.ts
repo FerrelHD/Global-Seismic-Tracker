@@ -171,7 +171,7 @@ export async function fetchSeismicEvents(): Promise<SeismicEvent[]> {
  * critical peatland and forest regions of Indonesia (VIIRS S-NPP / NOAA-20).
  * Provides graceful zero-crash fallback if remote database/FIRMS API is unavailable.
  */
-const FALLBACK_WILDFIRE_HOTSPOTS: WildfireHotspot[] = [
+export const FALLBACK_WILDFIRE_HOTSPOTS: WildfireHotspot[] = [
   // Riau Peatland Clusters (Pelalawan & Siak)
   { id: 'firms-riau-01', latitude: 0.385, longitude: 101.892, frp: 74.2, confidence: 'high', island: 'Sumatra', satellite: 'VIIRS_SNPP', detected_at: new Date(Date.now() - 3600000 * 2).toISOString() },
   { id: 'firms-riau-02', latitude: 0.412, longitude: 101.934, frp: 148.6, confidence: 'high', island: 'Sumatra', satellite: 'VIIRS_SNPP', detected_at: new Date(Date.now() - 3600000 * 4).toISOString() },

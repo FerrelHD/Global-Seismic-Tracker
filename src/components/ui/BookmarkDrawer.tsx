@@ -42,11 +42,14 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
       {/* Backdrop */}
       <div
         onClick={onClose}
+        onWheel={(e) => e.stopPropagation()}
         className="fixed inset-0 bg-black/20 backdrop-blur-xs z-50 transition-opacity duration-200 opacity-100 pointer-events-auto"
       />
 
       {/* Slide-over Liquid Glass Panel */}
       <aside
+        data-lenis-prevent="true"
+        onWheel={(e) => e.stopPropagation()}
         className="fixed top-0 right-0 bottom-0 h-full w-full max-w-md z-50 shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out font-sans overflow-hidden"
       >
         <LiquidCard interactive={false} className="h-full w-full border-l border-white/80 rounded-l-3xl overflow-hidden">
@@ -75,7 +78,11 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
         </div>
 
         {/* Bookmarks List (Scrollable) */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 overscroll-contain">
+        <div
+          data-lenis-prevent="true"
+          onWheel={(e) => e.stopPropagation()}
+          className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 overscroll-contain"
+        >
           {bookmarks.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-300 mb-3">

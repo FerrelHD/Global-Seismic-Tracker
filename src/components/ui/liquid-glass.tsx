@@ -50,12 +50,11 @@ export const LiquidCard: React.FC<LiquidCardProps> = ({
         }}
       />
 
-      {/* 3. Razor-sharp specular rim lights & micro-bevel */}
+      {/* 3. Razor-sharp specular rim light */}
       <div
-        className="absolute inset-0 z-20 pointer-events-none rounded-inherit border border-white/80 transition-colors duration-300 group-hover:border-white"
+        className="absolute inset-0 z-20 pointer-events-none rounded-inherit border border-white/60 transition-colors duration-300 group-hover:border-white"
         style={{
-          boxShadow:
-            'inset 1px 1px 1px 0 rgba(255, 255, 255, 0.9), inset -1px -1px 1px 0 rgba(0, 0, 0, 0.04)',
+          boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.95)',
         }}
       />
 

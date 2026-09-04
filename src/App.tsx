@@ -15,7 +15,6 @@ import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
 import { BMKGShakemapModal } from './components/ui/BMKGShakemapModal';
 import { VirtualSeismogram } from './components/ui/VirtualSeismogram';
 import { SocialInfographicModal } from './components/ui/SocialInfographicModal';
-import { TacticalHazardConsole } from './components/ui/TacticalHazardConsole';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode } from './types/seismic';
 import {
@@ -27,17 +26,31 @@ import {
   saveLocalBookmark,
   removeLocalBookmark,
 } from './utils/supabase';
+import { SeismicAlertToast, AlertEventData } from './components/ui/SeismicAlertToast';
+import { playSeismicAlertPing } from './utils/audioAlert';
 import {
   Globe as GlobeIcon,
   RefreshCw,
   Bookmark as BookmarkIcon,
   ArrowDown,
+  Bell,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [events, setEvents] = useState<SeismicEvent[]>([]);
   const [bmkgAlert, setBmkgAlert] = useState<BMKGAlert | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isCurtainComplete, setIsCurtainComplete] = useState(false);
+
+  const handleCurtainComplete = useCallback(() => {
+    setIsCurtainComplete(true);
+  }, []);
+
+  // Realtime Seismic Alert Notification State
+  const [activeAlert, setActiveAlert] = useState<AlertEventData | null>(null);
+  const [alertsEnabled, setAlertsEnabled] = useState(true);
+  const knownEventIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
 
   // Bookmarks state & Drawer
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -91,7 +104,9 @@ export const App: React.FC = () => {
   // Dual-Hazard Telemetry State (NASA FIRMS Hotspots & Hazard Mode)
   const [hotspots, setHotspots] = useState<WildfireHotspot[]>([]);
   const [hazardMode, setHazardMode] = useState<HazardMode>('dual');
-  const [observatoryView, setObservatoryView] = useState<'globe' | 'console'>('console');
+  const [observatoryScrollZoom, setObservatoryScrollZoom] = useState<number>(1.0);
+  const [observatoryProgress, setObservatoryProgress] = useState<number>(0);
+  const [obsTopOffset, setObsTopOffset] = useState<number>(0);
 
   // Load live data from Supabase / USGS / NASA FIRMS
   const loadData = async () => {
@@ -151,63 +166,131 @@ export const App: React.FC = () => {
     const exitP = Math.max(0, Math.min(1, scrollY / 380));
     setHeroExitProgress(exitP);
 
-    const isHero = scrollY < heroHeight * 0.75;
+    const isHero = scrollY < heroHeight * 0.55;
     setIsHeroActive(isHero);
-    if (isHero && activeChapterIndexRef.current !== -1) {
-      activeChapterIndexRef.current = -1;
-      setActiveChapterIndex(-1);
+    if (isHero) {
+      if (activeChapterIndexRef.current !== -1) {
+        activeChapterIndexRef.current = -1;
+        setActiveChapterIndex(-1);
+      }
     }
 
-    // Phase 1: Leaving Hero into Chapter 1 (0vw center -> 22vw right, zooming in from 1.0 to 1.22, kinetic 3D spin & tilt)
+    // Phase 1: Leaving Hero into Chapter 1 (0vw center -> 16vw right, zooming in smoothly)
     if (scrollY < heroHeight) {
       const p = Math.max(0, Math.min(1, scrollY / (heroHeight * 0.85)));
-      const smoothP = p * p * (3 - 2 * p); // smoothstep
-      setGlobeOffsetVw(smoothP * 22);
-      setGlobeScale(1.0 + smoothP * 0.22);
-      // Kinetic 3D spin eastward and aerodynamic pitch tilt during the roll
+      // Ken Perlin's smootherstep for zero acceleration shock at endpoints
+      const smoothP = p * p * p * (p * (p * 6 - 15) + 10);
+      setGlobeOffsetVw(parseFloat((smoothP * 16).toFixed(2)));
+      setGlobeScale(parseFloat((1.0 + smoothP * 0.12).toFixed(3)));
       setScrollRotation({
         phi: -smoothP * (Math.PI * 1.35),
-        theta: Math.sin(smoothP * Math.PI) * 0.16,
-      });
-      setIsObservatoryActive(false);
-      return;
-    }
-
-    // Phase 3: Leaving Chapter 4 into Observatory (interpolates from last chapter offset to center 0vw, scale 1.15)
-    const obsRect = obsEl.getBoundingClientRect();
-    const distanceToView = obsRect.top - windowHeight * 0.15;
-    const travelRange = windowHeight * 0.85;
-
-    if (distanceToView < travelRange) {
-      const rawProgress = 1 - Math.max(0, Math.min(travelRange, distanceToView)) / travelRange;
-      const smoothP = rawProgress * rawProgress * (3 - 2 * rawProgress);
-      const lastChapterOffset = (storyChapters.length - 2) % 2 === 1 ? -22 : 22;
-      setGlobeOffsetVw((1 - smoothP) * lastChapterOffset);
-      setGlobeScale(1.22 - smoothP * 0.07);
-      setScrollRotation({
-        phi: -(Math.PI * 1.35) - smoothP * (Math.PI * 0.75),
         theta: 0,
       });
+      setIsObservatoryActive(false);
 
-      if (rawProgress >= 0.88) {
-        setIsObservatoryActive(true);
-      } else {
-        setIsObservatoryActive(false);
+      if (!isHero && activeChapterIndexRef.current !== 0) {
+        activeChapterIndexRef.current = 0;
+        setActiveChapterIndex(0);
+        if (storyChapters[0]) {
+          setTargetFocus(storyChapters[0].coordinates);
+        }
       }
       return;
     }
 
-    // Phase 2: In Story Chapters 1 - 4 (Even chapters at +22vw [Right], Odd chapters at -22vw [Left])
-    const curIdx = activeChapterIndexRef.current;
-    const targetOffset = curIdx >= 0 && curIdx % 2 === 1 ? -22 : 22;
-    setGlobeOffsetVw(targetOffset);
-    setGlobeScale(1.22);
+    // Phase 2 & 3: Story Chapters & Observatory with Continuous Kinetic Scroll Interpolation
+    // Stable analytical positioning without forced synchronous DOM layout reflows (Zero Layout Thrashing)
+    const sections: { idx: number; centerY: number; offset: number }[] = [];
+    const totalChapters = storyChapters.length;
+    for (let idx = 0; idx < totalChapters; idx++) {
+      const isObs = idx === totalChapters - 1;
+      const sectionTop = heroHeight + idx * windowHeight;
+      const centerY = sectionTop + windowHeight * 0.5;
+      // Even: +16vw (Left card, map right), Odd: -16vw (Right card, map left), Observatory: 0vw
+      const targetOff = isObs ? 0 : (idx % 2 === 1 ? -16 : 16);
+      sections.push({ idx, centerY, offset: targetOff });
+    }
+
+    const viewCenterY = window.scrollY + windowHeight * 0.5;
+
+    if (sections.length > 0) {
+      if (viewCenterY <= sections[0].centerY) {
+        setGlobeOffsetVw(sections[0].offset);
+        if (activeChapterIndexRef.current !== sections[0].idx) {
+          activeChapterIndexRef.current = sections[0].idx;
+          setActiveChapterIndex(sections[0].idx);
+          if (storyChapters[0]) setTargetFocus(storyChapters[0].coordinates);
+        }
+      } else if (viewCenterY >= sections[sections.length - 1].centerY) {
+        setGlobeOffsetVw(sections[sections.length - 1].offset);
+        const lastIdx = sections[sections.length - 1].idx;
+        if (activeChapterIndexRef.current !== lastIdx) {
+          activeChapterIndexRef.current = lastIdx;
+          setActiveChapterIndex(lastIdx);
+        }
+      } else {
+        for (let k = 0; k < sections.length - 1; k++) {
+          if (viewCenterY >= sections[k].centerY && viewCenterY <= sections[k + 1].centerY) {
+            const span = Math.max(1, sections[k + 1].centerY - sections[k].centerY);
+            const rawP = Math.max(0, Math.min(1, (viewCenterY - sections[k].centerY) / span));
+            // Ken Perlin smootherstep for velvety organic transition
+            const smoothP = rawP * rawP * rawP * (rawP * (rawP * 6 - 15) + 10);
+            const interpolatedOffset = sections[k].offset + (sections[k + 1].offset - sections[k].offset) * smoothP;
+            setGlobeOffsetVw(parseFloat(interpolatedOffset.toFixed(2)));
+
+            const activeIdx = rawP >= 0.5 ? sections[k + 1].idx : sections[k].idx;
+            if (activeIdx !== activeChapterIndexRef.current) {
+              activeChapterIndexRef.current = activeIdx;
+              setActiveChapterIndex(activeIdx);
+              if (storyChapters[activeIdx] && activeIdx < storyChapters.length - 1) {
+                setTargetFocus(storyChapters[activeIdx].coordinates);
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // Observatory Section Continuous Progress & Scroll Zoom Logic
+    const obsTop = heroHeight + (totalChapters - 1) * windowHeight - scrollY;
+    const obsHeight = 2.2 * windowHeight;
+    let currentObsP = 0;
+    let currentTopOffset = 0;
+
+    if (obsTop <= 0) {
+      // Inside observatory section: full HUD and scroll zoom
+      currentObsP = 1.0;
+      currentTopOffset = 0;
+      setIsObservatoryActive(true);
+
+      const totalTravel = Math.max(1, obsHeight - windowHeight);
+      const scrolledInside = Math.max(0, Math.min(totalTravel, -obsTop));
+      const progressInObs = scrolledInside / totalTravel;
+      const currentZoom = 1.0 + progressInObs * 2.2;
+      setObservatoryScrollZoom(parseFloat(currentZoom.toFixed(2)));
+    } else {
+      // Scrolling up away from observatory section towards Chapter 4
+      currentTopOffset = obsTop;
+      const fadeDistance = 320; // seamless natural fade distance in pixels
+      const exitProgress = Math.max(0, Math.min(1, obsTop / fadeDistance));
+      const p = 1 - exitProgress;
+      const smoothObsP = p * p * p * (p * (p * 6 - 15) + 10); // smootherstep
+      currentObsP = parseFloat(smoothObsP.toFixed(3));
+
+      setIsObservatoryActive(currentObsP > 0.001);
+      setObservatoryScrollZoom(1.0);
+    }
+
+    setObservatoryProgress(currentObsP);
+    setObsTopOffset(currentTopOffset);
+
+    setGlobeScale(1.12);
     setScrollRotation({
       phi: -Math.PI * 1.35,
       theta: 0,
     });
-    setIsObservatoryActive(false);
-  }, [storyChapters.length]);
+  }, [storyChapters]);
 
   // Initialize Lenis smooth momentum scroll engine
   useEffect(() => {
@@ -236,48 +319,48 @@ export const App: React.FC = () => {
     };
   }, [handleScrollUpdate]);
 
-  // IntersectionObserver for tracking story chapters & triggering camera fly-to
+  // Lock background scroll when any modal or drawer is open
+  const isAnyModalOpen = Boolean(
+    selectedEvent ||
+    isDrawerOpen ||
+    isFeedOpen ||
+    isShakemapModalOpen ||
+    isInfographicOpen ||
+    isSeismogramOpen
+  );
+
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const indexAttr = entry.target.getAttribute('data-chapter-index');
-            if (indexAttr !== null) {
-              const idx = parseInt(indexAttr, 10);
-              setActiveChapterIndex(idx);
-              activeChapterIndexRef.current = idx;
-
-              // Fly globe camera to chapter epicenter and alternate side position
-              if (storyChapters[idx] && idx < storyChapters.length - 1) {
-                setGlobeOffsetVw(idx % 2 === 1 ? -22 : 22);
-                setGlobeScale(1.22);
-                setTargetFocus(storyChapters[idx].coordinates);
-              }
-            }
-          }
-        });
-      },
-      {
-        threshold: 0.45,
-        rootMargin: '-10% 0px -10% 0px',
-      }
-    );
-
-    const chapterElements = document.querySelectorAll('.story-chapter-section');
-    chapterElements.forEach((el) => observer.observe(el));
-
+    if (isAnyModalOpen) {
+      lenisRef.current?.stop();
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      lenisRef.current?.start();
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
     return () => {
-      observer.disconnect();
+      lenisRef.current?.start();
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
-  }, [storyChapters]);
+  }, [isAnyModalOpen]);
 
   // Fast Travel Navigation Actions
   const scrollToHero = () => {
+    setActiveChapterIndex(-1);
+    activeChapterIndexRef.current = -1;
     lenisRef.current?.scrollTo('#hero-section', { duration: 1.2 });
   };
 
   const scrollToStories = () => {
+    setActiveChapterIndex(0);
+    activeChapterIndexRef.current = 0;
+    if (storyChapters[0]) {
+      setGlobeOffsetVw(18);
+      setGlobeScale(1.12);
+      setTargetFocus(storyChapters[0].coordinates);
+    }
     lenisRef.current?.scrollTo('#chapter-section-0', { duration: 1.2 });
   };
 
@@ -286,6 +369,13 @@ export const App: React.FC = () => {
   };
 
   const scrollToChapter = (index: number) => {
+    setActiveChapterIndex(index);
+    activeChapterIndexRef.current = index;
+    if (storyChapters[index] && index < storyChapters.length - 1) {
+      setGlobeOffsetVw(index % 2 === 1 ? -18 : 18);
+      setGlobeScale(1.12);
+      setTargetFocus(storyChapters[index].coordinates);
+    }
     lenisRef.current?.scrollTo(`#chapter-section-${index}`, { duration: 1.1 });
   };
 
@@ -518,28 +608,148 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
     [events]
   );
 
-  const effectiveTranslateX = isDesktop ? `${globeOffsetVw}vw` : '0px';
+  // Realtime Live Seismic Alert Actions & Dispatch
+  const triggerSeismicAlert = useCallback((alertData: AlertEventData) => {
+    setActiveAlert(alertData);
+    playSeismicAlertPing();
 
+    // Browser native OS Web Notification
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(`⚠️ M${alertData.magnitude.toFixed(1)} Gempa Bumi Terdeteksi`, {
+          body: `${alertData.place} · Kedalaman ${alertData.depth} km`,
+          icon: '/favicon.ico',
+        });
+      } catch (e) {
+        console.warn('Web notification error:', e);
+      }
+    }
+  }, []);
+
+  const handleLocateAlert = useCallback(
+    (alert: AlertEventData) => {
+      setActiveAlert(null);
+      setTargetFocus([alert.latitude, alert.longitude]);
+      scrollToObservatory();
+      const found = events.find((e) => e.id === alert.id || e.usgs_id === alert.id);
+      if (found) {
+        setSelectedEvent(found);
+      }
+    },
+    [events]
+  );
+
+  const handleToggleAlerts = useCallback(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission !== 'granted') {
+        Notification.requestPermission().then((perm) => {
+          setAlertsEnabled(perm === 'granted');
+        });
+      } else {
+        setAlertsEnabled((prev) => !prev);
+      }
+    }
+
+    // Trigger demo alert on click so user can verify audio, toast & map flight immediately
+    triggerSeismicAlert({
+      id: `sim-${Date.now()}`,
+      magnitude: 6.2,
+      place: '124 KM BARAT LAUT KEP. TALAUD, SULAWESI UTARA',
+      time: 'Baru saja',
+      depth: 10,
+      tsunami: false,
+      latitude: 4.12,
+      longitude: 126.85,
+      isSimulated: true,
+    });
+  }, [triggerSeismicAlert]);
+
+  // Initial event IDs cache and 45s periodic background alert poller
+  useEffect(() => {
+    if (events.length > 0 && isInitialLoadRef.current) {
+      events.forEach((e) => {
+        if (e.id) knownEventIdsRef.current.add(e.id);
+        if (e.usgs_id) knownEventIdsRef.current.add(e.usgs_id);
+      });
+      isInitialLoadRef.current = false;
+    }
+  }, [events]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      setAlertsEnabled(true);
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const fresh = await fetchSeismicEvents();
+        if (fresh && fresh.length > 0 && !isInitialLoadRef.current) {
+          const newEvents = fresh.filter(
+            (e) => !knownEventIdsRef.current.has(e.id) && !knownEventIdsRef.current.has(e.usgs_id)
+          );
+          if (newEvents.length > 0) {
+            newEvents.forEach((e) => {
+              if (e.id) knownEventIdsRef.current.add(e.id);
+              if (e.usgs_id) knownEventIdsRef.current.add(e.usgs_id);
+            });
+            const latest = newEvents[0];
+            triggerSeismicAlert({
+              id: latest.id || latest.usgs_id,
+              magnitude: latest.magnitude ?? 5.0,
+              place: latest.place || 'Indonesia Archipelago',
+              time: 'Baru saja',
+              depth: latest.depth,
+              latitude: latest.latitude,
+              longitude: latest.longitude,
+            });
+            setEvents((prev) => [...newEvents, ...prev]);
+          }
+        }
+      } catch (err) {
+        console.warn('Background alert polling check:', err);
+      }
+    }, 45000);
+
+    return () => clearInterval(pollInterval);
+  }, [triggerSeismicAlert]);
+
+  const effectiveTranslateX = isDesktop ? `${globeOffsetVw}vw` : '0px';
   return (
-    <div className="relative min-h-screen w-full bg-white text-slate-900 selection:bg-slate-900 selection:text-white font-sans">
+    <div className="relative min-h-screen w-full bg-white text-slate-900 selection:bg-[#0f2f63] selection:text-white font-sans">
+      {/* 0. REALTIME SEISMIC ALERT TOAST NOTIFICATION */}
+      <SeismicAlertToast
+        alert={activeAlert}
+        onClose={() => setActiveAlert(null)}
+        onLocate={handleLocateAlert}
+      />
+
       {/* 1. Global Liquid Glass SVG Refraction Filter */}
       <LiquidGlassFilter />
 
       {/* 2. Global Viewport Technical Blueprint Frame (Corner Crop Marks & Live Telemetry) */}
-      <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
+      <ViewportTechnicalFrame coordinates={cameraCoords} visible={isCurtainComplete} />
 
-      {/* 3. FIXED STICKY 3D VECTOR GLOBE LAYER (RESPONSIVE EDITORIAL PRESENCE) */}
-      <div className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center pt-16 sm:pt-20 pb-20 sm:pb-24 px-4 overflow-hidden">
+      {/* 3. FIXED STICKY ARCHITECTURAL NUSANTARA VECTOR MAP LAYER (Pure White Background during Loading) */}
+      <div
+        style={{
+          opacity: isCurtainComplete ? 1 : 0,
+          transform: isCurtainComplete ? 'scale(1)' : 'scale(1.05)',
+          filter: isCurtainComplete ? 'none' : 'blur(4px)',
+          transition:
+            'opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1200ms cubic-bezier(0.16, 1, 0.3, 1), filter 1100ms ease-out',
+          transitionDelay: '150ms',
+          willChange: 'opacity, transform, filter',
+        }}
+        className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center pt-14 sm:pt-16 pb-16 sm:pb-20 px-2 sm:px-4 overflow-hidden"
+      >
         <div
           style={{
             transform: `translate3d(${effectiveTranslateX}, 0px, 0) scale(${globeScale})`,
-            opacity: observatoryView === 'console' && isObservatoryActive ? 0 : 1,
-            pointerEvents: observatoryView === 'console' && isObservatoryActive ? 'none' : 'auto',
-            willChange: 'transform, opacity',
+            willChange: 'transform',
           }}
-          className="relative w-[min(82vw,calc(100dvh-170px),340px)] sm:w-[min(72vw,calc(100dvh-170px),460px)] md:w-[min(65vw,calc(100dvh-160px),540px)] lg:w-[min(54vw,calc(100dvh-150px),640px)] xl:w-[min(52vw,calc(100dvh-140px),720px)] 2xl:w-[min(50vw,calc(100dvh-140px),780px)] aspect-square flex items-center justify-center transition-all duration-700 ease-out"
+          className="relative w-full max-w-6xl flex items-center justify-center pointer-events-auto h-[64vh] max-h-[620px] my-auto"
         >
-          {/* No Art Architectural Vector Wireframe 3D Globe */}
+          {/* Architectural Vector Nusantara Map */}
           <VectorGlobe
             events={filteredEvents}
             hotspots={hotspots}
@@ -548,37 +758,51 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             resetSignal={resetSignal}
             targetFocus={targetFocus}
             onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
+            onUpdateHotspots={setHotspots}
             interactive={true}
             onCameraChange={setCameraCoords}
             scrollPhi={scrollRotation.phi}
             scrollTheta={scrollRotation.theta}
             colorMode={colorMode}
             timelapseTimestamp={isTimeLapseOpen ? timelapseTime : null}
+            scrollZoom={isObservatoryActive ? observatoryScrollZoom : null}
+            isPanoramic={true}
+            showControls={isObservatoryActive}
+            controlsProgress={observatoryProgress}
           />
         </div>
       </div>
 
-      {/* 3. AWWWARDS FIXED HEADER NAVBAR */}
-      <header className="fixed top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-5xl px-3 sm:px-4 pointer-events-none select-none">
-        <LiquidCard className="rounded-2xl sm:rounded-full shadow-xl pointer-events-auto">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-2.5 sm:px-5 sm:py-3">
+      {/* 3. EDITORIAL FIXED HEADER NAVBAR */}
+      <header
+        style={{
+          transform: isCurtainComplete ? 'translate3d(-50%, 0, 0)' : 'translate3d(-50%, -140%, 0)',
+          opacity: isCurtainComplete ? 1 : 0,
+          transition: 'transform 850ms cubic-bezier(0.16, 1, 0.3, 1), opacity 850ms ease-out',
+          transitionDelay: '350ms',
+          willChange: 'transform, opacity',
+        }}
+        className="fixed top-3.5 sm:top-4 left-1/2 z-40 w-full max-w-5xl px-3 sm:px-4 pointer-events-none select-none"
+      >
+        <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/70 backdrop-blur-md pointer-events-auto">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-2 sm:px-5 sm:py-2.5">
             {/* Logo + Branding: Sharp, Crisp Typography */}
             <div
               onClick={scrollToHero}
-              className="flex items-center gap-2.5 sm:gap-3 min-w-0 shrink-0 cursor-pointer"
+              className="flex items-center gap-2.5 sm:gap-3 min-w-0 shrink-0 cursor-pointer group"
             >
-              <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                 <GlobeIcon className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold tracking-widest uppercase font-mono text-slate-950 leading-none flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm">
-                  <span className="whitespace-nowrap">SEISMIC OBSERVATORY</span>
-                  <span className="hidden md:inline text-slate-300 font-normal">//</span>
-                  <span className="hidden md:inline text-slate-400 font-mono font-medium text-xs">
-                    GLOBAL TECTONICS
+                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm">
+                  <span className="whitespace-nowrap font-extrabold tracking-tight">SEISMIC</span>
+                  <span className="text-neutral-400 font-normal">//</span>
+                  <span className="hidden md:inline text-neutral-500 font-mono font-medium text-xs">
+                    INDONESIAN ARCHIPELAGO
                   </span>
-                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-mono tracking-wider font-semibold whitespace-nowrap">
-                    LIVE 3D
+                  <span className="text-[9px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/90 font-mono tracking-wider font-semibold whitespace-nowrap">
+                    LIVE
                   </span>
                 </h1>
               </div>
@@ -586,25 +810,39 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
 
             {/* Header Right Actions: Clean & Minimalist */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 font-mono text-xs">
+              {/* Realtime Live Seismic Alert Notification Toggle & Test */}
+              <button
+                onClick={handleToggleAlerts}
+                title={alertsEnabled ? 'Live Seismic Alerts Active (Click to trigger demo alert)' : 'Enable Live Alerts'}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-mono font-medium tracking-wider transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+                  alertsEnabled
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 shadow-2xs'
+                    : 'bg-neutral-100/90 text-neutral-600 border-neutral-200/80 hover:bg-neutral-200/90'
+                }`}
+              >
+                <Bell className={`w-3.5 h-3.5 ${alertsEnabled ? 'text-rose-600 animate-pulse' : 'text-neutral-400'}`} />
+                <span className="hidden sm:inline">{alertsEnabled ? 'ALERTS ON' : 'ALERTS'}</span>
+              </button>
+
               {!isObservatoryActive ? (
                 <button
                   onClick={scrollToObservatory}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100/90 hover:bg-slate-200/90 text-slate-800 border border-slate-200/80 text-xs font-mono font-medium tracking-wider transition-all cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 text-neutral-800 border border-neutral-200/80 text-xs font-mono font-medium tracking-wider transition-all cursor-pointer whitespace-nowrap active:scale-95"
                 >
                   <span>OBSERVATORY</span>
-                  <ArrowDown className="w-3.5 h-3.5 text-slate-500" />
+                  <ArrowDown className="w-3.5 h-3.5 text-neutral-500" />
                 </button>
               ) : (
                 <>
-                  <div className="hidden lg:flex items-center gap-3 px-3 py-1 rounded-full bg-white/50 border border-white/80 shadow-xs text-[11px] font-mono tracking-wider">
+                  <div className="hidden lg:flex items-center gap-3 px-3 py-1 rounded-full bg-neutral-100/60 border border-neutral-200/80 text-[11px] font-mono tracking-wider">
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-medium">TOTAL</span>
-                      <span className="font-bold text-slate-900">{loading ? '—' : stats.count}</span>
+                      <span className="text-[9px] text-neutral-400 block font-medium">TOTAL</span>
+                      <span className="font-bold text-neutral-900">{loading ? '—' : stats.count}</span>
                     </div>
-                    <div className="w-px h-4 bg-slate-200" />
+                    <div className="w-px h-4 bg-neutral-200" />
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-medium">PEAK</span>
-                      <span className="font-bold text-slate-900">{loading ? '—' : `M${stats.maxMag}`}</span>
+                      <span className="text-[9px] text-neutral-400 block font-medium">PEAK</span>
+                      <span className="font-bold text-neutral-900">{loading ? '—' : `M${stats.maxMag}`}</span>
                     </div>
                   </div>
 
@@ -612,7 +850,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                   <button
                     onClick={scrollToHero}
                     title="Return to Hero"
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-700 hover:text-slate-950 transition-all text-[11px] font-semibold shadow-xs cursor-pointer whitespace-nowrap"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all text-[11px] font-semibold cursor-pointer whitespace-nowrap active:scale-95"
                   >
                     <span>TOUR</span>
                   </button>
@@ -621,12 +859,12 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                   <button
                     id="bookmarks-btn"
                     onClick={() => setIsDrawerOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-900 transition-all text-xs font-semibold shadow-xs cursor-pointer whitespace-nowrap"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-900 transition-all text-xs font-semibold cursor-pointer whitespace-nowrap active:scale-95"
                   >
-                    <BookmarkIcon className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                    <BookmarkIcon className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
                     <span className="hidden sm:inline">SAVED</span>
                     {bookmarks.length > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-slate-900 text-white text-[9px] font-mono leading-none">
+                      <span className="px-1.5 py-0.5 rounded-full bg-[#0f2f63] text-white text-[9px] font-mono leading-none">
                         {bookmarks.length}
                       </span>
                     )}
@@ -637,7 +875,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                     id="refresh-btn"
                     onClick={loadData}
                     title="Reload Telemetry"
-                    className="p-2 rounded-full bg-white/60 hover:bg-white border border-white/80 text-slate-700 hover:text-slate-950 transition-all shadow-xs cursor-pointer shrink-0"
+                    className="p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer shrink-0 active:scale-95"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                   </button>
@@ -662,6 +900,8 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         onDirectClick={scrollToObservatory}
         exitProgress={heroExitProgress}
         totalEvents={events.length || 2200}
+        isReady={isCurtainComplete}
+        onIntroComplete={handleCurtainComplete}
       />
 
       {/* 6. SCROLLING STORY SECTIONS LAYER */}
@@ -676,98 +916,97 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                 key={chapter.id}
                 id="observatory-section"
                 data-chapter-index={index}
-                className="story-chapter-section min-h-screen w-full flex flex-col justify-between pt-24 pb-8 px-4 sm:px-8 lg:px-12 xl:px-16 pointer-events-none"
+                className="story-chapter-section relative w-full pointer-events-none"
+                style={{ height: '220vh' }}
               >
-                {/* Top Row: Left-Aligned Epicenter Card (Never blocks the globe!) + Right Status Pill */}
-                <div className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-2 sm:gap-4 pointer-events-none pt-1">
-                  {/* Left Side: Interactive 3D Epicenter Survey Card */}
-                  <div className="pointer-events-auto">
-                    {bmkgAlert && formattedBMKG && (
-                      <EpicenterMapCard
-                        location={formattedBMKG.location}
-                        coordinates={bmkgAlert.coordinates}
-                        magnitude={bmkgAlert.magnitude}
-                        depth={formattedBMKG.depth}
-                        time={formattedBMKG.time}
-                        shortTime={formattedBMKG.shortTime}
-                        potensi={formattedBMKG.potensi}
-                        onOpenShakemap={() => setIsShakemapModalOpen(true)}
-                        onFocusEpicenter={() => {
-                          const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
-                          if (coordsMatch) {
-                            const lat = parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1);
-                            const lon = parseFloat(coordsMatch[2]);
-                            setTargetFocus([lat, lon]);
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-
-                  {/* Right Side: Observatory View Switcher & Dual Telemetry */}
-                  <div className="pointer-events-auto self-end sm:self-auto flex items-center gap-2 flex-wrap">
-                    {/* View Switcher: 3D Globe vs 2D Console */}
-                    <div className="flex items-center gap-0.5 bg-white/85 backdrop-blur-md p-0.5 rounded-full border border-slate-200/80 shadow-xs font-mono text-[9.5px]">
-                      <button
-                        onClick={() => setObservatoryView('globe')}
-                        className={`px-2.5 py-1 rounded-full font-bold transition-all cursor-pointer ${
-                          observatoryView === 'globe'
-                            ? 'bg-slate-900 text-white shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        3D GLOBE
-                      </button>
-                      <button
-                        onClick={() => setObservatoryView('console')}
-                        className={`px-2.5 py-1 rounded-full font-bold transition-all cursor-pointer ${
-                          observatoryView === 'console'
-                            ? 'bg-slate-900 text-cyan-300 shadow-xs'
-                            : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        2D CONSOLE
-                      </button>
+                {/* Sticky Viewport Stage Pinned during Scroll Zoom with Continuous Blur Fade */}
+                <div
+                  style={{
+                    opacity: observatoryProgress,
+                    filter: observatoryProgress < 0.99 ? `blur(${(1 - observatoryProgress) * 6}px)` : 'none',
+                    transform: `translate3d(0, -${Math.min(obsTopOffset, 320)}px, 0)`,
+                    willChange: 'opacity, transform, filter',
+                    visibility: observatoryProgress <= 0.001 ? 'hidden' : 'visible',
+                  }}
+                  className="sticky top-0 h-screen w-full flex flex-col justify-between pt-16 sm:pt-20 pb-6 px-3 sm:px-6 lg:px-12 pointer-events-none z-20"
+                >
+                  {/* Top Row: Left-Aligned Epicenter Card + Right Telemetry & Scroll Zoom Reticle */}
+                  <div className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 pointer-events-none">
+                    {/* Left Side: Interactive BMKG Epicenter Survey Card */}
+                    <div className="pointer-events-auto">
+                      {bmkgAlert && formattedBMKG && (
+                        <EpicenterMapCard
+                          location={formattedBMKG.location}
+                          coordinates={bmkgAlert.coordinates}
+                          magnitude={bmkgAlert.magnitude}
+                          depth={formattedBMKG.depth}
+                          time={formattedBMKG.time}
+                          shortTime={formattedBMKG.shortTime}
+                          potensi={formattedBMKG.potensi}
+                          onOpenShakemap={() => setIsShakemapModalOpen(true)}
+                          onFocusEpicenter={() => {
+                            const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
+                            if (coordsMatch) {
+                              const lat = parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1);
+                              const lon = parseFloat(coordsMatch[2]);
+                              setTargetFocus([lat, lon]);
+                            }
+                          }}
+                        />
+                      )}
                     </div>
 
-                    {/* Depth Legend (If Depth Color Mode) */}
-                    {colorMode === 'depth' && (
-                      <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs font-mono text-[9px] tracking-wider text-slate-700">
-                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" />&lt;70KM</span>
-                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />70-300KM</span>
-                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />&gt;300KM</span>
+                    {/* Right Side: Depth Legend, Live Telemetry Counters & Scroll Zoom Indicator */}
+                    <div className="pointer-events-auto self-end sm:self-auto flex items-center gap-2.5 flex-wrap">
+                      {/* Depth Legend: inline dash markers */}
+                      {colorMode === 'depth' && (
+                        <div className="hidden md:flex items-center gap-3 font-mono text-[9px] tracking-widest text-slate-500 uppercase">
+                          <span className="flex items-center gap-1.5">
+                            <span className="block w-4 h-0.5" style={{ backgroundColor: '#f43f5e' }} />
+                            &lt;70KM
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="block w-4 h-0.5" style={{ backgroundColor: '#f59e0b' }} />
+                            70-300KM
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <span className="block w-4 h-0.5" style={{ backgroundColor: '#06b6d4' }} />
+                            &gt;300KM
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Scroll Zoom Indicator HUD */}
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] text-slate-600 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                        <span className="tracking-wider uppercase font-semibold text-slate-900">SCROLL ZOOM</span>
+                        <span className="text-slate-300">|</span>
+                        <span className="font-bold text-blue-700 tabular-nums">{observatoryScrollZoom.toFixed(1)}x</span>
+                        <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden border border-slate-200/80">
+                          <div
+                            className="h-full bg-blue-600 transition-all duration-100"
+                            style={{ width: `${Math.min(100, Math.max(0, ((observatoryScrollZoom - 1.0) / 2.2) * 100))}%` }}
+                          />
+                        </div>
                       </div>
-                    )}
 
-                    {/* Dual Telemetry Counter */}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-700 font-mono text-[10px] tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="font-bold">{events.length}</span>
-                      <span className="text-slate-400">EQ</span>
-                      <span className="text-slate-300">/</span>
-                      <span className="font-bold text-orange-600">{hotspots.length}</span>
-                      <span className="text-slate-400">HOTSPOTS</span>
+                      {/* Telemetry Counter: plain bordered */}
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] tracking-wider text-slate-500 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                        <span className="font-bold text-slate-900 tabular-nums">{events.length}</span>
+                        <span>EQ</span>
+                        <span className="text-slate-300 px-0.5">/</span>
+                        <span className="font-bold text-slate-900 tabular-nums">{hotspots.length}</span>
+                        <span>HOTSPOTS</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Center Content: Framed 2D Tactical Command Console or 3D Globe Pass-through */}
-                {observatoryView === 'console' ? (
-                  <div className="w-full flex-1 flex items-center justify-center my-auto py-2 pointer-events-auto">
-                    <TacticalHazardConsole
-                      events={filteredEvents}
-                      hotspots={hotspots}
-                      hazardMode={hazardMode}
-                      onHazardModeChange={setHazardMode}
-                      onSelectEvent={setSelectedEvent}
-                    />
-                  </div>
-                ) : (
+                  {/* Center Content: Transparent pass-through exposing the panoramic letterboxed map */}
                   <div className="flex-1 w-full pointer-events-none" />
-                )}
 
-                {/* Bottom spacer for dock clearance */}
-                <div className="h-16 pointer-events-none" />
+                  {/* Bottom spacer for dock clearance */}
+                  <div className="h-16 pointer-events-none" />
+                </div>
               </section>
             );
           }
@@ -820,6 +1059,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         onHazardModeChange={setHazardMode}
         eventCount={filteredEvents.length}
         visible={isObservatoryActive && !isTimeLapseOpen}
+        progress={isTimeLapseOpen ? 0 : observatoryProgress}
       />
 
       {/* 7. EVENT DETAIL & BOOKMARK MODAL */}

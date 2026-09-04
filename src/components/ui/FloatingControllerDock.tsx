@@ -23,6 +23,8 @@ interface FloatingControllerDockProps {
   onHazardModeChange?: (mode: HazardMode) => void;
   eventCount?: number;
   visible?: boolean;
+  progress?: number;
+  style?: React.CSSProperties;
 }
 
 export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
@@ -45,6 +47,8 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   onHazardModeChange,
   eventCount,
   visible = true,
+  progress,
+  style,
 }) => {
   const pillGroup = 'flex items-center gap-0.5 sm:gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shrink-0';
   const pillBase = 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] xl:text-[10.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
@@ -53,12 +57,23 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   const smallPillBase = 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8.5px] sm:text-[9.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
   const divider = <div className="w-[1px] h-3 sm:h-3.5 bg-slate-300/60 shrink-0" />;
 
+  const effectiveProgress = progress != null ? progress : (visible ? 1 : 0);
+  const isScrollDriven = progress != null;
+
   return (
     <nav
       aria-label="Seismic Telemetry Controller"
-      className={`fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-500 pointer-events-none w-auto max-w-[calc(100vw-1.5rem)] px-1 flex justify-center ${
-        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 pointer-events-none'
-      }`}
+      style={{
+        ...style,
+        opacity: effectiveProgress,
+        filter: effectiveProgress < 0.99 ? `blur(${(1 - effectiveProgress) * 6}px)` : 'none',
+        transform: `translate(-50%, ${(1 - effectiveProgress) * 20}px)`,
+        transition: isScrollDriven ? 'none' : 'opacity 200ms ease-out, filter 200ms ease-out, transform 200ms ease-out',
+        willChange: 'opacity, transform, filter',
+        pointerEvents: effectiveProgress > 0.4 ? 'auto' : 'none',
+        visibility: effectiveProgress <= 0.001 ? 'hidden' : 'visible',
+      }}
+      className="fixed bottom-3 sm:bottom-5 left-1/2 z-40 select-none w-auto max-w-[calc(100vw-1.5rem)] px-1 flex justify-center"
     >
       <div className="pointer-events-auto max-w-full">
         <LiquidCard className="rounded-full shadow-2xl border border-slate-200/90 max-w-full overflow-hidden">
@@ -87,11 +102,10 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     title="Filter Khusus Seismik / Gempa"
                     className={`${smallPillBase} ${
                       hazardMode === 'seismic'
-                        ? 'bg-cyan-900 text-cyan-200 border border-cyan-700 shadow-xs'
+                        ? 'bg-slate-900 text-white shadow-xs font-semibold'
                         : pillInactive
-                    } flex items-center gap-1`}
+                    }`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block" />
                     SEIS
                   </button>
                   <button
@@ -99,11 +113,10 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     title="Filter Khusus Titik Panas Karhutla (NASA FIRMS)"
                     className={`${smallPillBase} ${
                       hazardMode === 'wildfire'
-                        ? 'bg-orange-950 text-orange-300 border border-orange-700 shadow-xs'
+                        ? 'bg-slate-900 text-white shadow-xs font-semibold'
                         : pillInactive
-                    } flex items-center gap-1`}
+                    }`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block animate-pulse" />
                     FIRE
                   </button>
                 </div>
@@ -202,18 +215,16 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               <button
                 onClick={() => onDepthFilterChange('shallow')}
                 title="Kedalaman Dangkal < 30km"
-                className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive} flex items-center gap-1`}
+                className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 inline-block animate-pulse" />
-                &lt;30km
+                &lt;30KM
               </button>
               <button
                 onClick={() => onDepthFilterChange('deep')}
                 title="Kedalaman Dalam > 100km"
-                className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive} flex items-center gap-1`}
+                className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive}`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
-                &gt;100km
+                &gt;100KM
               </button>
             </div>
 
@@ -234,9 +245,8 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                   <button
                     onClick={() => onColorModeChange('depth')}
                     title="Warna: Kedalaman Hiposenter (Subduksi)"
-                    className={`${smallPillBase} ${colorMode === 'depth' ? pillActive : pillInactive} flex items-center gap-1`}
+                    className={`${smallPillBase} ${colorMode === 'depth' ? pillActive : pillInactive}`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block" />
                     DEPTH
                   </button>
                 </div>
@@ -252,7 +262,7 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                   title="Putar Time-Lapse Seismik 7 Hari"
                   className="group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
                 >
-                  <History className="w-3 h-3 text-cyan-600 group-hover:scale-110 transition-transform" />
+                  <History className="w-3 h-3 text-slate-600 group-hover:scale-110 transition-transform" />
                   <span className="hidden sm:inline">REPLAY</span>
                 </button>
                 {divider}
@@ -267,11 +277,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                   title="Buka Monitor Seismograf Real-Time"
                   className={`group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border cursor-pointer shrink-0 ${
                     isSeismogramOpen
-                      ? 'bg-slate-900 text-cyan-400 border-slate-950'
+                      ? 'bg-slate-900 text-white border-slate-950'
                       : 'bg-slate-100 hover:bg-slate-200/90 text-slate-800 border-slate-200/90'
                   }`}
                 >
-                  <Activity className="w-3 h-3 text-emerald-500 group-hover:scale-110 transition-transform animate-pulse" />
+                  <Activity className="w-3 h-3 text-slate-600 group-hover:scale-110 transition-transform" />
                   <span className="hidden sm:inline">SEISMOGRAM</span>
                   <span className="sm:hidden text-[8.5px]">WAVE</span>
                 </button>

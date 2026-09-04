@@ -26,6 +26,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
   coordinates,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const safeLocation = location || 'Indonesia Archipelago';
   const safeTime = time || 'Terbaru';
@@ -46,85 +47,80 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
     canvas.width = 1080;
     canvas.height = 1350;
 
-    // 1. Dark Blueprint Geological Background
-    const bgGrad = ctx.createLinearGradient(0, 0, 0, 1350);
-    bgGrad.addColorStop(0, '#090d16');
-    bgGrad.addColorStop(0.6, '#0f172a');
-    bgGrad.addColorStop(1, '#020617');
-    ctx.fillStyle = bgGrad;
+    // 1. Editorial Deep-Navy & Crisp Slate Background
+    ctx.fillStyle = '#0f2f63';
     ctx.fillRect(0, 0, 1080, 1350);
 
-    // 2. Technical Blueprint Crosshatch Grid
-    ctx.strokeStyle = 'rgba(51, 65, 85, 0.3)';
+    // Subtle inner content card
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(40, 40, 1000, 1270, 32);
+    ctx.fill();
+
+    // 2. Technical Blueprint Hairline Grid
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.04)';
     ctx.lineWidth = 1;
-    for (let x = 60; x < 1080; x += 60) {
+    for (let x = 80; x < 1000; x += 60) {
       ctx.beginPath();
-      ctx.moveTo(x, 60);
-      ctx.lineTo(x, 1290);
+      ctx.moveTo(x, 80);
+      ctx.lineTo(x, 1270);
       ctx.stroke();
     }
-    for (let y = 60; y < 1350; y += 60) {
+    for (let y = 80; y < 1270; y += 60) {
       ctx.beginPath();
-      ctx.moveTo(60, y);
-      ctx.lineTo(1020, y);
+      ctx.moveTo(80, y);
+      ctx.lineTo(1000, y);
       ctx.stroke();
     }
 
-    // Precision Corner Marks
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 3;
-    const len = 30;
+    // Corner Architectural Marks
+    ctx.strokeStyle = '#0f2f63';
+    ctx.lineWidth = 2;
+    const len = 24;
     // Top-Left
-    ctx.beginPath(); ctx.moveTo(60, 60 + len); ctx.lineTo(60, 60); ctx.lineTo(60 + len, 60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(80, 80 + len); ctx.lineTo(80, 80); ctx.lineTo(80 + len, 80); ctx.stroke();
     // Top-Right
-    ctx.beginPath(); ctx.moveTo(1020 - len, 60); ctx.lineTo(1020, 60); ctx.lineTo(1020, 60 + len); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1000 - len, 80); ctx.lineTo(1000, 80); ctx.lineTo(1000, 80 + len); ctx.stroke();
     // Bottom-Left
-    ctx.beginPath(); ctx.moveTo(60, 1290 - len); ctx.lineTo(60, 1290); ctx.lineTo(60 + len, 1290); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(80, 1270 - len); ctx.lineTo(80, 1270); ctx.lineTo(80 + len, 1270); ctx.stroke();
     // Bottom-Right
-    ctx.beginPath(); ctx.moveTo(1020 - len, 1290); ctx.lineTo(1020, 1290); ctx.lineTo(1020, 1290 - len); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1000 - len, 1270); ctx.lineTo(1000, 1270); ctx.lineTo(1000, 1270 - len); ctx.stroke();
 
     // 3. Header Branding & Telemetry Status
-    ctx.font = 'bold 26px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillText('GLOBAL SEISMIC TRACKER // NUSANTARA OBSERVATORY', 100, 140);
+    ctx.font = 'bold 22px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#0f2f63';
+    ctx.fillText('SEISMIC OBSERVATORY // NUSANTARA ARCHIPELAGO', 100, 130);
 
-    ctx.font = '18px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#64748b';
-    ctx.fillText('REAL-TIME GEOPHYSICAL ALERT TELEMETRY · BMKG & USGS SYNC', 100, 175);
+    ctx.font = '16px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#717784';
+    ctx.fillText('REAL-TIME GEOPHYSICAL TELEMETRY · BMKG & USGS VERIFIED', 100, 160);
 
     // Divider
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#e6e8ec';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(100, 210);
-    ctx.lineTo(980, 210);
+    ctx.moveTo(100, 190);
+    ctx.lineTo(980, 190);
     ctx.stroke();
 
-    // 4. Massive Magnitude Display Block
-    const magBoxY = 250;
-    ctx.fillStyle = '#020617';
-    ctx.strokeStyle = isTsunamiThreat ? '#f43f5e' : '#1e293b';
+    // 4. Massive Magnitude Display Block (Clean White Card with Deep Navy/Red Accent)
+    const magBoxY = 220;
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = magNum >= 6.0 ? '#e11d48' : '#e2e8f0';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(100, magBoxY, 880, 280, 24);
+    ctx.roundRect(100, magBoxY, 880, 240, 24);
     ctx.fill();
     ctx.stroke();
 
-    // Ambient glow inside magnitude box
-    const glowGrad = ctx.createRadialGradient(280, magBoxY + 140, 10, 280, magBoxY + 140, 320);
-    glowGrad.addColorStop(0, magNum >= 5.5 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.15)');
-    glowGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowGrad;
-    ctx.fillRect(100, magBoxY, 880, 280);
-
     // Magnitude Number
-    ctx.font = '900 130px "Inter", sans-serif';
-    ctx.fillStyle = magNum >= 5.5 ? '#f43f5e' : '#38bdf8';
-    ctx.fillText(`M ${magNum.toFixed(1)}`, 140, magBoxY + 185);
+    ctx.font = '900 120px "Inter", sans-serif';
+    ctx.fillStyle = magNum >= 6.0 ? '#e11d48' : '#0f2f63';
+    ctx.fillText(`M ${magNum.toFixed(1)}`, 140, magBoxY + 160);
 
     // Magnitude Classification Tag
-    ctx.font = 'bold 22px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 20px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#0a0a0a';
     const categoryStr =
       magNum >= 7.0
         ? 'MAJOR DESTRUCTIVE RUPTURE'
@@ -133,91 +129,90 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         : magNum >= 4.5
         ? 'MODERATE SEISMIC SHOCK'
         : 'LIGHT FELT VIBRATION';
-    ctx.fillText(categoryStr, 580, magBoxY + 130);
+    ctx.fillText(categoryStr, 540, magBoxY + 110);
 
-    ctx.font = '18px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#64748b';
-    ctx.fillText(`KEDALAMAN: ${safeDepth}`, 580, magBoxY + 175);
+    ctx.font = '16px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#717784';
+    ctx.fillText(`HYPOCENTER DEPTH: ${safeDepth}`, 540, magBoxY + 148);
 
     // 5. Epicenter Location Title Block
-    ctx.font = 'bold 20px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillText('PUSAT GEMPA BUMI (EPICENTER SECTOR):', 100, 590);
+    ctx.font = 'bold 16px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#717784';
+    ctx.fillText('EPICENTER SECTOR:', 100, 520);
 
-    ctx.font = 'bold 44px "Inter", sans-serif';
-    ctx.fillStyle = '#ffffff';
-    // Wrap text if location is long
+    ctx.font = 'bold 40px "Inter", sans-serif';
+    ctx.fillStyle = '#0a0a0a';
     const cleanLoc = safeLocation.toUpperCase();
-    ctx.fillText(cleanLoc.slice(0, 32), 100, 650);
+    ctx.fillText(cleanLoc.slice(0, 32), 100, 575);
     if (cleanLoc.length > 32) {
-      ctx.fillText(cleanLoc.slice(32, 64), 100, 705);
+      ctx.fillText(cleanLoc.slice(32, 64), 100, 625);
     }
 
     // 6. Coordinates & Timing Key-Value Grid
-    const gridY = 770;
+    const gridY = 680;
     const drawKVPair = (label: string, value: string, x: number, y: number) => {
-      ctx.fillStyle = '#0f172a';
-      ctx.strokeStyle = '#1e293b';
+      ctx.fillStyle = '#f8fafc';
+      ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.roundRect(x, y, 425, 95, 16);
       ctx.fill();
       ctx.stroke();
 
-      ctx.font = 'bold 15px "Courier New", Courier, monospace';
-      ctx.fillStyle = '#64748b';
+      ctx.font = 'bold 13px "Courier New", Courier, monospace';
+      ctx.fillStyle = '#717784';
       ctx.fillText(label, x + 25, y + 36);
 
-      ctx.font = 'bold 22px "Courier New", Courier, monospace';
-      ctx.fillStyle = '#f8fafc';
+      ctx.font = 'bold 20px "Courier New", Courier, monospace';
+      ctx.fillStyle = '#0a0a0a';
       ctx.fillText(value, x + 25, y + 72);
     };
 
-    drawKVPair('WAKTU KEJADIAN (WIB / GMT+7)', safeTime.slice(0, 24), 100, gridY);
-    drawKVPair('KOORDINAT GEOGRAFIS', coordinates || '-8.20° S, 120.45° E', 555, gridY);
+    drawKVPair('EVENT TIME (WIB / GMT+7)', safeTime.slice(0, 24), 100, gridY);
+    drawKVPair('COORDINATES', coordinates || '-8.20° S, 120.45° E', 555, gridY);
 
     // 7. Tsunami Status Advisory Banner
-    const tsunamiY = 895;
-    ctx.fillStyle = isTsunamiThreat ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.15)';
-    ctx.strokeStyle = isTsunamiThreat ? '#ef4444' : '#10b981';
-    ctx.lineWidth = 2;
+    const tsunamiY = 815;
+    ctx.fillStyle = isTsunamiThreat ? '#fff1f2' : '#f0fdf4';
+    ctx.strokeStyle = isTsunamiThreat ? '#f43f5e' : '#bbf7d0';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.roundRect(100, tsunamiY, 880, 110, 20);
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = 'bold 20px "Courier New", Courier, monospace';
-    ctx.fillStyle = isTsunamiThreat ? '#fca5a5' : '#6ee7b7';
-    ctx.fillText('STATUS PERINGATAN TSUNAMI (BMKG TEWS):', 140, tsunamiY + 45);
+    ctx.font = 'bold 16px "Courier New", Courier, monospace';
+    ctx.fillStyle = isTsunamiThreat ? '#be123c' : '#15803d';
+    ctx.fillText('TSUNAMI THREAT ADVISORY (BMKG TEWS):', 140, tsunamiY + 45);
 
-    ctx.font = 'bold 30px "Inter", sans-serif';
-    ctx.fillStyle = isTsunamiThreat ? '#ffffff' : '#a7f3d0';
-    ctx.fillText(safePotensi.toUpperCase(), 140, tsunamiY + 88);
+    ctx.font = 'bold 26px "Inter", sans-serif';
+    ctx.fillStyle = isTsunamiThreat ? '#9f1239' : '#166534';
+    ctx.fillText(safePotensi.toUpperCase(), 140, tsunamiY + 86);
 
-    // 8. Safety Advisory & Emergency Hotlines Footer
-    const footY = 1040;
-    ctx.fillStyle = '#020617';
-    ctx.strokeStyle = '#1e293b';
+    // 8. Safety Advisory Footer
+    const footY = 960;
+    ctx.fillStyle = '#f8fafc';
+    ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(100, footY, 880, 160, 20);
     ctx.fill();
     ctx.stroke();
 
-    ctx.font = 'bold 16px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillText('TINDAKAN KESELAMATAN & MITIGASI:', 130, footY + 40);
+    ctx.font = 'bold 15px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#0f2f63';
+    ctx.fillText('SAFETY & MITIGATION PROTOCOL:', 130, footY + 40);
 
-    ctx.font = '16px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillText('1. Hindari bangunan retak atau struktur yang berpotensi roboh.', 130, footY + 75);
-    ctx.fillText('2. Jika di daerah pantai dan terasa gempa kuat, segera evakuasi ke tempat tinggi.', 130, footY + 105);
-    ctx.fillText('3. Kontak Darurat: Call Center BMKG 196 · BNPB 117 · SAR 115', 130, footY + 135);
+    ctx.font = '15px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#475569';
+    ctx.fillText('1. Evacuate immediately if near coastline and severe shaking is felt.', 130, footY + 75);
+    ctx.fillText('2. Inspect structural integrity before re-entering compromised buildings.', 130, footY + 105);
+    ctx.fillText('3. Official Emergency Lines: BMKG 196 · BNPB 117 · SAR 115', 130, footY + 135);
 
     // Watermark
-    ctx.font = '14px "Courier New", Courier, monospace';
-    ctx.fillStyle = '#475569';
-    ctx.fillText('Diverifikasi dari data resmi BMKG & USGS · global-seismic-tracker.web.app', 100, 1260);
+    ctx.font = '13px "Courier New", Courier, monospace';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Verified from BMKG & USGS official telemetry · Indonesian Crustal Observatory', 100, 1220);
 
     setDataUrl(canvas.toDataURL('image/png'));
   }, [isOpen, safeLocation, magnitude, safeDepth, safeTime, safePotensi, coordinates, magNum, isTsunamiThreat]);
@@ -250,36 +245,45 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-xl animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 select-none"
       onClick={onClose}
+      onWheel={(e) => e.stopPropagation()}
     >
       <div
-        className="relative w-full max-w-xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-3xl overflow-hidden border border-slate-700/80 bg-slate-900 text-slate-100"
+        className="relative w-full max-w-xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-3xl overflow-hidden border border-neutral-200 bg-white text-neutral-900"
         onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+        data-lenis-prevent="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-950 font-mono text-xs">
-          <div className="flex items-center gap-2 text-cyan-400 font-bold tracking-wider">
-            <Share2 className="w-4 h-4" />
-            <span>DISASTER INFOGRAPHIC CARD GENERATOR</span>
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/80 font-mono text-xs">
+          <div className="flex items-center gap-2 text-neutral-900 font-bold tracking-wider">
+            <span className="w-6 h-6 rounded-full bg-[#0f2f63] text-white flex items-center justify-center">
+              <Share2 className="w-3.5 h-3.5" />
+            </span>
+            <span>DISASTER INFOGRAPHIC GENERATOR</span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-neutral-200 text-neutral-500 hover:text-neutral-900 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body Preview */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col items-center justify-center">
+        <div
+          data-lenis-prevent="true"
+          onWheel={(e) => e.stopPropagation()}
+          className="flex-1 overflow-hidden p-4 sm:p-6 flex flex-col items-center justify-center bg-neutral-100/50"
+        >
           {/* Hidden Canvas for High-Res Generation */}
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Scaled Visual Preview */}
           {dataUrl && (
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-700 max-h-[58vh]">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl border border-neutral-200 max-h-[58vh]">
               <img
                 src={dataUrl}
                 alt="Disaster Card Preview"
@@ -290,26 +294,26 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-800 bg-slate-950 font-mono text-xs">
-          <span className="text-slate-500 text-[10px] hidden sm:inline">
-            FORMAT 1080×1350 HD · READY TO SHARE
+        <div className="flex items-center justify-between px-5 py-3.5 border-t border-neutral-200 bg-white font-mono text-xs">
+          <span className="text-neutral-500 text-[10px] hidden sm:inline">
+            1080×1350 HD · READY TO SHARE
           </span>
 
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs transition-all border border-slate-700 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-xs transition-all border border-neutral-200 cursor-pointer"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'TERSALIN KE CLIPBOARD' : 'SALIN GAMBAR'}</span>
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'COPIED' : 'COPY'}</span>
             </button>
 
             <button
               onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all shadow-md cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0f2f63] hover:bg-[#153e7e] text-white font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>UNDUH PNG</span>
+              <span>DOWNLOAD PNG</span>
             </button>
           </div>
         </div>

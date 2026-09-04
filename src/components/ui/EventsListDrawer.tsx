@@ -76,6 +76,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
       {/* Subtle backdrop so the 3D globe remains faintly visible */}
       <div
         onClick={onClose}
+        onWheel={(e) => e.stopPropagation()}
         className="fixed inset-0 bg-slate-900/20 backdrop-blur-[2px] z-50 transition-opacity duration-300 opacity-100 pointer-events-auto animate-in fade-in"
       />
 
@@ -89,10 +90,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
         <div className="shrink-0 px-6 pt-5 pb-4 border-b border-slate-200/70 bg-white/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
+              <span className="w-2 h-2 rounded-full bg-[#0f2f63] shrink-0" />
               <div>
                 <h2 className="text-sm font-semibold text-slate-900 tracking-tight flex items-center gap-2">
                   Live Seismic Feed

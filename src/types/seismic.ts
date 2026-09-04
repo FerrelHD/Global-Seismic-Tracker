@@ -9,6 +9,16 @@ export interface SeismicEvent {
   occurred_at: string;
 }
 
+export interface RegionalWindData {
+  region: string;
+  latitude: number;
+  longitude: number;
+  windSpeed: number; // km/h
+  windDirection: number; // degrees 0-360
+  gustSpeed?: number;
+  timestamp: string;
+}
+
 export interface WildfireHotspot {
   id: string;
   latitude: number;
@@ -18,6 +28,8 @@ export interface WildfireHotspot {
   island: 'Sumatra' | 'Kalimantan' | 'Sulawesi' | 'Papua' | 'Jawa' | string;
   satellite: string;
   detected_at: string;
+  windSpeed?: number;
+  windDirection?: number;
 }
 
 export type HazardMode = 'dual' | 'seismic' | 'wildfire';
