@@ -11,6 +11,8 @@ import { EventModal } from './components/ui/EventModal';
 import { StoryChapterCard } from './components/story/StoryChapterCard';
 import { StoryProgressRail } from './components/story/StoryProgressRail';
 import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
+import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
+import { BMKGShakemapModal } from './components/ui/BMKGShakemapModal';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark } from './types/seismic';
 import {
@@ -61,9 +63,19 @@ export const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d'>('all');
   const [depthFilter, setDepthFilter] = useState<'all' | 'shallow' | 'mid' | 'deep'>('all');
+  const [colorMode, setColorMode] = useState<'magnitude' | 'depth'>('magnitude');
   const [isRotating, setIsRotating] = useState(true);
   const [resetSignal, setResetSignal] = useState(0);
   const [targetFocus, setTargetFocus] = useState<[number, number] | null>(null);
+
+  // Time-Lapse 7-Day Seismic Replay State
+  const [isTimeLapseOpen, setIsTimeLapseOpen] = useState(false);
+  const [isTimeLapsePlaying, setIsTimeLapsePlaying] = useState(false);
+  const [timelapseSpeed, setTimelapseSpeed] = useState(5);
+  const [timelapseTime, setTimelapseTime] = useState(Date.now());
+
+  // BMKG Official Shakemap Modal State
+  const [isShakemapModalOpen, setIsShakemapModalOpen] = useState(false);
 
   // Load live data from Supabase / USGS
   const loadData = async () => {
@@ -318,6 +330,68 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
     };
   }, [filteredEvents]);
 
+  // Determine time-lapse boundaries based on filteredEvents
+  const { timelapseStartTime, timelapseEndTime } = useMemo(() => {
+    if (filteredEvents.length === 0) {
+      const now = Date.now();
+      return { timelapseStartTime: now - 7 * 24 * 3600 * 1000, timelapseEndTime: now };
+    }
+    let minTime = Infinity;
+    let maxTime = -Infinity;
+    for (const e of filteredEvents) {
+      const t = new Date(e.occurred_at).getTime();
+      if (t < minTime) minTime = t;
+      if (t > maxTime) maxTime = t;
+    }
+    return {
+      timelapseStartTime: minTime,
+      timelapseEndTime: Math.max(maxTime, Date.now()),
+    };
+  }, [filteredEvents]);
+
+  // When opening time-lapse, initialize timelapseTime to oldest event and start playing
+  const handleOpenTimeLapse = () => {
+    setTimelapseTime(timelapseStartTime);
+    setIsTimeLapseOpen(true);
+    setIsTimeLapsePlaying(true);
+  };
+
+  // Time-Lapse simulation loop
+  useEffect(() => {
+    if (!isTimeLapseOpen || !isTimeLapsePlaying) return;
+
+    let lastFrameTime = performance.now();
+    let animationFrameId: number;
+
+    const tick = (now: number) => {
+      const dtSeconds = (now - lastFrameTime) / 1000;
+      lastFrameTime = now;
+
+      // dtSeconds * timelapseSpeed * 30 minutes of sim time per real second at 1x
+      const simAdvanceMs = dtSeconds * timelapseSpeed * 1800000;
+
+      setTimelapseTime((prev) => {
+        const next = prev + simAdvanceMs;
+        if (next >= timelapseEndTime) {
+          setIsTimeLapsePlaying(false);
+          return timelapseEndTime;
+        }
+        return next;
+      });
+
+      animationFrameId = requestAnimationFrame(tick);
+    };
+
+    animationFrameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isTimeLapseOpen, isTimeLapsePlaying, timelapseSpeed, timelapseEndTime]);
+
+  // Count events visible up to current time-lapse timestamp
+  const timelapseVisibleCount = useMemo(() => {
+    if (!isTimeLapseOpen) return filteredEvents.length;
+    return filteredEvents.filter((e) => new Date(e.occurred_at).getTime() <= timelapseTime).length;
+  }, [filteredEvents, isTimeLapseOpen, timelapseTime]);
+
   // Region Preset Click Handler (Indonesian Archipelago Sectors)
   const handleRegionChange = (region: string) => {
     setSearchQuery(region);
@@ -446,7 +520,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
           {/* No Art Architectural Vector Wireframe 3D Globe */}
           <VectorGlobe
             events={filteredEvents}
-            isRotating={isRotating}
+            isRotating={isRotating && !isTimeLapseOpen}
             resetSignal={resetSignal}
             targetFocus={targetFocus}
             onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
@@ -454,6 +528,8 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             onCameraChange={setCameraCoords}
             scrollPhi={scrollRotation.phi}
             scrollTheta={scrollRotation.theta}
+            colorMode={colorMode}
+            timelapseTimestamp={isTimeLapseOpen ? timelapseTime : null}
           />
         </div>
       </div>
@@ -591,6 +667,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                         time={formattedBMKG.time}
                         shortTime={formattedBMKG.shortTime}
                         potensi={formattedBMKG.potensi}
+                        onOpenShakemap={() => setIsShakemapModalOpen(true)}
                         onFocusEpicenter={() => {
                           const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
                           if (coordsMatch) {
@@ -603,8 +680,15 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                     )}
                   </div>
 
-                  {/* Right Side: Observatory Live Telemetry Pill */}
-                  <div className="pointer-events-auto self-end sm:self-auto">
+                  {/* Right Side: Observatory Live Telemetry & Depth Legend */}
+                  <div className="pointer-events-auto self-end sm:self-auto flex items-center gap-2">
+                    {colorMode === 'depth' && (
+                      <div className="hidden md:inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs font-mono text-[9.5px] tracking-wider text-slate-700">
+                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" />&lt;70KM CRUSTAL</span>
+                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />70-300KM</span>
+                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />&gt;300KM SLAB</span>
+                      </div>
+                    )}
                     <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-600 font-mono text-[10px] tracking-widest uppercase">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       <span>NUSANTARA REAL-TIME TELEMETRY</span>
@@ -631,8 +715,11 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                       setResetSignal((prev) => prev + 1);
                     }}
                     onOpenFeed={() => setIsFeedOpen(true)}
+                    onOpenTimeLapse={handleOpenTimeLapse}
+                    colorMode={colorMode}
+                    onColorModeChange={setColorMode}
                     eventCount={filteredEvents.length}
-                    visible={isObservatoryActive}
+                    visible={isObservatoryActive && !isTimeLapseOpen}
                   />
                 </div>
               </section>
@@ -696,6 +783,44 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
           handleSelectEventById(eventId);
           setIsDrawerOpen(false);
         }}
+      />
+
+      {/* 10. TIME-LAPSE 7-DAY REPLAY SCRUBBER */}
+      {isTimeLapseOpen && (
+        <TimeLapseScrubber
+          isPlaying={isTimeLapsePlaying}
+          onTogglePlay={() => setIsTimeLapsePlaying((p) => !p)}
+          speed={timelapseSpeed}
+          onSpeedChange={setTimelapseSpeed}
+          currentTime={timelapseTime}
+          startTime={timelapseStartTime}
+          endTime={timelapseEndTime}
+          onScrub={(t) => setTimelapseTime(t)}
+          visibleCount={timelapseVisibleCount}
+          totalCount={filteredEvents.length}
+          onClose={() => {
+            setIsTimeLapseOpen(false);
+            setIsTimeLapsePlaying(false);
+          }}
+        />
+      )}
+
+      {/* 11. BMKG OFFICIAL SHAKEMAP MODAL */}
+      <BMKGShakemapModal
+        isOpen={isShakemapModalOpen}
+        onClose={() => setIsShakemapModalOpen(false)}
+        shakemapUrl={
+          bmkgAlert?.shakemap
+            ? bmkgAlert.shakemap.startsWith('http')
+              ? bmkgAlert.shakemap
+              : `https://data.bmkg.go.id/DataMKG/TEWS/${bmkgAlert.shakemap}`
+            : null
+        }
+        location={formattedBMKG?.location || 'Kepulauan Indonesia'}
+        magnitude={`M${bmkgAlert?.magnitude || '5.0+'}`}
+        depth={formattedBMKG?.depth || `${bmkgAlert?.kedalaman || '10 km'}`}
+        time={formattedBMKG?.time || bmkgAlert?.tanggal || 'Terbaru'}
+        potensi={formattedBMKG?.potensi || bmkgAlert?.potensi || 'Tidak berpotensi tsunami'}
       />
     </div>
   );

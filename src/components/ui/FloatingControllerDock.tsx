@@ -1,6 +1,6 @@
 import React from 'react';
 import { LiquidCard } from './liquid-glass';
-import { Play, Pause, RotateCcw, List } from 'lucide-react';
+import { Play, Pause, RotateCcw, List, History } from 'lucide-react';
 
 interface FloatingControllerDockProps {
   searchQuery: string;
@@ -13,6 +13,9 @@ interface FloatingControllerDockProps {
   onToggleRotation: () => void;
   onResetView: () => void;
   onOpenFeed?: () => void;
+  onOpenTimeLapse?: () => void;
+  colorMode?: 'magnitude' | 'depth';
+  onColorModeChange?: (mode: 'magnitude' | 'depth') => void;
   eventCount?: number;
   visible?: boolean;
 }
@@ -28,6 +31,9 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   onToggleRotation,
   onResetView,
   onOpenFeed,
+  onOpenTimeLapse,
+  colorMode = 'magnitude',
+  onColorModeChange,
   eventCount,
   visible = true,
 }) => {
@@ -149,10 +155,49 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               </button>
             </div>
 
-            {/* Segment 6: Divider */}
+            {/* Segment 6: Color Palette Mode */}
+            {onColorModeChange && (
+              <>
+                {divider}
+                <div className={pillGroup}>
+                  <button
+                    onClick={() => onColorModeChange('magnitude')}
+                    title="Warna: Skala Magnitudo"
+                    className={`${smallPillBase} ${colorMode === 'magnitude' ? pillActive : pillInactive}`}
+                  >
+                    MAG
+                  </button>
+                  <button
+                    onClick={() => onColorModeChange('depth')}
+                    title="Warna: Kedalaman Hiposenter (Subduksi)"
+                    className={`${smallPillBase} ${colorMode === 'depth' ? pillActive : pillInactive} flex items-center gap-1`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 inline-block" />
+                    DEPTH
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Segment 7: Time-Lapse Replay Button */}
+            {onOpenTimeLapse && (
+              <>
+                {divider}
+                <button
+                  onClick={onOpenTimeLapse}
+                  title="Putar Time-Lapse Seismik 7 Hari"
+                  className="group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[10px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer"
+                >
+                  <History className="w-3 h-3 text-cyan-600 group-hover:scale-110 transition-transform" />
+                  <span>REPLAY</span>
+                </button>
+              </>
+            )}
+
+            {/* Segment 8: Divider */}
             {divider}
 
-            {/* Segment 7: Feed Button */}
+            {/* Segment 9: Feed Button */}
             {onOpenFeed && (
               <>
                 <button

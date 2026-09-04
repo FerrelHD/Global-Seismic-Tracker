@@ -19,6 +19,8 @@ interface VectorGlobeProps {
   onCameraChange?: (coords: CameraCoordinates) => void;
   scrollPhi?: number;
   scrollTheta?: number;
+  colorMode?: 'magnitude' | 'depth';
+  timelapseTimestamp?: number | null;
 }
 
 interface PrecomputedRing {
@@ -35,6 +37,7 @@ interface PrecomputedEvent {
   t0: number;
   t1: number;
   t2: number;
+  eventTime: number;
 }
 
 interface CameraMatrix {
@@ -148,12 +151,20 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   onCameraChange,
   scrollPhi = 0,
   scrollTheta = 0,
+  colorMode = 'magnitude',
+  timelapseTimestamp = null,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [countries, setCountries] = useState<PrecomputedFeature[]>([]);
   const containerWidthRef = useRef(560);
+
+  const colorModeRef = useRef(colorMode);
+  colorModeRef.current = colorMode;
+
+  const timelapseTimestampRef = useRef(timelapseTimestamp);
+  timelapseTimestampRef.current = timelapseTimestamp;
 
   // Direct Interactive Physics Refs - Default centered on Indonesian archipelago (Lat -0.78, Lon 118.0)
   const indoPhi = -((118.0 + 90) * Math.PI) / 180;
@@ -202,7 +213,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const precomputedEvents = useMemo(() => {
     return events.map((evt) => {
       const [t0, t1, t2] = geoToSphereVector(evt.latitude, evt.longitude, 0.82);
-      return { evt, t0, t1, t2 };
+      const eventTime = new Date(evt.occurred_at).getTime();
+      return { evt, t0, t1, t2, eventTime };
     });
   }, [events]);
   const precomputedEventsRef = useRef<PrecomputedEvent[]>(precomputedEvents);
@@ -363,8 +375,12 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       let closestY = 0;
 
       const activeEvents = precomputedEventsRef.current;
+      const currentTimelapse = timelapseTimestampRef.current;
       for (let i = 0; i < activeEvents.length; i++) {
         const item = activeEvents[i];
+        if (currentTimelapse != null && item.eventTime > currentTimelapse) {
+          continue;
+        }
         const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
         const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
         const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
@@ -668,8 +684,15 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
         // 4. Precomputed Seismic Event Markers
         const activeEvents = precomputedEventsRef.current;
+        const currentMode = colorModeRef.current;
+        const currentTimelapse = timelapseTimestampRef.current;
+
         for (let i = 0; i < activeEvents.length; i++) {
           const item = activeEvents[i];
+          if (currentTimelapse != null && item.eventTime > currentTimelapse) {
+            continue;
+          }
+
           const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
           const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
           const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
@@ -680,7 +703,37 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             const mag = item.evt.magnitude ?? 3.5;
             const size = Math.max(2.5, Math.min(6.5, (mag / 7.0) * 5.5));
 
-            ctx.fillStyle = mag >= 5.5 ? '#ef4444' : '#3b82f6';
+            let fillColor = '#3b82f6';
+            if (currentMode === 'depth') {
+              const d = item.evt.depth;
+              if (d < 70) {
+                fillColor = '#f43f5e'; // Shallow / Crustal (<70km)
+              } else if (d <= 300) {
+                fillColor = '#f59e0b'; // Intermediate (70-300km)
+              } else {
+                fillColor = '#06b6d4'; // Deep (>300km Wadati-Benioff)
+              }
+            } else {
+              fillColor = mag >= 5.5 ? '#ef4444' : '#3b82f6';
+            }
+
+            // Fresh event rupture ripple pulse when scrubbing in time-lapse mode
+            if (currentTimelapse != null) {
+              const ageMs = currentTimelapse - item.eventTime;
+              if (ageMs >= 0 && ageMs < 43200000) {
+                const pulseP = (ageMs % 21600000) / 21600000;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(px, py, size + pulseP * 18, 0, Math.PI * 2);
+                ctx.strokeStyle = fillColor;
+                ctx.lineWidth = Math.max(0.4, 1.6 * (1 - pulseP));
+                ctx.globalAlpha = (1 - pulseP) * 0.8;
+                ctx.stroke();
+                ctx.restore();
+              }
+            }
+
+            ctx.fillStyle = fillColor;
             ctx.beginPath();
             ctx.arc(px, py, size, 0, Math.PI * 2);
             ctx.fill();
@@ -703,6 +756,9 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           const candidates: { elIndex: number; x: number; y: number; mag: number }[] = [];
           for (let i = 0; i < items.length && i < children.length; i++) {
             const item = items[i];
+            if (currentTimelapse != null && item.eventTime > currentTimelapse) {
+              continue;
+            }
             const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
             const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
             const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
@@ -748,10 +804,16 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           const mItems = majorEventsRef.current;
           for (let i = 0; i < mItems.length && i < shockwaveChildren.length; i++) {
             const item = mItems[i];
+            const el = shockwaveChildren[i] as HTMLElement;
+
+            if (currentTimelapse != null && item.eventTime > currentTimelapse) {
+              el.style.opacity = '0';
+              continue;
+            }
+
             const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
             const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
             const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
-            const el = shockwaveChildren[i] as HTMLElement;
 
             if (z >= 0.03) {
               const px = ((c + 1) * 0.5) * w;

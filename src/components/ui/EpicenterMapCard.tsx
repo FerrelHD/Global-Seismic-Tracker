@@ -10,6 +10,7 @@ interface EpicenterMapCardProps {
   shortTime?: string;
   potensi?: string;
   onFocusEpicenter?: () => void;
+  onOpenShakemap?: () => void;
   className?: string;
 }
 
@@ -22,6 +23,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
   shortTime = '04 Sep, 02:15 WIB',
   potensi = 'No Tsunami Threat',
   onFocusEpicenter,
+  onOpenShakemap,
   className = '',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -398,20 +400,32 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                       </span>
                     </div>
 
-                    {/* Interactive Button to Focus Globe */}
-                    {onFocusEpicenter && (
-                      <div className="pt-2 flex items-center justify-end">
+                    {/* Interactive Action Buttons */}
+                    <div className="pt-2 flex items-center justify-between gap-2">
+                      {onOpenShakemap && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenShakemap();
+                          }}
+                          className="pointer-events-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/90 font-mono text-[9px] tracking-wider transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 uppercase font-bold"
+                        >
+                          <span>🗺 SHAKEMAP</span>
+                        </button>
+                      )}
+
+                      {onFocusEpicenter && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onFocusEpicenter();
                           }}
-                          className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-mono text-[10px] tracking-wider transition-all duration-150 cursor-pointer shadow-xs active:scale-95 uppercase font-bold"
+                          className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-mono text-[10px] tracking-wider transition-all duration-150 cursor-pointer shadow-xs active:scale-95 uppercase font-bold ml-auto"
                         >
                           <span>⌖ FOCUS GLOBE</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
