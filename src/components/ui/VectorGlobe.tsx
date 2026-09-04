@@ -83,9 +83,9 @@ function cleanPlace(place: string | null): string {
 
 function getFRPSeverity(frp: number): { label: string; color: string; bg: string; border: string } {
   if (frp >= 150) return { label: 'EXTREME', color: '#dc2626', bg: '#fef2f2', border: '#fecaca' };
-  if (frp >= 80)  return { label: 'SEVERE',  color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' };
-  if (frp >= 40)  return { label: 'MODERATE',color: '#d97706', bg: '#fffbeb', border: '#fde68a' };
-  return             { label: 'LOW',      color: '#ca8a04', bg: '#fefce8', border: '#fef08a' };
+  if (frp >= 80) return { label: 'SEVERE', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa' };
+  if (frp >= 40) return { label: 'MODERATE', color: '#d97706', bg: '#fffbeb', border: '#fde68a' };
+  return { label: 'LOW', color: '#ca8a04', bg: '#fefce8', border: '#fef08a' };
 }
 
 export const VectorGlobe: React.FC<VectorGlobeProps> = ({
@@ -412,7 +412,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       container.style.cursor = 'grabbing';
       try {
         container.setPointerCapture(e.pointerId);
-      } catch {}
+      } catch { }
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -438,7 +438,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       container.style.cursor = interactive ? 'grab' : 'default';
       try {
         container.releasePointerCapture(e.pointerId);
-      } catch {}
+      } catch { }
 
       if (!hasDragged) {
         // Check if user clicked an earthquake
@@ -1162,20 +1162,18 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               {/* Precision Data Flag */}
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 hover:bg-white text-slate-900 font-mono text-[10px] tracking-wide shadow-xs border border-slate-300/90 whitespace-nowrap hover:scale-105 active:scale-95 transition-all backdrop-blur-md">
                 <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                    isMajor
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${isMajor
                       ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)] animate-pulse'
                       : 'bg-blue-600'
-                  }`}
+                    }`}
                 />
                 <span className="font-semibold text-slate-900 tracking-wider">
                   {cleanPlace(evt.place)}
                 </span>
                 <span className="text-slate-300 font-light">/</span>
                 <span
-                  className={`font-bold tabular-nums ${
-                    isMajor ? 'text-rose-600' : 'text-slate-900'
-                  }`}
+                  className={`font-bold tabular-nums ${isMajor ? 'text-rose-600' : 'text-slate-900'
+                    }`}
                 >
                   {mag}
                 </span>
@@ -1279,59 +1277,58 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             className="absolute top-2.5 left-1/2 z-30 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-lg px-2.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)] font-mono text-[9.5px] select-none max-w-[92vw] overflow-x-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
-        {/* Live NASA FIRMS */}
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100/90 text-slate-700">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-semibold">{firmsStatus}</span>
-          <button
-            type="button"
-            onClick={handleSyncFIRMS}
-            disabled={isSyncingFIRMS}
-            title="Poll Live NASA FIRMS"
-            className="p-0.5 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`w-2.5 h-2.5 ${isSyncingFIRMS ? 'animate-spin text-blue-600' : ''}`} />
-          </button>
-        </div>
+            {/* Live NASA FIRMS */}
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100/90 text-slate-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-semibold">{firmsStatus}</span>
+              <button
+                type="button"
+                onClick={handleSyncFIRMS}
+                disabled={isSyncingFIRMS}
+                title="Poll Live NASA FIRMS"
+                className="p-0.5 text-slate-400 hover:text-slate-900 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-2.5 h-2.5 ${isSyncingFIRMS ? 'animate-spin text-blue-600' : ''}`} />
+              </button>
+            </div>
 
-        {/* Wind Plume Toggle */}
-        <button
-          type="button"
-          onClick={() => setShowWindPlume(!showWindPlume)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors cursor-pointer ${
-            showWindPlume
-              ? 'bg-slate-900 text-white font-semibold shadow-2xs'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <Wind className="w-2.5 h-2.5" />
-          <span>WIND PLUME</span>
-        </button>
-
-        {/* Island Presets */}
-        <div className="hidden sm:flex items-center gap-0.5 border-l border-slate-200 pl-1.5 text-slate-500">
-          {[
-            { id: 'all', label: 'NUSANTARA' },
-            { id: 'sumatra', label: 'SUMATRA' },
-            { id: 'kalimantan', label: 'KALIMANTAN' },
-            { id: 'sulawesi', label: 'SULAWESI' },
-            { id: 'papua', label: 'PAPUA' },
-          ].map((p) => (
+            {/* Wind Plume Toggle */}
             <button
-              key={p.id}
               type="button"
-              onClick={() => focusIsland(p.id as any)}
-              className="px-1.5 py-0.5 rounded hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+              onClick={() => setShowWindPlume(!showWindPlume)}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors cursor-pointer ${showWindPlume
+                  ? 'bg-slate-900 text-white font-semibold shadow-2xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+                }`}
             >
-              {p.label}
+              <Wind className="w-2.5 h-2.5" />
+              <span>WIND PLUME</span>
             </button>
-          ))}
-        </div>
-      </div>
-    );
-  })()}
 
-      {/* 7. Wildfire Hotspot Detail Modal (Portaled to document.body for global z-index & clean clicks) */}
+            {/* Island Presets */}
+            <div className="hidden sm:flex items-center gap-0.5 border-l border-slate-200 pl-1.5 text-slate-500">
+              {[
+                { id: 'all', label: 'NUSANTARA' },
+                { id: 'sumatra', label: 'SUMATRA' },
+                { id: 'kalimantan', label: 'KALIMANTAN' },
+                { id: 'sulawesi', label: 'SULAWESI' },
+                { id: 'papua', label: 'PAPUA' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => focusIsland(p.id as any)}
+                  className="px-1.5 py-0.5 rounded hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 7. Wildfire Hotspot Detail Modal (Liquid Glass Style) */}
       {selectedHotspot && typeof document !== 'undefined' && createPortal(
         (() => {
           const sev = getFRPSeverity(selectedHotspot.frp);
@@ -1339,89 +1336,288 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           const wind = getInterpolatedWind(selectedHotspot.latitude, selectedHotspot.longitude, windTelemetry);
           const driftCompass = degreesToCompass((wind.windDirection + 180) % 360);
 
+          // FRP Gauge Stratum (clamped 0 - 200 MW)
+          const frpClamped = Math.max(0, Math.min(200, selectedHotspot.frp));
+          const frpPct = Math.max(6, Math.min(94, 100 - (frpClamped / 200) * 100));
+
+          const latDir = selectedHotspot.latitude >= 0 ? 'N' : 'S';
+          const lonDir = selectedHotspot.longitude >= 0 ? 'E' : 'W';
+          const formattedCoords = `${Math.abs(selectedHotspot.latitude).toFixed(3)}° ${latDir}, ${Math.abs(selectedHotspot.longitude).toFixed(3)}° ${lonDir}`;
+
+          const dateObj = new Date(selectedHotspot.detected_at);
+          const formattedDate = dateObj.toLocaleDateString('en-US', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+          const formattedTime = dateObj.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short',
+          });
+
           return (
             <div
               onClick={() => setSelectedHotspot(null)}
-              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150 pointer-events-auto select-none"
+              onWheel={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
             >
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-md bg-white/98 backdrop-blur-2xl rounded-2xl border border-slate-200/90 shadow-2xl p-6 font-sans select-text pointer-events-auto"
+                onWheel={(e) => e.stopPropagation()}
+                className="w-full max-w-[560px] overflow-hidden my-auto rounded-3xl"
               >
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedHotspot(null);
-                  }}
-                  className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer z-10"
-                  title="Close modal (Esc)"
-                  aria-label="Close"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                {/* Container Liquid Glass Native */}
+                <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 select-none bg-white/85 backdrop-blur-2xl relative overflow-hidden ring-1 ring-black/[0.04]">
+                  {/* Technical Corner Crosshairs */}
+                  <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┌</span>
+                  <span className="absolute top-3 right-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┐</span>
+                  <span className="absolute bottom-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">└</span>
+                  <span className="absolute bottom-3 right-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┘</span>
 
-                <div className="flex items-center gap-3 mb-4 pr-8">
-                  <div
-                    className="p-2 rounded-md border shrink-0"
-                    style={{ backgroundColor: sev.bg, borderColor: sev.border }}
-                  >
-                    <Flame className="w-5 h-5" style={{ color: sev.color, fill: sev.color + 'cc' }} />
+                  {/* 1. HEADER ROW */}
+                  <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-100">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0" />
+                        <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold truncate">
+                          THERMAL SPECIMEN // {selectedHotspot.satellite} - {(selectedHotspot.id || '').slice(0, 8)}
+                        </span>
+                      </div>
+                      <h2 className="text-xl sm:text-2xl font-sans font-black text-slate-950 tracking-tight leading-snug truncate uppercase">
+                        {selectedHotspot.island} REGION
+                      </h2>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5 truncate tracking-wide uppercase">
+                        VIIRS THERMAL ANOMALY // SATELLITE TELEMETRY
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedHotspot(null)}
+                      title="Close readout"
+                      className="p-1.5 rounded-full text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-all cursor-pointer shrink-0 mt-0.5"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-slate-900 text-sm tracking-tight">
-                        WILDFIRE THERMAL ANOMALY
-                      </h3>
-                      <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ color: sev.color, backgroundColor: sev.bg, border: `1px solid ${sev.border}` }}
-                      >
-                        {sev.label}
+
+                  {/* 2. SCIENTIFIC VISUALIZATION MATRIX */}
+                  <div className="py-3.5 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
+                    {/* Left Col: Numeric FRP + Segmented Meter + Plume Box */}
+                    <div className="sm:col-span-7 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-baseline gap-2.5">
+                          <span
+                            className="text-5xl sm:text-6xl font-mono font-black tracking-tighter tabular-nums"
+                            style={{ color: sev.color }}
+                          >
+                            {selectedHotspot.frp}
+                          </span>
+                          <div>
+                            <span className="text-[10px] font-mono font-bold text-slate-400 block tracking-widest uppercase">
+                              POWER (MW)
+                            </span>
+                            <span className="text-xs font-mono font-medium text-slate-600 mt-0.5 block tracking-wide">
+                              {sev.label} ANOMALY
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Segmented Radiative Energy Scale */}
+                        <div className="mt-2.5">
+                          <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider mb-1 uppercase">
+                            <span>RADIATIVE SCALE</span>
+                            <span className="font-semibold text-slate-700">{selectedHotspot.frp} MW FLUX</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {[20, 40, 60, 80, 100, 120, 140, 160, 180, 200].map((step) => {
+                              const isActive = selectedHotspot.frp >= step * 0.75;
+                              const isPeak = selectedHotspot.frp >= step;
+                              return (
+                                <div
+                                  key={step}
+                                  className={`h-1.5 flex-1 rounded-xs transition-all ${isPeak
+                                      ? 'shadow-xs'
+                                      : isActive
+                                        ? 'opacity-80'
+                                        : 'bg-slate-100 border border-slate-200/60'
+                                    }`}
+                                  style={{
+                                    backgroundColor: isPeak || isActive ? sev.color : undefined,
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Wind Drift Vector Telemetry */}
+                      <div className="mt-3 pt-2.5 border-t border-slate-100/80">
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider mb-1 uppercase">
+                          <div className="flex items-center gap-1.5">
+                            <Wind className="w-3 h-3 text-slate-400" />
+                            <span>PLUME DRIFT VECTOR</span>
+                          </div>
+                          <span className="text-orange-600 font-semibold">
+                            TOWARD {driftCompass}
+                          </span>
+                        </div>
+                        <div className="w-full h-9 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-between px-2.5 text-[10px] font-mono">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                            <span className="text-slate-500">WIND:</span>
+                            <span className="text-slate-800 font-bold">{wind.windSpeed.toFixed(1)} km/h</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-500">BEARING:</span>
+                            <span className="text-slate-800 font-bold">{degreesToCompass(wind.windDirection)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Col: FRP Stratum Gauge */}
+                    <div className="sm:col-span-5 bg-slate-50/90 rounded-2xl p-3 border border-slate-100 flex flex-col justify-between">
+                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider uppercase">
+                        <div className="flex items-center gap-1">
+                          <Flame className="w-3 h-3 text-slate-400" />
+                          <span>CONFIDENCE</span>
+                        </div>
+                        <span className="font-bold text-slate-900 font-mono text-xs uppercase">
+                          {String(selectedHotspot.confidence || 'HIGH')}
+                        </span>
+                      </div>
+
+                      {/* Vertical Stratum Meter Bar */}
+                      <div className="my-1.5 flex gap-2.5 items-center">
+                        <div className="relative w-3.5 h-24 bg-slate-200/80 rounded-full overflow-hidden shrink-0 border border-slate-300/60">
+                          {/* Extreme zone */}
+                          <div className="absolute top-0 inset-x-0 h-[25%] bg-rose-200/90 border-b border-rose-300/40" />
+                          {/* Severe zone */}
+                          <div className="absolute top-[25%] inset-x-0 h-[35%] bg-orange-200/90 border-b border-orange-300/40" />
+                          {/* Moderate zone */}
+                          <div className="absolute top-[60%] inset-x-0 h-[20%] bg-amber-100/90 border-b border-amber-300/40" />
+                          {/* Low zone */}
+                          <div className="absolute top-[80%] inset-x-0 bottom-0 bg-yellow-100/90" />
+
+                          {/* Target Indicator Pin */}
+                          <div
+                            style={{ top: `${frpPct}%` }}
+                            className="absolute inset-x-0 h-1 bg-slate-950 -translate-y-1/2 shadow-xs transition-all"
+                          />
+                        </div>
+
+                        {/* Stratum Labels & MW Ticks */}
+                        <div className="flex flex-col justify-between h-24 font-mono text-[9px] tracking-tight text-slate-500 leading-tight">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-800">&gt;150 MW</span>
+                            <span className="text-slate-400">EXTREME</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-800">80 MW</span>
+                            <span className="text-slate-400">SEVERE</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-800">40 MW</span>
+                            <span className="text-slate-400">MODERATE</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-semibold text-slate-800">0 MW</span>
+                            <span className="text-slate-400">SURFACE</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sensor Pill Tag */}
+                      <div className="pt-1.5 border-t border-slate-200/60">
+                        <span className="text-[8px] font-mono font-bold tracking-wider text-slate-700 uppercase block truncate">
+                          SENSOR: {selectedHotspot.satellite}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. TECHNICAL METRICS FOOTER */}
+                  <div className="py-2.5 space-y-1.5 font-mono text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 text-[10px] uppercase tracking-wider">TIMESTAMP:</span>
+                      <span className="text-slate-800 text-[11px] font-medium tracking-wide">
+                        {formattedDate} · {formattedTime} <span className="text-slate-400">({ageH < 1 ? 'Just now' : `${Math.round(ageH)}h ago`})</span>
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500 font-mono">
-                      {selectedHotspot.island} · {selectedHotspot.satellite}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2 font-mono text-xs mb-4">
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5">
-                    <div className="text-[9px] text-slate-400 uppercase">FIRE RADIATIVE POWER</div>
-                    <div className="text-base font-bold mt-0.5" style={{ color: sev.color }}>
-                      {selectedHotspot.frp} <span className="text-xs font-normal text-slate-500">MW</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400 text-[10px] uppercase tracking-wider">COORDINATES:</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-900 text-[11px] tracking-wider">{formattedCoords}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            navigator.clipboard.writeText(`${selectedHotspot.latitude.toFixed(4)}, ${selectedHotspot.longitude.toFixed(4)}`);
+                            const el = e.currentTarget;
+                            el.classList.add('text-emerald-600');
+                            setTimeout(() => el.classList.remove('text-emerald-600'), 1500);
+                          }}
+                          title="Copy Lat, Lon"
+                          className="p-1 rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                            <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5">
-                    <div className="text-[9px] text-slate-400 uppercase">DETECTION AGE</div>
-                    <div className="text-base font-bold text-slate-800 mt-0.5">
-                      {ageH < 1 ? '<1 hr' : `${Math.round(ageH)} hrs`}
-                      <span className="text-xs font-normal text-slate-400"> ago</span>
+                  {/* 4. ACTION CONTROLS DOCK */}
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          targetPanLonRef.current = selectedHotspot.longitude;
+                          targetPanLatRef.current = selectedHotspot.latitude;
+                          targetZoomRef.current = 2.4;
+                          setSelectedHotspot(null);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                      >
+                        <svg className="w-3.5 h-3.5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" />
+                          <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
+                        </svg>
+                        <span>FOCUS MAP</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`https://firms.modaps.eosdis.nasa.gov/map/#d:today;@${selectedHotspot.longitude},${selectedHotspot.latitude},11z`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-[11px] font-mono font-medium tracking-wider transition-all border border-slate-200/60"
+                      >
+                        <span>FIRMS VIIRS</span>
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" />
+                          <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedHotspot(null)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold tracking-wider transition-all cursor-pointer bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
+                      >
+                        <span>DISMISS</span>
+                      </button>
                     </div>
                   </div>
-
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5">
-                    <div className="text-[9px] text-slate-400 uppercase">WIND SPEED & VECTOR</div>
-                    <div className="text-xs font-bold text-slate-800 mt-0.5">
-                      {wind.windSpeed.toFixed(1)} km/h · {degreesToCompass(wind.windDirection)}
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5">
-                    <div className="text-[9px] text-slate-400 uppercase">SMOKE DRIFT TRAJECTORY</div>
-                    <div className="text-xs font-bold text-orange-600 mt-0.5">
-                      TOWARD {driftCompass}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-slate-50/80 border border-slate-200/80 rounded-lg p-2.5 font-mono text-xs text-slate-600 flex items-center justify-between">
-                  <span>COORDINATES</span>
-                  <span className="font-bold text-slate-800">
-                    {selectedHotspot.latitude.toFixed(4)}°N, {selectedHotspot.longitude.toFixed(4)}°E
-                  </span>
                 </div>
               </div>
             </div>
