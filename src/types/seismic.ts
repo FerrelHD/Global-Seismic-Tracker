@@ -9,6 +9,19 @@ export interface SeismicEvent {
   occurred_at: string;
 }
 
+export interface WildfireHotspot {
+  id: string;
+  latitude: number;
+  longitude: number;
+  frp: number; // Fire Radiative Power (MW)
+  confidence: 'low' | 'nominal' | 'high' | number;
+  island: 'Sumatra' | 'Kalimantan' | 'Sulawesi' | 'Papua' | 'Jawa' | string;
+  satellite: string;
+  detected_at: string;
+}
+
+export type HazardMode = 'dual' | 'seismic' | 'wildfire';
+
 export interface HoveredEventState {
   event: SeismicEvent;
   screenPos: { x: number; y: number };

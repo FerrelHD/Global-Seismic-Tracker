@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
-import { SeismicEvent } from '../../types/seismic';
+import { SeismicEvent, WildfireHotspot, HazardMode } from '../../types/seismic';
 import { PRECOMPUTED_GRATICULES } from '../../utils/graticule';
 
 export interface CameraCoordinates {
@@ -9,6 +9,8 @@ export interface CameraCoordinates {
 
 interface VectorGlobeProps {
   events: SeismicEvent[];
+  hotspots?: WildfireHotspot[];
+  hazardMode?: HazardMode;
   className?: string;
   speed?: number;
   isRotating?: boolean;
@@ -38,6 +40,14 @@ interface PrecomputedEvent {
   t1: number;
   t2: number;
   eventTime: number;
+}
+
+interface PrecomputedHotspot {
+  hotspot: WildfireHotspot;
+  t0: number;
+  t1: number;
+  t2: number;
+  frp: number;
 }
 
 interface CameraMatrix {
@@ -141,6 +151,8 @@ const PRECOMPUTED_GRATICULE_RINGS: PrecomputedRing[] = PRECOMPUTED_GRATICULES.ma
 
 export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   events,
+  hotspots = [],
+  hazardMode = 'dual',
   className = '',
   speed = 0.0018,
   isRotating = true,
@@ -162,6 +174,9 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
   const colorModeRef = useRef(colorMode);
   colorModeRef.current = colorMode;
+
+  const hazardModeRef = useRef(hazardMode);
+  hazardModeRef.current = hazardMode;
 
   const timelapseTimestampRef = useRef(timelapseTimestamp);
   timelapseTimestampRef.current = timelapseTimestamp;
@@ -219,6 +234,16 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   }, [events]);
   const precomputedEventsRef = useRef<PrecomputedEvent[]>(precomputedEvents);
   precomputedEventsRef.current = precomputedEvents;
+
+  // Precompute NASA FIRMS wildfire hotspots vectors
+  const precomputedHotspots = useMemo(() => {
+    return hotspots.map((h) => {
+      const [t0, t1, t2] = geoToSphereVector(h.latitude, h.longitude, 0.82);
+      return { hotspot: h, t0, t1, t2, frp: h.frp };
+    });
+  }, [hotspots]);
+  const precomputedHotspotsRef = useRef<PrecomputedHotspot[]>(precomputedHotspots);
+  precomputedHotspotsRef.current = precomputedHotspots;
 
   // Selected top earthquakes for floating callout tags
   const topEvents = useMemo(() => {
@@ -682,83 +707,19 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           }
         }
 
-        // 4. Precomputed Seismic Event Markers
-        const activeEvents = precomputedEventsRef.current;
-        const currentMode = colorModeRef.current;
         const currentTimelapse = timelapseTimestampRef.current;
 
-        for (let i = 0; i < activeEvents.length; i++) {
-          const item = activeEvents[i];
-          if (currentTimelapse != null && item.eventTime > currentTimelapse) {
-            continue;
-          }
+        // 4a. Precomputed Seismic Event Markers
+        if (hazardModeRef.current !== 'wildfire') {
+          const activeEvents = precomputedEventsRef.current;
+          const currentMode = colorModeRef.current;
 
-          const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
-          const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
-          const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
-
-          if (z >= 0.03) {
-            const px = ((c + 1) * 0.5) * w;
-            const py = ((-s + 1) * 0.5) * w;
-            const mag = item.evt.magnitude ?? 3.5;
-            const size = Math.max(2.5, Math.min(6.5, (mag / 7.0) * 5.5));
-
-            let fillColor = '#3b82f6';
-            if (currentMode === 'depth') {
-              const d = item.evt.depth;
-              if (d < 70) {
-                fillColor = '#f43f5e'; // Shallow / Crustal (<70km)
-              } else if (d <= 300) {
-                fillColor = '#f59e0b'; // Intermediate (70-300km)
-              } else {
-                fillColor = '#06b6d4'; // Deep (>300km Wadati-Benioff)
-              }
-            } else {
-              fillColor = mag >= 5.5 ? '#ef4444' : '#3b82f6';
-            }
-
-            // Fresh event rupture ripple pulse when scrubbing in time-lapse mode
-            if (currentTimelapse != null) {
-              const ageMs = currentTimelapse - item.eventTime;
-              if (ageMs >= 0 && ageMs < 43200000) {
-                const pulseP = (ageMs % 21600000) / 21600000;
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(px, py, size + pulseP * 18, 0, Math.PI * 2);
-                ctx.strokeStyle = fillColor;
-                ctx.lineWidth = Math.max(0.4, 1.6 * (1 - pulseP));
-                ctx.globalAlpha = (1 - pulseP) * 0.8;
-                ctx.stroke();
-                ctx.restore();
-              }
-            }
-
-            ctx.fillStyle = fillColor;
-            ctx.beginPath();
-            ctx.arc(px, py, size, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Hairline white border around marker
-            ctx.lineWidth = 0.5;
-            ctx.strokeStyle = '#ffffff';
-            ctx.stroke();
-          }
-        }
-
-        ctx.restore(); // Restore clip
-        ctx.restore(); // Restore scale
-
-        // 5. Update Floating DOM Labels & Sonar Shockwaves
-        if (labelsContainerRef.current) {
-          const children = labelsContainerRef.current.children;
-          const items = topEventsRef.current;
-
-          const candidates: { elIndex: number; x: number; y: number; mag: number }[] = [];
-          for (let i = 0; i < items.length && i < children.length; i++) {
-            const item = items[i];
+          for (let i = 0; i < activeEvents.length; i++) {
+            const item = activeEvents[i];
             if (currentTimelapse != null && item.eventTime > currentTimelapse) {
               continue;
             }
+
             const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
             const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
             const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
@@ -766,34 +727,146 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             if (z >= 0.03) {
               const px = ((c + 1) * 0.5) * w;
               const py = ((-s + 1) * 0.5) * w;
-              candidates.push({ elIndex: i, x: px, y: py, mag: item.evt.magnitude ?? 0 });
+              const mag = item.evt.magnitude ?? 3.5;
+              const size = Math.max(2.5, Math.min(6.5, (mag / 7.0) * 5.5));
+
+              let fillColor = '#3b82f6';
+              if (currentMode === 'depth') {
+                const d = item.evt.depth;
+                if (d < 70) {
+                  fillColor = '#f43f5e'; // Shallow / Crustal (<70km)
+                } else if (d <= 300) {
+                  fillColor = '#f59e0b'; // Intermediate (70-300km)
+                } else {
+                  fillColor = '#06b6d4'; // Deep (>300km Wadati-Benioff)
+                }
+              } else {
+                fillColor = mag >= 5.5 ? '#ef4444' : '#3b82f6';
+              }
+
+              // Fresh event rupture ripple pulse when scrubbing in time-lapse mode
+              if (currentTimelapse != null) {
+                const ageMs = currentTimelapse - item.eventTime;
+                if (ageMs >= 0 && ageMs < 43200000) {
+                  const pulseP = (ageMs % 21600000) / 21600000;
+                  ctx.save();
+                  ctx.beginPath();
+                  ctx.arc(px, py, size + pulseP * 18, 0, Math.PI * 2);
+                  ctx.strokeStyle = fillColor;
+                  ctx.lineWidth = Math.max(0.4, 1.6 * (1 - pulseP));
+                  ctx.globalAlpha = (1 - pulseP) * 0.8;
+                  ctx.stroke();
+                  ctx.restore();
+                }
+              }
+
+              ctx.fillStyle = fillColor;
+              ctx.beginPath();
+              ctx.arc(px, py, size, 0, Math.PI * 2);
+              ctx.fill();
+
+              // Hairline white border around marker
+              ctx.lineWidth = 0.5;
+              ctx.strokeStyle = '#ffffff';
+              ctx.stroke();
             }
           }
+        }
 
-          const allowedIndices = new Set<number>();
-          if (candidates.length > 0) {
-            allowedIndices.add(candidates[0].elIndex);
-            if (candidates.length > 1) {
-              const c1 = candidates[0];
-              const c2 = candidates[1];
-              if (Math.hypot(c1.x - c2.x, c1.y - c2.y) >= 85) {
-                allowedIndices.add(c2.elIndex);
-              }
+        // 4b. Precomputed NASA FIRMS Wildfire Thermal Hotspots
+        if (hazardModeRef.current !== 'seismic') {
+          const activeHotspots = precomputedHotspotsRef.current;
+          for (let i = 0; i < activeHotspots.length; i++) {
+            const hItem = activeHotspots[i];
+            const c = matrix.m00 * hItem.t0 + matrix.m02 * hItem.t2;
+            const s = matrix.m10 * hItem.t0 + matrix.m11 * hItem.t1 + matrix.m12 * hItem.t2;
+            const z = matrix.m20 * hItem.t0 + matrix.m21 * hItem.t1 + matrix.m22 * hItem.t2;
+
+            if (z >= 0.03) {
+              const px = ((c + 1) * 0.5) * w;
+              const py = ((-s + 1) * 0.5) * w;
+              const radius = Math.min(7.0, Math.max(2.5, Math.sqrt(hItem.frp) * 0.45));
+
+              // Radial Thermal Heat Halo
+              ctx.beginPath();
+              ctx.arc(px, py, radius * 2.2, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(249, 115, 22, 0.22)';
+              ctx.fill();
+
+              // Radiant Ember Core
+              ctx.beginPath();
+              ctx.arc(px, py, radius, 0, Math.PI * 2);
+              ctx.fillStyle = '#f97316';
+              ctx.fill();
+
+              // Center White-Hot Core
+              ctx.beginPath();
+              ctx.arc(px, py, 1.2, 0, Math.PI * 2);
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
             }
           }
+        }
 
-          for (let i = 0; i < items.length && i < children.length; i++) {
-            const el = children[i] as HTMLElement;
-            if (allowedIndices.has(i)) {
-              const cand = candidates.find((c) => c.elIndex === i);
-              if (cand) {
-                el.style.opacity = '1';
-                el.style.transform = `translate3d(${cand.x}px, ${cand.y}px, 0) translate(-50%, -100%) translateY(-6px)`;
-                el.style.pointerEvents = 'auto';
-              }
-            } else {
+        ctx.restore(); // Restore clip
+        ctx.restore(); // Restore scale
+
+        // 5. Update Floating DOM Labels & Sonar Shockwaves
+        const isSeismicActive = hazardModeRef.current !== 'wildfire';
+
+        if (labelsContainerRef.current) {
+          const children = labelsContainerRef.current.children;
+          const items = topEventsRef.current;
+
+          if (!isSeismicActive) {
+            for (let i = 0; i < children.length; i++) {
+              const el = children[i] as HTMLElement;
               el.style.opacity = '0';
               el.style.pointerEvents = 'none';
+            }
+          } else {
+            const candidates: { elIndex: number; x: number; y: number; mag: number }[] = [];
+            for (let i = 0; i < items.length && i < children.length; i++) {
+              const item = items[i];
+              if (currentTimelapse != null && item.eventTime > currentTimelapse) {
+                continue;
+              }
+              const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
+              const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
+              const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
+
+              if (z >= 0.03) {
+                const px = ((c + 1) * 0.5) * w;
+                const py = ((-s + 1) * 0.5) * w;
+                candidates.push({ elIndex: i, x: px, y: py, mag: item.evt.magnitude ?? 0 });
+              }
+            }
+
+            const allowedIndices = new Set<number>();
+            if (candidates.length > 0) {
+              allowedIndices.add(candidates[0].elIndex);
+              if (candidates.length > 1) {
+                const c1 = candidates[0];
+                const c2 = candidates[1];
+                if (Math.hypot(c1.x - c2.x, c1.y - c2.y) >= 85) {
+                  allowedIndices.add(c2.elIndex);
+                }
+              }
+            }
+
+            for (let i = 0; i < items.length && i < children.length; i++) {
+              const el = children[i] as HTMLElement;
+              if (allowedIndices.has(i)) {
+                const cand = candidates.find((c) => c.elIndex === i);
+                if (cand) {
+                  el.style.opacity = '1';
+                  el.style.transform = `translate3d(${cand.x}px, ${cand.y}px, 0) translate(-50%, -100%) translateY(-6px)`;
+                  el.style.pointerEvents = 'auto';
+                }
+              } else {
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+              }
             }
           }
         }
@@ -802,26 +875,33 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         if (shockwavesContainerRef.current) {
           const shockwaveChildren = shockwavesContainerRef.current.children;
           const mItems = majorEventsRef.current;
-          for (let i = 0; i < mItems.length && i < shockwaveChildren.length; i++) {
-            const item = mItems[i];
-            const el = shockwaveChildren[i] as HTMLElement;
 
-            if (currentTimelapse != null && item.eventTime > currentTimelapse) {
-              el.style.opacity = '0';
-              continue;
+          if (!isSeismicActive) {
+            for (let i = 0; i < shockwaveChildren.length; i++) {
+              (shockwaveChildren[i] as HTMLElement).style.opacity = '0';
             }
+          } else {
+            for (let i = 0; i < mItems.length && i < shockwaveChildren.length; i++) {
+              const item = mItems[i];
+              const el = shockwaveChildren[i] as HTMLElement;
 
-            const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
-            const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
-            const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
+              if (currentTimelapse != null && item.eventTime > currentTimelapse) {
+                el.style.opacity = '0';
+                continue;
+              }
 
-            if (z >= 0.03) {
-              const px = ((c + 1) * 0.5) * w;
-              const py = ((-s + 1) * 0.5) * w;
-              el.style.opacity = '1';
-              el.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
-            } else {
-              el.style.opacity = '0';
+              const c = matrix.m00 * item.t0 + matrix.m02 * item.t2;
+              const s = matrix.m10 * item.t0 + matrix.m11 * item.t1 + matrix.m12 * item.t2;
+              const z = matrix.m20 * item.t0 + matrix.m21 * item.t1 + matrix.m22 * item.t2;
+
+              if (z >= 0.03) {
+                const px = ((c + 1) * 0.5) * w;
+                const py = ((-s + 1) * 0.5) * w;
+                el.style.opacity = '1';
+                el.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
+              } else {
+                el.style.opacity = '0';
+              }
             }
           }
         }

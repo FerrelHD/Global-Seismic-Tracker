@@ -42,7 +42,7 @@ export const ViewportTechnicalFrame: React.FC<ViewportTechnicalFrameProps> = ({
       </div>
 
       {/* 3. Live Camera Telemetry Readout (Fixed in Bottom-Left Screen Corner, hidden on mobile) */}
-      <div className="hidden sm:flex absolute bottom-10 sm:bottom-12 left-6 sm:left-10 flex-col font-mono text-[10px] sm:text-[11px] tracking-wider text-slate-500">
+      <div className="hidden sm:flex absolute bottom-14 sm:bottom-16 left-6 sm:left-9 flex-col font-mono text-[10px] sm:text-[11px] tracking-wider text-slate-500 pointer-events-none">
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-medium">LAT:</span>
           <span className="font-bold text-slate-900 tabular-nums">{latStr}</span>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { LiquidCard } from './liquid-glass';
-import { Play, Pause, RotateCcw, List, History } from 'lucide-react';
+import { Play, Pause, RotateCcw, List, History, Activity } from 'lucide-react';
+import { HazardMode } from '../../types/seismic';
 
 interface FloatingControllerDockProps {
   searchQuery: string;
@@ -14,8 +15,12 @@ interface FloatingControllerDockProps {
   onResetView: () => void;
   onOpenFeed?: () => void;
   onOpenTimeLapse?: () => void;
+  onOpenSeismogram?: () => void;
+  isSeismogramOpen?: boolean;
   colorMode?: 'magnitude' | 'depth';
   onColorModeChange?: (mode: 'magnitude' | 'depth') => void;
+  hazardMode?: HazardMode;
+  onHazardModeChange?: (mode: HazardMode) => void;
   eventCount?: number;
   visible?: boolean;
 }
@@ -32,87 +37,142 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   onResetView,
   onOpenFeed,
   onOpenTimeLapse,
+  onOpenSeismogram,
+  isSeismogramOpen = false,
   colorMode = 'magnitude',
   onColorModeChange,
+  hazardMode = 'dual',
+  onHazardModeChange,
   eventCount,
   visible = true,
 }) => {
   const pillGroup = 'flex items-center gap-0.5 sm:gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shrink-0';
-  const pillBase = 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9.5px] sm:text-[11px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
-  const pillActive = 'bg-slate-200/95 text-slate-900 font-semibold shadow-xs border border-slate-300/80';
+  const pillBase = 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] xl:text-[10.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
+  const pillActive = 'bg-slate-900 text-white font-semibold shadow-xs border border-slate-950';
   const pillInactive = 'text-slate-500 hover:text-slate-800 hover:bg-white/60';
-  const smallPillBase = 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
+  const smallPillBase = 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8.5px] sm:text-[9.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
   const divider = <div className="w-[1px] h-3 sm:h-3.5 bg-slate-300/60 shrink-0" />;
 
   return (
     <nav
       aria-label="Seismic Telemetry Controller"
-      className={`fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-700 pointer-events-none ${
+      className={`fixed bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-500 pointer-events-none w-auto max-w-[calc(100vw-1.5rem)] px-1 flex justify-center ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12 pointer-events-none'
       }`}
-      style={{ width: 'max-content', maxWidth: 'calc(100vw - 1rem)' }}
     >
-      <div className="pointer-events-auto">
-        <LiquidCard className="rounded-full shadow-xl">
-          {/* Horizontally scrollable inner content on mobile, centered and fully visible on desktop */}
+      <div className="pointer-events-auto max-w-full">
+        <LiquidCard className="rounded-full shadow-2xl border border-slate-200/90 max-w-full overflow-hidden">
+          {/* Horizontally scrollable inner content with smooth momentum on small screens, centered on desktop */}
           <div
-            className="flex items-center justify-start md:justify-center gap-1 sm:gap-2 font-mono text-xs whitespace-nowrap px-2 py-1 sm:px-3.5 sm:py-1.5 overflow-x-auto text-slate-800 touch-pan-x"
+            className="flex items-center justify-start xl:justify-center gap-1 sm:gap-1.5 font-mono text-xs whitespace-nowrap px-2 py-1 sm:px-3 sm:py-1.5 overflow-x-auto text-slate-800 touch-pan-x"
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
               WebkitOverflowScrolling: 'touch',
             }}
           >
-            {/* Segment 1: Region Pills */}
+            {/* Segment 0: Hazard Layer Mode Switcher */}
+            {onHazardModeChange && (
+              <>
+                <div className={pillGroup}>
+                  <button
+                    onClick={() => onHazardModeChange('dual')}
+                    title="Tampilkan Gempa dan Karhutla Bersamaan"
+                    className={`${smallPillBase} ${hazardMode === 'dual' ? pillActive : pillInactive}`}
+                  >
+                    DUAL
+                  </button>
+                  <button
+                    onClick={() => onHazardModeChange('seismic')}
+                    title="Filter Khusus Seismik / Gempa"
+                    className={`${smallPillBase} ${
+                      hazardMode === 'seismic'
+                        ? 'bg-cyan-900 text-cyan-200 border border-cyan-700 shadow-xs'
+                        : pillInactive
+                    } flex items-center gap-1`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block" />
+                    SEIS
+                  </button>
+                  <button
+                    onClick={() => onHazardModeChange('wildfire')}
+                    title="Filter Khusus Titik Panas Karhutla (NASA FIRMS)"
+                    className={`${smallPillBase} ${
+                      hazardMode === 'wildfire'
+                        ? 'bg-orange-950 text-orange-300 border border-orange-700 shadow-xs'
+                        : pillInactive
+                    } flex items-center gap-1`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block animate-pulse" />
+                    FIRE
+                  </button>
+                </div>
+                {divider}
+              </>
+            )}
+
+            {/* Segment 1: Region Pills with Adaptive Responsive Labels */}
             <div className={pillGroup}>
               <button
                 onClick={() => onSearchChange('')}
+                title="Semua Wilayah Nusantara"
                 className={`${pillBase} ${searchQuery === '' ? pillActive : pillInactive}`}
               >
-                ALL NUSANTARA
+                <span className="hidden 2xl:inline">ALL NUSANTARA</span>
+                <span className="2xl:hidden">ALL</span>
               </button>
               <button
                 onClick={() => onSearchChange('sumatra')}
+                title="Sektor Sumatra & Sunda Arc"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'sumatra' ? pillActive : pillInactive}`}
               >
-                SUMATRA
+                <span className="hidden 2xl:inline">SUMATRA</span>
+                <span className="2xl:hidden">SUM</span>
               </button>
               <button
                 onClick={() => onSearchChange('java')}
+                title="Sektor Jawa & Selat Sunda"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'java' ? pillActive : pillInactive}`}
               >
-                JAVA
+                <span className="hidden 2xl:inline">JAVA</span>
+                <span className="2xl:hidden">JAV</span>
               </button>
               <button
                 onClick={() => onSearchChange('sulawesi')}
+                title="Sektor Sulawesi & Sesar Palu-Koro"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'sulawesi' ? pillActive : pillInactive}`}
               >
-                SULAWESI
+                <span className="hidden 2xl:inline">SULAWESI</span>
+                <span className="2xl:hidden">SUL</span>
               </button>
               <button
                 onClick={() => onSearchChange('banda')}
+                title="Sektor Laut Banda (Deep Wadati-Benioff Slab)"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'banda' ? pillActive : pillInactive}`}
               >
-                BANDA
+                <span className="hidden 2xl:inline">BANDA</span>
+                <span className="2xl:hidden">BAN</span>
               </button>
               <button
                 onClick={() => onSearchChange('papua')}
+                title="Sektor Papua & Yapen Fault"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'papua' ? pillActive : pillInactive}`}
               >
-                PAPUA
+                <span className="hidden 2xl:inline">PAPUA</span>
+                <span className="2xl:hidden">PAP</span>
               </button>
             </div>
 
-            {/* Segment 2: Divider */}
+            {/* Divider */}
             {divider}
 
-            {/* Segment 3: Time Horizon Scrubber Pills */}
+            {/* Segment 2: Time Horizon Scrubber Pills */}
             <div className={pillGroup}>
               <button
                 onClick={() => onTimeFilterChange('all')}
                 className={`${smallPillBase} ${timeFilter === 'all' ? pillActive : pillInactive}`}
               >
-                ALL TIME
+                ALL
               </button>
               <button
                 onClick={() => onTimeFilterChange('24h')}
@@ -128,10 +188,10 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               </button>
             </div>
 
-            {/* Segment 4: Divider */}
+            {/* Divider */}
             {divider}
 
-            {/* Segment 5: Depth Toggle */}
+            {/* Segment 3: Depth Filter */}
             <div className={pillGroup}>
               <button
                 onClick={() => onDepthFilterChange('all')}
@@ -141,24 +201,28 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               </button>
               <button
                 onClick={() => onDepthFilterChange('shallow')}
-                className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive} flex items-center gap-1.5`}
+                title="Kedalaman Dangkal < 30km"
+                className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive} flex items-center gap-1`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 inline-block animate-pulse" />
                 &lt;30km
               </button>
               <button
                 onClick={() => onDepthFilterChange('deep')}
-                className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive} flex items-center gap-1.5`}
+                title="Kedalaman Dalam > 100km"
+                className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive} flex items-center gap-1`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block animate-pulse" />
                 &gt;100km
               </button>
             </div>
 
-            {/* Segment 6: Color Palette Mode */}
+            {/* Divider */}
+            {divider}
+
+            {/* Segment 4: Color Palette Mode */}
             {onColorModeChange && (
               <>
-                {divider}
                 <div className={pillGroup}>
                   <button
                     onClick={() => onColorModeChange('magnitude')}
@@ -172,43 +236,61 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     title="Warna: Kedalaman Hiposenter (Subduksi)"
                     className={`${smallPillBase} ${colorMode === 'depth' ? pillActive : pillInactive} flex items-center gap-1`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 inline-block" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block" />
                     DEPTH
                   </button>
                 </div>
+                {divider}
               </>
             )}
 
-            {/* Segment 7: Time-Lapse Replay Button */}
+            {/* Segment 5: Time-Lapse Replay Button */}
             {onOpenTimeLapse && (
               <>
-                {divider}
                 <button
                   onClick={onOpenTimeLapse}
                   title="Putar Time-Lapse Seismik 7 Hari"
-                  className="group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[10px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer"
+                  className="group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
                 >
                   <History className="w-3 h-3 text-cyan-600 group-hover:scale-110 transition-transform" />
-                  <span>REPLAY</span>
+                  <span className="hidden sm:inline">REPLAY</span>
                 </button>
+                {divider}
               </>
             )}
 
-            {/* Segment 8: Divider */}
-            {divider}
+            {/* Segment 6: Virtual Seismogram Oscilloscope Button */}
+            {onOpenSeismogram && (
+              <>
+                <button
+                  onClick={onOpenSeismogram}
+                  title="Buka Monitor Seismograf Real-Time"
+                  className={`group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border cursor-pointer shrink-0 ${
+                    isSeismogramOpen
+                      ? 'bg-slate-900 text-cyan-400 border-slate-950'
+                      : 'bg-slate-100 hover:bg-slate-200/90 text-slate-800 border-slate-200/90'
+                  }`}
+                >
+                  <Activity className="w-3 h-3 text-emerald-500 group-hover:scale-110 transition-transform animate-pulse" />
+                  <span className="hidden sm:inline">SEISMOGRAM</span>
+                  <span className="sm:hidden text-[8.5px]">WAVE</span>
+                </button>
+                {divider}
+              </>
+            )}
 
-            {/* Segment 9: Feed Button */}
+            {/* Segment 7: Events Feed Button */}
             {onOpenFeed && (
               <>
                 <button
                   onClick={onOpenFeed}
-                  title="Open Seismic Events Feed"
-                  className="group flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[10px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer"
+                  title="Buka Daftar Gempa Terkini"
+                  className="group flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
                 >
                   <List className="w-3 h-3 text-slate-600 group-hover:text-slate-950 group-hover:rotate-12 transition-all duration-200" />
                   <span>FEED</span>
                   {eventCount !== undefined && (
-                    <span className="px-1.5 py-0.2 rounded-full bg-slate-200 text-[9px] font-mono font-bold text-slate-700 border border-slate-300/50">
+                    <span className="px-1.5 py-0.2 rounded-full bg-slate-200 text-[8.5px] font-mono font-bold text-slate-700 border border-slate-300/50">
                       {eventCount}
                     </span>
                   )}
@@ -217,25 +299,25 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               </>
             )}
 
-            {/* Segment 8: Action Toggles */}
-            <div className="flex items-center gap-1">
+            {/* Segment 8: Action Toggles (Play/Pause Orbit & Reset) */}
+            <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={onToggleRotation}
-                title={isRotating ? 'Pause auto-rotation' : 'Play auto-rotation'}
+                title={isRotating ? 'Pause rotasi bola' : 'Putar bola otomatis'}
                 className="group p-1.5 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-200/80 transition-all duration-200 hover:scale-110 active:scale-90 shadow-xs cursor-pointer"
               >
                 {isRotating ? (
-                  <Pause className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                  <Pause className="w-3 h-3 group-hover:scale-110 transition-transform" />
                 ) : (
-                  <Play className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                  <Play className="w-3 h-3 group-hover:scale-110 transition-transform" />
                 )}
               </button>
               <button
                 onClick={onResetView}
-                title="Reset camera view"
+                title="Reset kamera ke kepulauan Indonesia"
                 className="group p-1.5 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-200/80 transition-all duration-200 hover:scale-110 active:scale-90 shadow-xs cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5 group-hover:-rotate-90 transition-transform duration-300" />
+                <RotateCcw className="w-3 h-3 group-hover:-rotate-90 transition-transform duration-300" />
               </button>
             </div>
           </div>

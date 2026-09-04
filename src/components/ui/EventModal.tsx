@@ -10,6 +10,7 @@ import {
   Copy,
   Layers,
   Activity,
+  Share2,
 } from 'lucide-react';
 
 interface EventModalProps {
@@ -18,6 +19,8 @@ interface EventModalProps {
   isBookmarked: boolean;
   onToggleBookmark: (event: SeismicEvent, note?: string) => void;
   onFocusGlobe?: (event: SeismicEvent) => void;
+  onOpenSeismogram?: (event: SeismicEvent) => void;
+  onOpenInfographic?: (event: SeismicEvent) => void;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -97,6 +100,8 @@ export const EventModal: React.FC<EventModalProps> = ({
   isBookmarked,
   onToggleBookmark,
   onFocusGlobe,
+  onOpenSeismogram,
+  onOpenInfographic,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -374,14 +379,38 @@ export const EventModal: React.FC<EventModalProps> = ({
 
           {/* 4. ACTION CONTROLS DOCK */}
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-2.5">
-            {/* Direct Focus on 3D Globe Button */}
-            <button
-              onClick={handleFocus}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
-            >
-              <Compass className="w-3.5 h-3.5 text-slate-700" />
-              <span>FOCUS GLOBE</span>
-            </button>
+            {/* Action Buttons Left Side */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={handleFocus}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-[11px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+              >
+                <Compass className="w-3.5 h-3.5 text-slate-700" />
+                <span>GLOBE</span>
+              </button>
+
+              {onOpenSeismogram && (
+                <button
+                  onClick={() => onOpenSeismogram(event)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-50 hover:bg-cyan-100 text-cyan-800 text-[11px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-cyan-200/80"
+                  title="Buka Seismogram Gelombang P & S"
+                >
+                  <Activity className="w-3.5 h-3.5 text-cyan-600 animate-pulse" />
+                  <span>WAVEFORM</span>
+                </button>
+              )}
+
+              {onOpenInfographic && (
+                <button
+                  onClick={() => onOpenInfographic(event)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                  title="Generate Kartu Infografis Bencana"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>SHARE CARD</span>
+                </button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               {/* USGS Official Link */}

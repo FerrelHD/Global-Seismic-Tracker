@@ -13,10 +13,14 @@ import { StoryProgressRail } from './components/story/StoryProgressRail';
 import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
 import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
 import { BMKGShakemapModal } from './components/ui/BMKGShakemapModal';
+import { VirtualSeismogram } from './components/ui/VirtualSeismogram';
+import { SocialInfographicModal } from './components/ui/SocialInfographicModal';
+import { TacticalHazardConsole } from './components/ui/TacticalHazardConsole';
 import { buildStoryChapters } from './utils/storyAnalytics';
-import { SeismicEvent, Bookmark } from './types/seismic';
+import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode } from './types/seismic';
 import {
   fetchSeismicEvents,
+  fetchWildfireHotspots,
   fetchBMKGAutogempa,
   BMKGAlert,
   getLocalBookmarks,
@@ -77,7 +81,19 @@ export const App: React.FC = () => {
   // BMKG Official Shakemap Modal State
   const [isShakemapModalOpen, setIsShakemapModalOpen] = useState(false);
 
-  // Load live data from Supabase / USGS
+  // Virtual Seismogram Oscilloscope Monitor State
+  const [isSeismogramOpen, setIsSeismogramOpen] = useState(false);
+
+  // Disaster Infographic Social Card State
+  const [isInfographicOpen, setIsInfographicOpen] = useState(false);
+  const [infographicEvent, setInfographicEvent] = useState<SeismicEvent | null>(null);
+
+  // Dual-Hazard Telemetry State (NASA FIRMS Hotspots & Hazard Mode)
+  const [hotspots, setHotspots] = useState<WildfireHotspot[]>([]);
+  const [hazardMode, setHazardMode] = useState<HazardMode>('dual');
+  const [observatoryView, setObservatoryView] = useState<'globe' | 'console'>('console');
+
+  // Load live data from Supabase / USGS / NASA FIRMS
   const loadData = async () => {
     setLoading(true);
     try {
@@ -91,6 +107,10 @@ export const App: React.FC = () => {
 
     fetchBMKGAutogempa().then((res) => {
       if (res) setBmkgAlert(res);
+    });
+
+    fetchWildfireHotspots().then((data) => {
+      setHotspots(data);
     });
   };
 
@@ -513,13 +533,17 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         <div
           style={{
             transform: `translate3d(${effectiveTranslateX}, 0px, 0) scale(${globeScale})`,
-            willChange: 'transform',
+            opacity: observatoryView === 'console' && isObservatoryActive ? 0 : 1,
+            pointerEvents: observatoryView === 'console' && isObservatoryActive ? 'none' : 'auto',
+            willChange: 'transform, opacity',
           }}
-          className="relative w-[min(82vw,calc(100dvh-170px),340px)] sm:w-[min(72vw,calc(100dvh-170px),460px)] md:w-[min(65vw,calc(100dvh-160px),540px)] lg:w-[min(54vw,calc(100dvh-150px),640px)] xl:w-[min(52vw,calc(100dvh-140px),720px)] 2xl:w-[min(50vw,calc(100dvh-140px),780px)] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-700 ease-out"
+          className="relative w-[min(82vw,calc(100dvh-170px),340px)] sm:w-[min(72vw,calc(100dvh-170px),460px)] md:w-[min(65vw,calc(100dvh-160px),540px)] lg:w-[min(54vw,calc(100dvh-150px),640px)] xl:w-[min(52vw,calc(100dvh-140px),720px)] 2xl:w-[min(50vw,calc(100dvh-140px),780px)] aspect-square flex items-center justify-center transition-all duration-700 ease-out"
         >
           {/* No Art Architectural Vector Wireframe 3D Globe */}
           <VectorGlobe
             events={filteredEvents}
+            hotspots={hotspots}
+            hazardMode={hazardMode}
             isRotating={isRotating && !isTimeLapseOpen}
             resetSignal={resetSignal}
             targetFocus={targetFocus}
@@ -680,48 +704,70 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                     )}
                   </div>
 
-                  {/* Right Side: Observatory Live Telemetry & Depth Legend */}
-                  <div className="pointer-events-auto self-end sm:self-auto flex items-center gap-2">
+                  {/* Right Side: Observatory View Switcher & Dual Telemetry */}
+                  <div className="pointer-events-auto self-end sm:self-auto flex items-center gap-2 flex-wrap">
+                    {/* View Switcher: 3D Globe vs 2D Console */}
+                    <div className="flex items-center gap-0.5 bg-white/85 backdrop-blur-md p-0.5 rounded-full border border-slate-200/80 shadow-xs font-mono text-[9.5px]">
+                      <button
+                        onClick={() => setObservatoryView('globe')}
+                        className={`px-2.5 py-1 rounded-full font-bold transition-all cursor-pointer ${
+                          observatoryView === 'globe'
+                            ? 'bg-slate-900 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        3D GLOBE
+                      </button>
+                      <button
+                        onClick={() => setObservatoryView('console')}
+                        className={`px-2.5 py-1 rounded-full font-bold transition-all cursor-pointer ${
+                          observatoryView === 'console'
+                            ? 'bg-slate-900 text-cyan-300 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        2D CONSOLE
+                      </button>
+                    </div>
+
+                    {/* Depth Legend (If Depth Color Mode) */}
                     {colorMode === 'depth' && (
-                      <div className="hidden md:inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs font-mono text-[9.5px] tracking-wider text-slate-700">
-                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" />&lt;70KM CRUSTAL</span>
+                      <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs font-mono text-[9px] tracking-wider text-slate-700">
+                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-rose-500" />&lt;70KM</span>
                         <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-amber-500" />70-300KM</span>
-                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />&gt;300KM SLAB</span>
+                        <span className="flex items-center gap-1 font-semibold"><span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />&gt;300KM</span>
                       </div>
                     )}
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-600 font-mono text-[10px] tracking-widest uppercase">
+
+                    {/* Dual Telemetry Counter */}
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-slate-200/80 shadow-xs text-slate-700 font-mono text-[10px] tracking-wider">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span>NUSANTARA REAL-TIME TELEMETRY</span>
+                      <span className="font-bold">{events.length}</span>
+                      <span className="text-slate-400">EQ</span>
+                      <span className="text-slate-300">/</span>
+                      <span className="font-bold text-orange-600">{hotspots.length}</span>
+                      <span className="text-slate-400">HOTSPOTS</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Center empty space for globe exploration (pointer-events-none allows direct click on 3D globe) */}
-                <div className="flex-1 w-full pointer-events-none" />
+                {/* Center Content: Framed 2D Tactical Command Console or 3D Globe Pass-through */}
+                {observatoryView === 'console' ? (
+                  <div className="w-full flex-1 flex items-center justify-center my-auto py-2 pointer-events-auto">
+                    <TacticalHazardConsole
+                      events={filteredEvents}
+                      hotspots={hotspots}
+                      hazardMode={hazardMode}
+                      onHazardModeChange={setHazardMode}
+                      onSelectEvent={setSelectedEvent}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 w-full pointer-events-none" />
+                )}
 
-                {/* Bottom Floating Controller Dock */}
-                <div className="w-full pointer-events-auto">
-                  <FloatingControllerDock
-                    searchQuery={searchQuery}
-                    onSearchChange={handleRegionChange}
-                    timeFilter={timeFilter}
-                    onTimeFilterChange={setTimeFilter}
-                    depthFilter={depthFilter}
-                    onDepthFilterChange={setDepthFilter}
-                    isRotating={isRotating}
-                    onToggleRotation={() => setIsRotating((prev) => !prev)}
-                    onResetView={() => {
-                      setTargetFocus([-0.78, 118.0]);
-                      setResetSignal((prev) => prev + 1);
-                    }}
-                    onOpenFeed={() => setIsFeedOpen(true)}
-                    onOpenTimeLapse={handleOpenTimeLapse}
-                    colorMode={colorMode}
-                    onColorModeChange={setColorMode}
-                    eventCount={filteredEvents.length}
-                    visible={isObservatoryActive && !isTimeLapseOpen}
-                  />
-                </div>
+                {/* Bottom spacer for dock clearance */}
+                <div className="h-16 pointer-events-none" />
               </section>
             );
           }
@@ -750,6 +796,32 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         })}
       </div>
 
+      {/* FLOATING TELEMETRY CONTROLLER DOCK (Fixed Root Viewport Level) */}
+      <FloatingControllerDock
+        searchQuery={searchQuery}
+        onSearchChange={handleRegionChange}
+        timeFilter={timeFilter}
+        onTimeFilterChange={setTimeFilter}
+        depthFilter={depthFilter}
+        onDepthFilterChange={setDepthFilter}
+        isRotating={isRotating}
+        onToggleRotation={() => setIsRotating((prev) => !prev)}
+        onResetView={() => {
+          setTargetFocus([-0.78, 118.0]);
+          setResetSignal((prev) => prev + 1);
+        }}
+        onOpenFeed={() => setIsFeedOpen(true)}
+        onOpenTimeLapse={handleOpenTimeLapse}
+        onOpenSeismogram={() => setIsSeismogramOpen((prev) => !prev)}
+        isSeismogramOpen={isSeismogramOpen}
+        colorMode={colorMode}
+        onColorModeChange={setColorMode}
+        hazardMode={hazardMode}
+        onHazardModeChange={setHazardMode}
+        eventCount={filteredEvents.length}
+        visible={isObservatoryActive && !isTimeLapseOpen}
+      />
+
       {/* 7. EVENT DETAIL & BOOKMARK MODAL */}
       <EventModal
         event={selectedEvent}
@@ -757,6 +829,14 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         isBookmarked={isEventBookmarked(selectedEvent)}
         onToggleBookmark={handleToggleBookmark}
         onFocusGlobe={(evt) => setTargetFocus([evt.latitude, evt.longitude])}
+        onOpenSeismogram={(evt) => {
+          setSelectedEvent(evt);
+          setIsSeismogramOpen(true);
+        }}
+        onOpenInfographic={(evt) => {
+          setInfographicEvent(evt);
+          setIsInfographicOpen(true);
+        }}
       />
 
       {/* 8. ACTIVE SEISMIC FEED DRAWER */}
@@ -821,6 +901,27 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         depth={formattedBMKG?.depth || `${bmkgAlert?.kedalaman || '10 km'}`}
         time={formattedBMKG?.time || bmkgAlert?.tanggal || 'Terbaru'}
         potensi={formattedBMKG?.potensi || bmkgAlert?.potensi || 'Tidak berpotensi tsunami'}
+        coordinates={bmkgAlert?.coordinates}
+      />
+
+      {/* 12. VIRTUAL SEISMOGRAM OSCILLOSCOPE MONITOR (P & S WAVE RECORDER) */}
+      <VirtualSeismogram
+        isOpen={isSeismogramOpen}
+        onClose={() => setIsSeismogramOpen(false)}
+        activeEvent={selectedEvent || (filteredEvents.length > 0 ? filteredEvents[0] : null)}
+      />
+
+      {/* 13. DISASTER INFOGRAPHIC SOCIAL CARD GENERATOR */}
+      <SocialInfographicModal
+        isOpen={isInfographicOpen}
+        onClose={() => setIsInfographicOpen(false)}
+        event={infographicEvent || selectedEvent}
+        location={infographicEvent?.place || formattedBMKG?.location || 'Indonesia Archipelago'}
+        magnitude={infographicEvent ? (infographicEvent.magnitude ?? '5.0') : (bmkgAlert?.magnitude || '5.0')}
+        depth={infographicEvent ? `${infographicEvent.depth} km` : (formattedBMKG?.depth || '10 km')}
+        time={infographicEvent ? new Date(infographicEvent.occurred_at).toLocaleString('id-ID') : (formattedBMKG?.time || 'Terbaru')}
+        potensi={formattedBMKG?.potensi || 'Tidak berpotensi tsunami'}
+        coordinates={infographicEvent ? `${infographicEvent.latitude.toFixed(2)}°, ${infographicEvent.longitude.toFixed(2)}°` : (bmkgAlert?.coordinates || undefined)}
       />
     </div>
   );
