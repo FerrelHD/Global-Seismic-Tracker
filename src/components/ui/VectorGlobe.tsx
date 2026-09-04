@@ -31,6 +31,7 @@ interface VectorGlobeProps {
   isPanoramic?: boolean;
   showControls?: boolean;
   controlsProgress?: number | null;
+  activeChapterIndex?: number;
 }
 
 // Bounding box for Indonesian Archipelago (Nusantara)
@@ -38,6 +39,40 @@ const BASE_CENTER_LON = 118.0;
 const BASE_CENTER_LAT = -2.2;
 const BASE_SPAN_LON = 48.0; // 94°E to 142°E
 const BASE_SPAN_LAT = 19.0; // -12°S to 7°N
+
+export interface ChapterSectorConfig {
+  coords: [number, number]; // [lat, lon]
+  label: string;
+  subLabel: string;
+  radius: number; // in CSS pixels
+}
+
+export const CHAPTER_SECTORS: Record<number, ChapterSectorConfig> = {
+  0: {
+    coords: [-4.5, 102.0], // Sumatra-Java Trench
+    label: 'SECTOR 01 // SUNDA MEGATHRUST ARC',
+    subLabel: 'SUBDUCTION ZONE · INDO-AUSTRALIAN CONVERGENCE',
+    radius: 250,
+  },
+  1: {
+    coords: [-0.9, 119.8], // Central Sulawesi Transform
+    label: 'SECTOR 02 // PALU-KORO TRANSFORM',
+    subLabel: 'STRIKE-SLIP SYSTEM · SULAWESI TRIPLE JUNCTION',
+    radius: 200,
+  },
+  2: {
+    coords: [-5.5, 129.5], // Deep Banda Sea Arc
+    label: 'SECTOR 03 // DEEP BANDA ABYSS',
+    subLabel: '180° HORSESHOE OROCLINE · WADATI-BENIOFF SLAB',
+    radius: 220,
+  },
+  3: {
+    coords: [-3.8, 138.5], // Papua Highlands & Yapen
+    label: 'SECTOR 04 // PAPUA COLLISION BELT',
+    subLabel: 'PACIFIC-CAROLINE FRONT · OBLIQUE THRUST OROGENY',
+    radius: 240,
+  },
+};
 
 function cleanPlace(place: string | null): string {
   if (!place) return 'EPICENTER';
@@ -70,9 +105,21 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   isPanoramic = true,
   showControls = true,
   controlsProgress = null,
+  activeChapterIndex = -1,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const activeChapterIndexRef = useRef(activeChapterIndex);
+  activeChapterIndexRef.current = activeChapterIndex;
+
+  const spotlightRef = useRef({
+    x: 0,
+    y: 0,
+    radius: 220,
+    opacity: 0,
+    initialized: false,
+  });
 
   const [islandsData, setIslandsData] = useState<any[]>([]);
   const [worldData, setWorldData] = useState<any[]>([]);
@@ -820,6 +867,164 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           }
         }
 
+        // 5c. Scrollytelling Dynamic Sector Spotlight & Precision Geodetic Reticle
+        const currentChapter = activeChapterIndexRef.current ?? -1;
+        const activeSector = (currentChapter >= 0 && currentChapter <= 3) ? CHAPTER_SECTORS[currentChapter] : null;
+
+        let targetSpotX = w / 2;
+        let targetSpotY = h / 2;
+        let targetSpotRadius = 220;
+        let targetSpotOpacity = 0.0;
+
+        if (activeSector) {
+          const [sx, sy] = project(activeSector.coords[1], activeSector.coords[0]);
+          targetSpotX = sx;
+          targetSpotY = sy;
+          targetSpotRadius = activeSector.radius;
+          targetSpotOpacity = 1.0;
+        }
+
+        if (!spotlightRef.current.initialized && activeSector) {
+          spotlightRef.current.x = targetSpotX;
+          spotlightRef.current.y = targetSpotY;
+          spotlightRef.current.radius = targetSpotRadius;
+          spotlightRef.current.opacity = targetSpotOpacity;
+          spotlightRef.current.initialized = true;
+        } else {
+          spotlightRef.current.x += (targetSpotX - spotlightRef.current.x) * 0.08;
+          spotlightRef.current.y += (targetSpotY - spotlightRef.current.y) * 0.08;
+          spotlightRef.current.radius += (targetSpotRadius - spotlightRef.current.radius) * 0.08;
+          spotlightRef.current.opacity += (targetSpotOpacity - spotlightRef.current.opacity) * 0.08;
+        }
+
+        const spot = spotlightRef.current;
+        const currentSpotOp = spot.opacity;
+
+        if (currentSpotOp > 0.01) {
+          // 1. Soft Paper Vignette Mask (dimming non-spotlight background)
+          const innerR = Math.max(30, spot.radius * 0.65);
+          const outerR = Math.max(innerR + 80, spot.radius * 1.65);
+
+          const radialGrad = ctx.createRadialGradient(
+            spot.x, spot.y, innerR,
+            spot.x, spot.y, outerR
+          );
+          radialGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+          radialGrad.addColorStop(0.55, `rgba(255, 255, 255, ${0.36 * currentSpotOp})`);
+          radialGrad.addColorStop(1, `rgba(255, 255, 255, ${0.64 * currentSpotOp})`);
+
+          ctx.save();
+          ctx.fillStyle = radialGrad;
+          ctx.fillRect(0, 0, w, h);
+
+          // 2. High-Precision Technical Geodetic Reticle
+          if (currentSpotOp > 0.12) {
+            const now = performance.now();
+            const pulse = (Math.sin(now * 0.0028) + 1) * 0.5; // 0 to 1
+            const reticleRadius = spot.radius * 0.95;
+
+            // Outer Dashed Orbit Ring
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(spot.x, spot.y, reticleRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(15, 47, 99, ${0.28 * currentSpotOp})`;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 6]);
+            ctx.stroke();
+
+            // Subtle breathing acoustic pulse wave
+            const breathingRadius = reticleRadius + pulse * 10;
+            ctx.beginPath();
+            ctx.arc(spot.x, spot.y, breathingRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(15, 47, 99, ${0.12 * (1 - pulse) * currentSpotOp})`;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 5]);
+            ctx.stroke();
+            ctx.restore();
+
+            // Precision Geodetic Crosshair Ticks
+            ctx.save();
+            ctx.strokeStyle = `rgba(15, 47, 99, ${0.40 * currentSpotOp})`;
+            ctx.lineWidth = 1.2;
+            const tickLength = 10;
+
+            ctx.beginPath();
+            // North
+            ctx.moveTo(spot.x, spot.y - reticleRadius - tickLength);
+            ctx.lineTo(spot.x, spot.y - reticleRadius + 4);
+            // South
+            ctx.moveTo(spot.x, spot.y + reticleRadius - 4);
+            ctx.lineTo(spot.x, spot.y + reticleRadius + tickLength);
+            // West
+            ctx.moveTo(spot.x - reticleRadius - tickLength, spot.y);
+            ctx.lineTo(spot.x - reticleRadius + 4, spot.y);
+            // East
+            ctx.moveTo(spot.x + reticleRadius - 4, spot.y);
+            ctx.lineTo(spot.x + reticleRadius + tickLength, spot.y);
+            ctx.stroke();
+
+            // Micro Center Target Pip
+            ctx.beginPath();
+            ctx.arc(spot.x, spot.y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(15, 47, 99, ${0.5 * currentSpotOp})`;
+            ctx.fill();
+
+            // Architectural Sector Identification Callout Badge
+            if (activeSector && currentSpotOp > 0.40) {
+              const badgeAngle = -Math.PI / 4; // 45 deg NE
+              const rawBx = spot.x + Math.cos(badgeAngle) * reticleRadius + 16;
+              const rawBy = spot.y + Math.sin(badgeAngle) * reticleRadius - 12;
+
+              const badgeW = 220;
+              const badgeH = 34;
+              const clampedBx = Math.max(16, Math.min(w - badgeW - 16, rawBx));
+              const clampedBy = Math.max(20, Math.min(h - badgeH - 16, rawBy));
+
+              // Dotted Hairline Pointer from ring to badge
+              ctx.beginPath();
+              ctx.moveTo(spot.x + Math.cos(badgeAngle) * reticleRadius, spot.y + Math.sin(badgeAngle) * reticleRadius);
+              ctx.lineTo(clampedBx, clampedBy + 12);
+              ctx.strokeStyle = `rgba(15, 47, 99, ${0.35 * currentSpotOp})`;
+              ctx.lineWidth = 0.8;
+              ctx.setLineDash([2, 3]);
+              ctx.stroke();
+              ctx.setLineDash([]);
+
+              // Badge Card Background (Swiss Minimalist Editorial)
+              ctx.fillStyle = `rgba(255, 255, 255, ${0.94 * currentSpotOp})`;
+              ctx.strokeStyle = `rgba(203, 213, 225, ${0.85 * currentSpotOp})`;
+              ctx.lineWidth = 1;
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(clampedBx, clampedBy, badgeW, badgeH, 6);
+              } else {
+                ctx.rect(clampedBx, clampedBy, badgeW, badgeH);
+              }
+              ctx.fill();
+              ctx.stroke();
+
+              // Active Beacon Dot
+              ctx.beginPath();
+              ctx.arc(clampedBx + 12, clampedBy + 17, 3, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(15, 47, 99, ${0.9 * currentSpotOp})`;
+              ctx.fill();
+
+              // Badge Text: Primary & Secondary
+              ctx.font = '700 8.5px "JetBrains Mono", monospace';
+              ctx.fillStyle = `rgba(15, 23, 42, ${0.95 * currentSpotOp})`;
+              ctx.fillText(activeSector.label, clampedBx + 22, clampedBy + 14);
+
+              ctx.font = '500 7px "Inter", sans-serif';
+              ctx.fillStyle = `rgba(100, 116, 139, ${0.9 * currentSpotOp})`;
+              ctx.fillText(activeSector.subLabel, clampedBx + 22, clampedBy + 25);
+            }
+
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
         ctx.restore();
 
         // 6. Update Floating Data Flag Badges (ANTI-NEMBUS FIX)
@@ -846,7 +1051,14 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               const inHeroHeadlineZone = px < 460 && py < 480;
               const inTopRightZone = px > w - 280 && py < 180;
 
-              const isVisible = inBounds && !inHeroHeadlineZone && !inTopRightZone;
+              // If spotlight is active, only show HTML badges within or near spotlight radius
+              let inSpotlightZone = true;
+              if (currentSpotOp > 0.45) {
+                const distToSpot = Math.hypot(px - spot.x, py - spot.y);
+                inSpotlightZone = distToSpot <= spot.radius * 1.25;
+              }
+
+              const isVisible = inBounds && !inHeroHeadlineZone && !inTopRightZone && inSpotlightZone;
 
               if (isVisible) {
                 el.style.opacity = '1';

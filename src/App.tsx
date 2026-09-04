@@ -769,6 +769,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             isPanoramic={true}
             showControls={isObservatoryActive}
             controlsProgress={observatoryProgress}
+            activeChapterIndex={isObservatoryActive || isHeroActive ? -1 : activeChapterIndex}
           />
         </div>
       </div>
