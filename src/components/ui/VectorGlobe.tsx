@@ -306,6 +306,10 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     let diff = (targetPhi - startPhi) % (Math.PI * 2);
     if (diff > Math.PI) diff -= Math.PI * 2;
     if (diff < -Math.PI) diff -= Math.PI * 2;
+    // Ensure dynamic spin flourish on chapter entrance when angular diff is small
+    if (Math.abs(diff) < 0.35) {
+      diff += Math.PI * 2;
+    }
 
     const startTheta = thetaOffsetRef.current + scrollThetaCurrentRef.current;
     const startTime = performance.now();
@@ -447,11 +451,10 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           isDraggingRef.current = true;
         }
 
-        // Natural direct grab: dragging right moves globe right, dragging down moves globe down
-        phiOffsetRef.current -= deltaX * 0.005;
-        thetaOffsetRef.current = Math.max(-0.8, Math.min(1.0, thetaOffsetRef.current + deltaY * 0.004));
+        phiOffsetRef.current += deltaX * 0.005;
+        thetaOffsetRef.current = Math.max(-0.8, Math.min(1.0, thetaOffsetRef.current - deltaY * 0.004));
 
-        velocityRef.current = -(e.clientX - lastX) * 0.003;
+        velocityRef.current = (e.clientX - lastX) * 0.003;
         lastX = e.clientX;
         pointerInteracting.current = { x: e.clientX, y: e.clientY };
       }
@@ -474,7 +477,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     const onWheel = (e: WheelEvent) => {
       if (pointerInteracting.current !== null) {
         e.preventDefault();
-        phiOffsetRef.current -= e.deltaY * 0.0015;
+        phiOffsetRef.current += e.deltaY * 0.0015;
       }
     };
 

@@ -103,6 +103,8 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const activeChapterIndexRef = useRef(-1);
+
   // 3-Phase Continuous Scroll Interpolation Choreography
   const handleScrollUpdate = useCallback(() => {
     const heroEl = document.getElementById('hero-section');
@@ -119,13 +121,17 @@ export const App: React.FC = () => {
 
     const isHero = scrollY < heroHeight * 0.75;
     setIsHeroActive(isHero);
+    if (isHero && activeChapterIndexRef.current !== -1) {
+      activeChapterIndexRef.current = -1;
+      setActiveChapterIndex(-1);
+    }
 
-    // Phase 1: Leaving Hero into Chapter 1 (0vw center -> 20vw right, kinetic 3D spin & tilt)
+    // Phase 1: Leaving Hero into Chapter 1 (0vw center -> 22vw right, zooming in from 1.0 to 1.22, kinetic 3D spin & tilt)
     if (scrollY < heroHeight) {
       const p = Math.max(0, Math.min(1, scrollY / (heroHeight * 0.85)));
       const smoothP = p * p * (3 - 2 * p); // smoothstep
-      setGlobeOffsetVw(smoothP * 20);
-      setGlobeScale(1.0 - smoothP * 0.05);
+      setGlobeOffsetVw(smoothP * 22);
+      setGlobeScale(1.0 + smoothP * 0.22);
       // Kinetic 3D spin eastward and aerodynamic pitch tilt during the roll
       setScrollRotation({
         phi: -smoothP * (Math.PI * 1.35),
@@ -135,7 +141,7 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Phase 3: Leaving Chapter 4 into Observatory (20vw -> 0vw center, scaling comfortably up to 1.04)
+    // Phase 3: Leaving Chapter 4 into Observatory (interpolates from last chapter offset to center 0vw, scale 1.15)
     const obsRect = obsEl.getBoundingClientRect();
     const distanceToView = obsRect.top - windowHeight * 0.15;
     const travelRange = windowHeight * 0.85;
@@ -143,8 +149,9 @@ export const App: React.FC = () => {
     if (distanceToView < travelRange) {
       const rawProgress = 1 - Math.max(0, Math.min(travelRange, distanceToView)) / travelRange;
       const smoothP = rawProgress * rawProgress * (3 - 2 * rawProgress);
-      setGlobeOffsetVw((1 - smoothP) * 20);
-      setGlobeScale(0.95 + smoothP * 0.09);
+      const lastChapterOffset = (storyChapters.length - 2) % 2 === 1 ? -22 : 22;
+      setGlobeOffsetVw((1 - smoothP) * lastChapterOffset);
+      setGlobeScale(1.22 - smoothP * 0.07);
       setScrollRotation({
         phi: -(Math.PI * 1.35) - smoothP * (Math.PI * 0.75),
         theta: 0,
@@ -158,15 +165,17 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Phase 2: In Story Chapters 1 - 4 (Comfortably matched alongside chapter cards on the left)
-    setGlobeOffsetVw(20);
-    setGlobeScale(0.95);
+    // Phase 2: In Story Chapters 1 - 4 (Even chapters at +22vw [Right], Odd chapters at -22vw [Left])
+    const curIdx = activeChapterIndexRef.current;
+    const targetOffset = curIdx >= 0 && curIdx % 2 === 1 ? -22 : 22;
+    setGlobeOffsetVw(targetOffset);
+    setGlobeScale(1.22);
     setScrollRotation({
       phi: -Math.PI * 1.35,
       theta: 0,
     });
     setIsObservatoryActive(false);
-  }, []);
+  }, [storyChapters.length]);
 
   // Initialize Lenis smooth momentum scroll engine
   useEffect(() => {
@@ -205,9 +214,12 @@ export const App: React.FC = () => {
             if (indexAttr !== null) {
               const idx = parseInt(indexAttr, 10);
               setActiveChapterIndex(idx);
+              activeChapterIndexRef.current = idx;
 
-              // Fly globe camera to chapter epicenter
+              // Fly globe camera to chapter epicenter and alternate side position
               if (storyChapters[idx] && idx < storyChapters.length - 1) {
+                setGlobeOffsetVw(idx % 2 === 1 ? -22 : 22);
+                setGlobeScale(1.22);
                 setTargetFocus(storyChapters[idx].coordinates);
               }
             }
@@ -429,7 +441,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             transform: `translate3d(${effectiveTranslateX}, 0px, 0) scale(${globeScale})`,
             willChange: 'transform',
           }}
-          className="relative w-[min(82vw,calc(100dvh-170px),340px)] sm:w-[min(72vw,calc(100dvh-170px),460px)] md:w-[min(65vw,calc(100dvh-160px),540px)] lg:w-[min(54vw,calc(100dvh-150px),640px)] xl:w-[min(52vw,calc(100dvh-140px),720px)] 2xl:w-[min(50vw,calc(100dvh-140px),780px)] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-75 ease-out"
+          className="relative w-[min(82vw,calc(100dvh-170px),340px)] sm:w-[min(72vw,calc(100dvh-170px),460px)] md:w-[min(65vw,calc(100dvh-160px),540px)] lg:w-[min(54vw,calc(100dvh-150px),640px)] xl:w-[min(52vw,calc(100dvh-140px),720px)] 2xl:w-[min(50vw,calc(100dvh-140px),780px)] aspect-square flex items-center justify-center pointer-events-auto transition-transform duration-700 ease-out"
         >
           {/* No Art Architectural Vector Wireframe 3D Globe */}
           <VectorGlobe
@@ -627,13 +639,16 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             );
           }
 
-          // Chapters 1 - 4: Guided Storytelling Stages
+          // Chapters 1 - 4: Guided Storytelling Stages (Alternating: Even cards Left, Odd cards Right)
+          const isCardOnRight = index % 2 === 1;
           return (
             <section
               key={chapter.id}
               id={`chapter-section-${index}`}
               data-chapter-index={index}
-              className="story-chapter-section min-h-screen w-full flex items-center px-4 sm:px-8 lg:px-16 xl:px-24 py-28 pointer-events-none"
+              className={`story-chapter-section min-h-screen w-full flex items-center px-4 sm:px-8 lg:px-16 xl:px-24 py-28 pointer-events-none ${
+                isCardOnRight ? 'justify-end md:pr-20 lg:pr-28' : 'justify-start md:pl-8 lg:pl-16'
+              }`}
             >
               <div className="w-full max-w-lg pointer-events-auto">
                 <StoryChapterCard
