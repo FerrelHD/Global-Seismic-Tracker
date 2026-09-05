@@ -1,11 +1,11 @@
 <div align="center">
 
 # 🌍 Indonesian Crustal Observatory & Global Seismic Tracker
-### *Nusantara Seismic Telemetry & Interactive 3D WebGL Multi-Hazard Planetary Observatory*
+### *Nusantara Seismic Telemetry & Interactive Multi-Hazard Planetary Observatory*
 
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/Three.js-0.185-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
+[![HTML5 Canvas](https://img.shields.io/badge/HTML5_Canvas-Vector_Engine-E34F26?style=for-the-badge&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API)
 [![Vite](https://img.shields.io/badge/Vite-8.2-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
@@ -14,7 +14,7 @@
 <br />
 
 <p align="center">
-  A high-performance, research-grade planetary hazard monitoring observatory. Combines real-time 3D WebGL globe visualization, live USGS and BMKG earthquake telemetry, NASA FIRMS active wildfire hotspots, tectonic fault line mapping, 4D time-lapse chronos, virtual seismogram oscilloscope, and scrollytelling data journalism.
+  A high-performance, research-grade planetary hazard monitoring observatory. Combines high-precision 2D Canvas vector cartography, live USGS and BMKG earthquake telemetry, NASA FIRMS active wildfire hotspots, 4D time-lapse chronos, virtual seismogram oscilloscope, and scrollytelling data journalism across all device viewports.
 </p>
 
 </div>
@@ -23,22 +23,22 @@
 
 ## 🧭 Overview
 
-**Indonesian Crustal Observatory / Global Seismic Tracker** transforms multi-source geoscientific telemetry into an intuitive, high-fidelity 3D interactive web observatory. Built with **React 19**, **Three.js / React Three Fiber**, **Cobe WebGL**, and **Supabase (PostgreSQL)**, the system visualizes planetary crustal dynamics with scientific precision:
+**Indonesian Crustal Observatory / Global Seismic Tracker** transforms multi-source geoscientific telemetry into an intuitive, high-fidelity interactive web observatory. Built with **React 19**, **HTML5 Canvas 2D Vector Cartography**, and **Supabase (PostgreSQL)**, the system visualizes planetary crustal dynamics with scientific precision:
 
-- **Seismic Telemetry:** Real-time USGS and BMKG feeds with hypocenter depth color coding and shockwave ripples.
-- **Tectonic Plates:** Global tectonic boundary fault line overlays (Sunda Megathrust, Pacific Ring of Fire, etc.).
-- **NASA FIRMS Wildfire Hotspots:** Thermal anomaly detection with Fire Radiative Power (FRP) and atmospheric wind drift vectors.
-- **Scrollytelling Journalism:** Algorithmic narrative chapters guided by smooth inertial scrolling (Lenis) and dynamic analytics.
-- **Tactical Observatory HUD:** Virtual seismogram oscilloscope, official BMKG shakemaps, 7-day 4D time-lapse replay, synthesized Web Audio beacons, and emergency broadcast social infographic generation.
+- **High-Precision Nusantara Vector Map:** Sub-millimeter architectural 2D canvas cartography mapping the Indonesian archipelago, equatorial parallels, and Sunda Megathrust subduction trench lines with kinetic momentum panning, wheel zoom, and multi-touch pinch-to-zoom.
+- **Seismic Telemetry:** Real-time USGS and BMKG feeds with hypocenter depth color coding, sonar shockwave ripples, and collision-free event tags.
+- **NASA FIRMS Wildfire Hotspots:** Active thermal anomalies from VIIRS/MODIS satellites displaying Fire Radiative Power (MW) and atmospheric wind drift vectors.
+- **Scrollytelling Journalism:** Algorithmic narrative chapters guided by smooth inertial scrolling (Lenis) and dynamic telemetry analytics.
+- **Tactical Observatory Tools:** Virtual seismogram oscilloscope, official BMKG shakemaps, 7-day 4D time-lapse replay, synthesized Web Audio beacon alerts, and emergency broadcast social infographic generation.
 
 ---
 
 ## ✨ Key Features
 
-### 🌐 1. Hybrid 3D WebGL Globe & Fault Line Cartography
-- **VectorGlobe & Cobe Dot-Matrix Hybrid:** High-density dot projection with smooth physics-based inertia, camera rotation, and smooth zoom.
-- **Tectonic Plate Fault Lines:** Real-time vector rendering of tectonic plate boundaries, marking convergence zones, subduction trenches, and transform faults.
-- **Dynamic Camera Targeting:** Smooth spherical interpolation (`slerp`) focusing instantly on Indonesian archipelago hotspots or custom epicenters.
+### 🗺️ 1. High-Performance Nusantara Vector Map
+- **Architectural Planar Vector Cartography:** Canvas 2D rendering engine projecting high-resolution GeoJSON landmasses of Indonesia and surrounding territories at a stable 60 FPS.
+- **Sunda Megathrust Subduction Trench:** Crisp vector line mapping the tectonic subduction interface where the Indo-Australian and Eurasian plates collide.
+- **Smooth Inertial Navigation:** Kinetic momentum dragging, mouse wheel zoom, double-click focus, and multi-touch pinch-to-zoom for tablet and mobile devices.
 
 ### 🌋 2. Dual-Hazard Telemetry (Seismic + Thermal Anomalies)
 - **Real-Time Earthquake Feeds:** Automated USGS ingestion pipeline coupled with live Indonesian BMKG AutoGempa telemetry.
@@ -53,11 +53,11 @@
 ### 📜 4. Scrollytelling & Dynamic Narrative Rail
 - **Lenis Smooth Scroll:** Hardware-accelerated smooth scrolling transitioning seamlessly from the Hero display into in-depth data journalism chapters.
 - **Algorithmic Chapter Analytics:** Dynamic clustering engine (`storyAnalytics.ts`) automatically detecting high-magnitude swarms, megathrust strain, and deep mantle subduction events.
-- **Story Progress Rail:** Visual chapter indicator tracking reading progress and synchronizing globe orientation with each region under investigation.
+- **Story Progress Rail:** Visual chapter indicator tracking reading progress and synchronizing map view coordinates with each region under investigation.
 
 ### ⏱️ 5. 4D Time-Lapse Seismic Chrono-Scrubber
 - 7-day chronological playback simulator with scrub bar and interactive play/pause controls.
-- Dynamic speed multipliers (**1x**, **5x**, **10x**) allowing researchers to observe foreshock and aftershock sequences over time.
+- Dynamic speed multipliers (**1x**, **5x**, **15x**, **45x**) allowing researchers to observe foreshock and aftershock sequences over time.
 
 ### 📈 6. Virtual Seismogram Oscilloscope
 - Interactive synthetic waveform generator simulating real-time seismometer recording.
@@ -99,8 +99,8 @@ graph TD
   end
 
   subgraph Visual & Interactive Engine
-    App --> VectorGlobe[3D VectorGlobe & Tectonic Canvas]
-    App --> HUD[Tactical Hazard Console & Frames]
+    App --> VectorMap[Nusantara Vector Canvas Map]
+    App --> HUD[Floating Controller Dock & Tooltips]
     App --> Scrolly[Lenis Scrollytelling Narrative]
     App --> Seismogram[Virtual Seismogram Oscilloscope]
     App --> TimeLapse[4D Time-Lapse Scrubber]
@@ -112,7 +112,7 @@ graph TD
 | Layer | Technology | Purpose |
 |---|---|---|
 | **Frontend Core** | React 19 + TypeScript | High-performance reactive UI with strict type safety |
-| **3D Rendering** | Three.js + R3F + Cobe | Hybrid WebGL globe, tectonic plates, shader atmospheres & shockwaves |
+| **Cartography & Rendering** | HTML5 Canvas 2D Vector Engine | Hardware-accelerated 60 FPS planar map projection, subduction lines, and thermal vectors |
 | **Motion & Smooth Scroll** | Lenis + Framer Motion + GSAP | Inertial scrollytelling and UI micro-animations |
 | **Styling** | Tailwind CSS v4 | Cutting-edge utility-first styling and frosted liquid-glass aesthetics |
 | **Icons** | Lucide React | Minimalist scientific iconography |
@@ -243,7 +243,7 @@ npm run verify
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) (or the port shown in your terminal) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
@@ -252,7 +252,7 @@ Open [http://localhost:3000](http://localhost:3000) (or the port shown in your t
 | Command | Action |
 |---|---|
 | `npm run dev` | Launches the Vite development server with Hot Module Replacement |
-| `npm run build` | Compiles TypeScript and packages optimized production build into `dist/` |
+| `npm run build` | Compiles TypeScript and packages optimized production bundle into `dist/` |
 | `npm run preview` | Locally previews the generated production bundle |
 | `npm run sync` | Runs `scripts/fetch-usgs.js` to ingest real-time USGS telemetry to Supabase |
 | `npm run verify` | Verifies database connectivity, row counts, and latest seismic records |
@@ -276,18 +276,8 @@ Global-Seismic-Tracker/
 │   └── migrations/             # SQL schema migrations (seismic & wildfires)
 ├── src/
 │   ├── components/
-│   │   ├── canvas/             # Three.js / R3F WebGL scene components
-│   │   │   ├── AtmosphereShader.ts     # Custom GLSL atmosphere glow shader
-│   │   │   ├── FloatingSeismicBadges.tsx # 3D billboarded event badges
-│   │   │   ├── Globe.tsx               # Three.js globe sphere & mesh
-│   │   │   ├── SeismicPoints.tsx       # 3D epicenter coordinate markers
-│   │   │   ├── SeismicRipples.tsx      # Shockwave pulse wave rings
-│   │   │   └── SeismicScene.tsx        # Top-level R3F canvas container
 │   │   ├── hero/               # Hero landing section
 │   │   │   └── HeroSection.tsx
-│   │   ├── scrollytelling/     # Camera & narrative controller hooks
-│   │   │   ├── CameraController.tsx
-│   │   │   └── NarrativeOverlay.tsx
 │   │   ├── story/              # Scrollytelling story cards & progress rail
 │   │   │   ├── StoryChapterCard.tsx
 │   │   │   └── StoryProgressRail.tsx
@@ -298,20 +288,14 @@ Global-Seismic-Tracker/
 │   │       ├── EpicenterMapCard.tsx       # Detail map card with regional view
 │   │       ├── EventModal.tsx             # Detail inspection modal
 │   │       ├── EventsListDrawer.tsx       # Live seismic events telemetry feed
-│   │       ├── FilterControls.tsx         # Horizon, depth, and magnitude filters
 │   │       ├── FloatingControllerDock.tsx # Floating bottom navigation dock
-│   │       ├── GlobeTechnicalHud.tsx      # Top-right coordinates & camera telemetry
 │   │       ├── liquid-glass.tsx           # Frosted glassmorphism card component
 │   │       ├── SeismicAlertToast.tsx      # Live earthquake alert toast banner
-│   │       ├── SeismicTooltip.tsx         # 2D projection hover tooltip
 │   │       ├── SocialInfographicModal.tsx # Emergency disaster broadcast infographic
-│   │       ├── TacticalHazardConsole.tsx  # Multi-hazard diagnostic console
 │   │       ├── TimeLapseScrubber.tsx      # 4D 7-day chronological replay scrubber
-│   │       ├── VectorGlobe.tsx            # Main interactive vector globe with plate faults
+│   │       ├── VectorGlobe.tsx            # Main interactive vector map with pinch/zoom/pan
 │   │       ├── ViewportTechnicalFrame.tsx # Observatory viewport HUD frame
 │   │       └── VirtualSeismogram.tsx      # Synthetic P/S/Surface wave oscilloscope
-│   ├── data/
-│   │   └── tectonicPlates.ts   # Global tectonic plate boundary coordinates
 │   ├── hooks/
 │   │   └── useLenis.ts         # Smooth scroll lifecycle hook
 │   ├── types/
@@ -319,8 +303,6 @@ Global-Seismic-Tracker/
 │   ├── utils/
 │   │   ├── audioAlert.ts       # Web Audio API synthesized alert sound
 │   │   ├── firmsService.ts     # NASA FIRMS hotspot data fetcher
-│   │   ├── geoTo3d.ts          # Spherical to Cartesian coordinate conversions
-│   │   ├── graticule.ts        # Latitude/longitude graticule line generator
 │   │   ├── storyAnalytics.ts   # Algorithmic clustering & chapter generation
 │   │   ├── supabase.ts         # Supabase client, BMKG loader & bookmarks
 │   │   └── weatherService.ts   # Open-Meteo wind & atmospheric data provider
@@ -360,9 +342,6 @@ vercel
 - **[BMKG Indonesia (Badan Meteorologi, Klimatologi, dan Geofisika)](https://data.bmkg.go.id/)** for real-time Indonesian AutoGempa bulletins and official shakemaps.
 - **[NASA FIRMS (Fire Information for Resource Management System)](https://firms.modaps.eosdis.nasa.gov/)** for active VIIRS/MODIS thermal and wildfire hotspots.
 - **[Open-Meteo API](https://open-meteo.com/)** for high-resolution regional wind and atmospheric dispersion metrics.
-- **[Cobe](https://github.com/shuding/cobe)** by Shu Ding for the lightweight WebGL canvas globe foundation.
-- **[Three.js / React Three Fiber](https://threejs.org/)** for 3D coordinate geometry, tectonic fault lines, and shaders.
-- **[Hugo Ahlenius / Nordpil & USGS](https://github.com/fraxen/tectonicplates)** for tectonic plate boundary dataset definitions.
 - **Typography:** [Cabinet Grotesk](https://www.fontshare.com/) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
 
 ---
