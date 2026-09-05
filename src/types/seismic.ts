@@ -32,7 +32,38 @@ export interface WildfireHotspot {
   windDirection?: number;
 }
 
-export type HazardMode = 'dual' | 'seismic' | 'wildfire';
+export type AlertLevel = 'Level I' | 'Level II' | 'Level III' | 'Level IV';
+export type AviationColorCode = 'GREEN' | 'YELLOW' | 'ORANGE' | 'RED';
+
+export interface AshPlume {
+  id: string;
+  volcano_id?: string;
+  volcano_code: string;
+  aviation_color_code: AviationColorCode;
+  cloud_top_fl: number; // Flight level (e.g. FL200 = 20,000 ft)
+  direction: string; // e.g. 'W', 'SW', 'NW'
+  speed_knots: number;
+  dispersion_polygon: [number, number][]; // Array of [lon, lat] coordinates
+  advisory_summary?: string;
+  issued_at: string;
+}
+
+export interface VolcanoActivity {
+  id: string;
+  code: string;
+  name: string;
+  island: string;
+  latitude: number;
+  longitude: number;
+  elevation_m: number;
+  alert_level: AlertLevel; // Level I (Normal), Level II (Waspada), Level III (Siaga), Level IV (Awas)
+  status_description: string;
+  crater_status?: string;
+  updated_at: string;
+  ash_plume?: AshPlume;
+}
+
+export type HazardMode = 'all' | 'dual' | 'seismic' | 'wildfire' | 'volcano';
 
 export interface HoveredEventState {
   event: SeismicEvent;

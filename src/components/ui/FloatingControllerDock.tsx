@@ -127,8 +127,8 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                 <div className={pillGroup}>
                   <button
                     onClick={() => onHazardModeChange('dual')}
-                    title={lang === 'id' ? 'Tampilkan Gempa dan Titik Api Bersamaan' : 'Show Earthquakes & Wildfires Together'}
-                    className={`${smallPillBase} ${hazardMode === 'dual' ? pillActive : pillInactive}`}
+                    title={lang === 'id' ? 'Tampilkan Semua Bencana Bersamaan' : 'Show All Hazards Together'}
+                    className={`${smallPillBase} ${hazardMode === 'dual' || hazardMode === 'all' ? pillActive : pillInactive}`}
                   >
                     {t.dualMode}
                   </button>
@@ -153,6 +153,13 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     }`}
                   >
                     {t.fireOnly}
+                  </button>
+                  <button
+                    onClick={() => onHazardModeChange('volcano')}
+                    title={lang === 'id' ? 'Filter Khusus Gunung Berapi & Abu' : 'Filter Volcano Activity & Ash Plumes Only'}
+                    className={`${smallPillBase} ${hazardMode === 'volcano' ? pillActive : pillInactive}`}
+                  >
+                    {t.volcanoOnly}
                   </button>
                 </div>
                 {divider}

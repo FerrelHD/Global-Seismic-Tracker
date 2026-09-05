@@ -16,7 +16,10 @@ import { BMKGShakemapModal } from './components/ui/BMKGShakemapModal';
 import { VirtualSeismogram } from './components/ui/VirtualSeismogram';
 import { SocialInfographicModal } from './components/ui/SocialInfographicModal';
 import { buildStoryChapters } from './utils/storyAnalytics';
-import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode } from './types/seismic';
+import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode, VolcanoActivity } from './types/seismic';
+import { VolcanoDetailModal } from './components/ui/VolcanoDetailModal';
+import { fetchVolcanoActivity } from './utils/volcanoService';
+import { fetchLiveWildfireHotspots } from './utils/firmsService';
 import {
   fetchSeismicEvents,
   fetchWildfireHotspots,
@@ -110,8 +113,10 @@ export const App: React.FC = () => {
   const [isInfographicOpen, setIsInfographicOpen] = useState(false);
   const [infographicEvent, setInfographicEvent] = useState<SeismicEvent | null>(null);
 
-  // Dual-Hazard Telemetry State (NASA FIRMS Hotspots & Hazard Mode)
+  // Multi-Hazard Telemetry State (NASA FIRMS Hotspots, Volcanology & Hazard Mode)
   const [hotspots, setHotspots] = useState<WildfireHotspot[]>([]);
+  const [volcanoes, setVolcanoes] = useState<VolcanoActivity[]>([]);
+  const [selectedVolcano, setSelectedVolcano] = useState<VolcanoActivity | null>(null);
   const [hazardMode, setHazardMode] = useState<HazardMode>('dual');
   const [observatoryScrollZoom, setObservatoryScrollZoom] = useState<number>(1.0);
   const [observatoryProgress, setObservatoryProgress] = useState<number>(0);
@@ -159,8 +164,12 @@ export const App: React.FC = () => {
       if (res) setBmkgAlert(res);
     });
 
-    fetchWildfireHotspots().then((data) => {
-      setHotspots(data);
+    fetchLiveWildfireHotspots().then((res) => {
+      if (res?.hotspots) setHotspots(res.hotspots);
+    });
+
+    fetchVolcanoActivity().then((data) => {
+      if (data) setVolcanoes(data);
     });
   };
 
@@ -464,6 +473,50 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
     });
   }, [events, searchQuery, timeFilter, depthFilter, magCategory]);
 
+  // Filtered Volcanoes Pipeline (Region Bounds / Search)
+  const filteredVolcanoes = useMemo(() => {
+    if (!volcanoes.length) return [];
+    if (!searchQuery.trim() || searchQuery.toLowerCase().trim() === 'all' || searchQuery.toLowerCase().trim() === 'indonesia') {
+      return volcanoes;
+    }
+    const q = searchQuery.toLowerCase().trim();
+    const bounds = REGION_BOUNDS[q];
+    if (bounds) {
+      return volcanoes.filter(
+        (v) =>
+          v.latitude >= bounds.minLat &&
+          v.latitude <= bounds.maxLat &&
+          v.longitude >= bounds.minLon &&
+          v.longitude <= bounds.maxLon
+      );
+    }
+    return volcanoes.filter(
+      (v) =>
+        v.name.toLowerCase().includes(q) ||
+        v.island.toLowerCase().includes(q)
+    );
+  }, [volcanoes, searchQuery]);
+
+  // Filtered Hotspots Pipeline (Region Bounds / Search)
+  const filteredHotspots = useMemo(() => {
+    if (!hotspots.length) return [];
+    if (!searchQuery.trim() || searchQuery.toLowerCase().trim() === 'all' || searchQuery.toLowerCase().trim() === 'indonesia') {
+      return hotspots;
+    }
+    const q = searchQuery.toLowerCase().trim();
+    const bounds = REGION_BOUNDS[q];
+    if (bounds) {
+      return hotspots.filter(
+        (h) =>
+          h.latitude >= bounds.minLat &&
+          h.latitude <= bounds.maxLat &&
+          h.longitude >= bounds.minLon &&
+          h.longitude <= bounds.maxLon
+      );
+    }
+    return hotspots.filter((h) => h.island.toLowerCase().includes(q));
+  }, [hotspots, searchQuery]);
+
   // Statistics Pipeline
   const stats = useMemo(() => {
     if (filteredEvents.length === 0) {
@@ -625,7 +678,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
   const majorHighlights = useMemo(() => {
     const items: Array<{
       id: string;
-      type: 'event' | 'hotspot';
+      type: 'event' | 'hotspot' | 'volcano';
       badge: string;
       place: string;
       lat: number;
@@ -634,8 +687,9 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
     }> = [];
 
     // Significant Earthquakes: M >= 6.0, or top 1 if >= 5.0
-    if (hazardMode !== 'wildfire' && events.length > 0) {
-      const valid = events.filter((e) => e.magnitude != null);
+    const showSeismic = hazardMode === 'dual' || hazardMode === 'all' || hazardMode === 'seismic';
+    if (showSeismic && filteredEvents.length > 0) {
+      const valid = filteredEvents.filter((e) => e.magnitude != null);
       const major = valid.filter((e) => (e.magnitude ?? 0) >= 6.0);
       const selected =
         major.length > 0
@@ -659,12 +713,13 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
     }
 
     // Significant Wildfires: FRP >= 150 MW, or top 1 if >= 80 MW
-    if (hazardMode !== 'seismic' && hotspots && hotspots.length > 0) {
-      const extreme = hotspots.filter((h) => h.frp >= 150);
+    const showWildfires = hazardMode === 'dual' || hazardMode === 'all' || hazardMode === 'wildfire';
+    if (showWildfires && filteredHotspots && filteredHotspots.length > 0) {
+      const extreme = filteredHotspots.filter((h) => h.frp >= 150);
       const selected =
         extreme.length > 0
           ? [...extreme].sort((a, b) => b.frp - a.frp).slice(0, 2)
-          : hotspots.filter((h) => h.frp >= 80).sort((a, b) => b.frp - a.frp).slice(0, 1);
+          : filteredHotspots.filter((h) => h.frp >= 80).sort((a, b) => b.frp - a.frp).slice(0, 1);
 
       selected.forEach((h) => {
         items.push({
@@ -679,8 +734,30 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
       });
     }
 
+    // Active Volcanic Eruptions & Plumes (Level IV / Level III)
+    const showVolcanoes = hazardMode === 'dual' || hazardMode === 'all' || hazardMode === 'volcano';
+    if (showVolcanoes && filteredVolcanoes && filteredVolcanoes.length > 0) {
+      const maxCount = hazardMode === 'volcano' ? 5 : 2;
+      const sortedVolcs = [...filteredVolcanoes].sort((a, b) => {
+        const score = (l: string) => (l === 'Level IV' ? 4 : l === 'Level III' ? 3 : l === 'Level II' ? 2 : 1);
+        return score(b.alert_level) - score(a.alert_level);
+      });
+      sortedVolcs.slice(0, maxCount).forEach((v) => {
+        const badgeLabel = v.alert_level === 'Level IV' ? 'AWAS' : v.alert_level === 'Level III' ? 'SIAGA' : 'WASPADA';
+        items.push({
+          id: `hl-volc-${v.id}`,
+          type: 'volcano',
+          badge: badgeLabel,
+          place: v.name.replace('Gunung ', '').toUpperCase(),
+          lat: v.latitude,
+          lon: v.longitude,
+          data: v,
+        });
+      });
+    }
+
     return items;
-  }, [events, hotspots, hazardMode, cleanPlace]);
+  }, [filteredEvents, filteredHotspots, filteredVolcanoes, hazardMode, cleanPlace]);
 
   const isEventBookmarked = useCallback(
     (event: SeismicEvent | null) => {
@@ -868,13 +945,16 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
           {/* Architectural Vector Nusantara Map */}
           <VectorGlobe
             events={filteredEvents}
-            hotspots={hotspots}
+            hotspots={filteredHotspots}
+            volcanoes={filteredVolcanoes}
             hazardMode={hazardMode}
             isRotating={isRotating && !isTimeLapseOpen}
             resetSignal={resetSignal}
             targetFocus={targetFocus}
             onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
             onUpdateHotspots={setHotspots}
+            onSelectVolcano={isObservatoryActive ? setSelectedVolcano : undefined}
+            selectedVolcano={selectedVolcano}
             interactive={isObservatoryActive}
             onCameraChange={setCameraCoords}
             scrollPhi={scrollRotation.phi}
@@ -1106,13 +1186,17 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                                 setTargetFocus([item.lat, item.lon]);
                                 if (item.type === 'event') {
                                   setSelectedEvent(item.data);
-                                } else {
+                                } else if (item.type === 'hotspot') {
                                   setSelectedHotspot(item.data);
+                                } else if (item.type === 'volcano') {
+                                  setSelectedVolcano(item.data);
                                 }
                               }}
                               className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 font-mono text-[10px] tracking-wide shadow-xs border transition-all cursor-pointer active:scale-95 backdrop-blur-md hover:scale-105 hover:shadow-md ${
                                 item.type === 'event'
                                   ? 'border-rose-200/90 hover:border-rose-400 text-slate-900'
+                                  : item.type === 'volcano'
+                                  ? 'border-red-300/90 hover:border-red-500 text-slate-900'
                                   : 'border-orange-200/90 hover:border-orange-400 text-slate-900'
                               }`}
                               title={
@@ -1123,12 +1207,20 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                             >
                               <span
                                 className={`w-2 h-2 rounded-full shrink-0 animate-pulse ${
-                                  item.type === 'event' ? 'bg-rose-600' : 'bg-orange-500'
+                                  item.type === 'event'
+                                    ? 'bg-rose-600'
+                                    : item.type === 'volcano'
+                                    ? 'bg-red-600'
+                                    : 'bg-orange-500'
                                 }`}
                               />
                               <span
                                 className={`font-bold ${
-                                  item.type === 'event' ? 'text-rose-700' : 'text-orange-700'
+                                  item.type === 'event'
+                                    ? 'text-rose-700'
+                                    : item.type === 'volcano'
+                                    ? 'text-red-700'
+                                    : 'text-orange-700'
                                 }`}
                               >
                                 {item.badge}
@@ -1165,11 +1257,32 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
 
                       {/* Telemetry Counter: plain clean bordered */}
                       <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] tracking-wider text-slate-600 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-                        <span className="font-bold text-slate-900 tabular-nums">{events.length}</span>
-                        <span>{t.seismicOnly}</span>
-                        <span className="text-slate-300 px-0.5">/</span>
-                        <span className="font-bold text-slate-900 tabular-nums">{hotspots.length}</span>
-                        <span>{t.hotspotsCount}</span>
+                        {(hazardMode === 'all' || hazardMode === 'dual' || hazardMode === 'seismic') && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-slate-900 tabular-nums">{filteredEvents.length}</span>
+                            <span>{t.seismicOnly}</span>
+                          </div>
+                        )}
+                        {(hazardMode === 'all' || hazardMode === 'dual') && (
+                          <span className="text-slate-300 px-0.5">/</span>
+                        )}
+                        {(hazardMode === 'all' || hazardMode === 'dual' || hazardMode === 'wildfire') && (
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-slate-900 tabular-nums">{filteredHotspots.length}</span>
+                            <span>{t.hotspotsCount}</span>
+                          </div>
+                        )}
+                        {volcanoes.length > 0 && (hazardMode === 'all' || hazardMode === 'dual' || hazardMode === 'volcano') && (
+                          <>
+                            {(hazardMode === 'all' || hazardMode === 'dual') && (
+                              <span className="text-slate-300 px-0.5">/</span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <span className="font-bold text-rose-600 tabular-nums">{filteredVolcanoes.length}</span>
+                              <span>{t.volcanoOnly}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1341,6 +1454,15 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         potensi={formattedBMKG?.potensi || 'Tidak berpotensi tsunami'}
         coordinates={infographicEvent ? `${infographicEvent.latitude.toFixed(2)}°, ${infographicEvent.longitude.toFixed(2)}°` : (bmkgAlert?.coordinates || undefined)}
       />
+
+      {/* 14. VOLCANO ACTIVITY & ASH PLUME MODAL */}
+      {selectedVolcano && (
+        <VolcanoDetailModal
+          volcano={selectedVolcano}
+          onClose={() => setSelectedVolcano(null)}
+          lang={lang}
+        />
+      )}
     </div>
   );
 };

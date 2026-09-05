@@ -51,6 +51,7 @@ export interface Translations {
   dualMode: string;
   seismicOnly: string;
   fireOnly: string;
+  volcanoOnly: string;
   allRegions: string;
   allTime: string;
   last24h: string;
@@ -157,6 +158,7 @@ export const translations: Record<Language, Translations> = {
     dualMode: 'SEMUA',
     seismicOnly: 'GEMPA',
     fireOnly: 'TITIK API',
+    volcanoOnly: 'GUNUNG',
     allRegions: 'SEMUA WILAYAH',
     allTime: 'SEMUA',
     last24h: '24 JAM',
@@ -261,6 +263,7 @@ export const translations: Record<Language, Translations> = {
     dualMode: 'DUAL',
     seismicOnly: 'SEIS',
     fireOnly: 'FIRE',
+    volcanoOnly: 'VOLC',
     allRegions: 'ALL REGIONS',
     allTime: 'ALL',
     last24h: '24H',

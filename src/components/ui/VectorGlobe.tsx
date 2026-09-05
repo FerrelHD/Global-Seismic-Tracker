@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { SeismicEvent, WildfireHotspot, HazardMode, RegionalWindData } from '../../types/seismic';
+import { SeismicEvent, WildfireHotspot, HazardMode, RegionalWindData, VolcanoActivity } from '../../types/seismic';
 import { fetchNusantaraWindTelemetry, getInterpolatedWind, degreesToCompass } from '../../utils/weatherService';
 import { fetchLiveWildfireHotspots } from '../../utils/firmsService';
 import { useUserLocation } from '../../hooks/useUserLocation';
@@ -19,6 +19,7 @@ export interface CameraCoordinates {
 interface VectorGlobeProps {
   events: SeismicEvent[];
   hotspots?: WildfireHotspot[];
+  volcanoes?: VolcanoActivity[];
   hazardMode?: HazardMode;
   className?: string;
   speed?: number;
@@ -27,6 +28,8 @@ interface VectorGlobeProps {
   targetFocus?: [number, number] | null;
   onSelectEvent?: (event: SeismicEvent) => void;
   onUpdateHotspots?: (hotspots: WildfireHotspot[]) => void;
+  onSelectVolcano?: (volcano: VolcanoActivity | null) => void;
+  selectedVolcano?: VolcanoActivity | null;
   interactive?: boolean;
   onCameraChange?: (coords: CameraCoordinates) => void;
   scrollPhi?: number;
@@ -100,12 +103,15 @@ function getFRPSeverity(frp: number): { label: string; color: string; bg: string
 export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   events,
   hotspots = [],
+  volcanoes = [],
   hazardMode = 'dual',
   className = '',
   resetSignal = 0,
   targetFocus = null,
   onSelectEvent,
   onUpdateHotspots,
+  onSelectVolcano,
+  selectedVolcano: externalSelectedVolcano,
   interactive = true,
   onCameraChange,
   colorMode = 'magnitude',
@@ -159,10 +165,11 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const hoveredEventRef = useRef<SeismicEvent | null>(null);
 
   const shockwavesContainerRef = useRef<HTMLDivElement>(null);
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const baseMapKeyRef = useRef<string>('');
 
   // Wind Telemetry & Live FIRMS Polling
   const [windTelemetry, setWindTelemetry] = useState<RegionalWindData[]>([]);
-  const [showWindPlume, setShowWindPlume] = useState<boolean>(true);
   const [internalSelectedHotspot, setInternalSelectedHotspot] = useState<WildfireHotspot | null>(null);
   const selectedHotspot = externalSelectedHotspot !== undefined ? externalSelectedHotspot : internalSelectedHotspot;
   const setSelectedHotspot = (h: WildfireHotspot | null) => {
@@ -203,6 +210,9 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
   const onSelectEventRef = useRef(onSelectEvent);
   onSelectEventRef.current = onSelectEvent;
+
+  const onSelectVolcanoRef = useRef(onSelectVolcano);
+  onSelectVolcanoRef.current = onSelectVolcano;
 
   const onCameraChangeRef = useRef(onCameraChange);
   onCameraChangeRef.current = onCameraChange;
@@ -305,6 +315,53 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       const mouseY = e.clientY - rect.top;
       const w = rect.width;
       const h = rect.height;
+
+      const isSeismicVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'seismic';
+      const isVolcanoVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'volcano';
+
+      // 1. Check if hovering near a volcano
+      if (isVolcanoVisible && volcanoes.length > 0) {
+        let closestVolc: VolcanoActivity | null = null;
+        let minVolcDist = 18;
+        let volcX = 0;
+        let volcY = 0;
+
+        for (let i = 0; i < volcanoes.length; i++) {
+          const v = volcanoes[i];
+          const [vx, vy] = projectCoords(v.longitude, v.latitude, w, h);
+          const dist = Math.hypot(vx - mouseX, vy - mouseY);
+          if (dist < minVolcDist) {
+            minVolcDist = dist;
+            closestVolc = v;
+            volcX = vx;
+            volcY = vy;
+          }
+        }
+
+        if (closestVolc && tooltipRef.current) {
+          hoveredEventRef.current = null;
+          tooltipRef.current.style.display = 'block';
+          tooltipRef.current.style.transform = `translate3d(${volcX}px, ${volcY}px, 0) translate(-50%, -130%)`;
+
+          if (tooltipTitleRef.current) {
+            tooltipTitleRef.current.innerText = closestVolc.name.replace('Gunung ', '').toUpperCase();
+          }
+          if (tooltipMagRef.current) {
+            tooltipMagRef.current.innerText = closestVolc.alert_level;
+          }
+          if (tooltipDepthRef.current) {
+            tooltipDepthRef.current.innerText = `${closestVolc.elevation_m}m`;
+          }
+          return;
+        }
+      }
+
+      // 2. Check if hovering near an earthquake
+      if (!isSeismicVisible) {
+        if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+        hoveredEventRef.current = null;
+        return;
+      }
 
       let closestEvt: SeismicEvent | null = null;
       let minDistance = 22 * Math.min(1.4, Math.max(0.8, zoomRef.current));
@@ -479,19 +536,39 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       } catch { }
 
       if (!hasDragged) {
+        const isSeismicVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'seismic';
+        const isWildfireVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'wildfire';
+        const isVolcanoVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'volcano';
+
         // Check if user clicked an earthquake
-        if (hoveredEventRef.current) {
+        if (isSeismicVisible && hoveredEventRef.current) {
           onSelectEventRef.current?.(hoveredEventRef.current);
-        } else if (containerRef.current && hotspots.length > 0) {
-          // Check if user clicked a hotspot
+        } else if (containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect();
           const clickX = e.clientX - rect.left;
           const clickY = e.clientY - rect.top;
-          for (const h of hotspots) {
-            const [hx, hy] = projectCoords(h.longitude, h.latitude, rect.width, rect.height);
-            if (Math.hypot(hx - clickX, hy - clickY) < 18) {
-              setSelectedHotspot(h);
-              break;
+
+          let clickedVolcano = false;
+          // Check if user clicked a volcano
+          if (isVolcanoVisible && volcanoes.length > 0) {
+            for (const v of volcanoes) {
+              const [vx, vy] = projectCoords(v.longitude, v.latitude, rect.width, rect.height);
+              if (Math.hypot(vx - clickX, vy - clickY) < 22) {
+                onSelectVolcanoRef.current?.(v);
+                clickedVolcano = true;
+                break;
+              }
+            }
+          }
+
+          // Check if user clicked a hotspot
+          if (!clickedVolcano && isWildfireVisible && hotspots.length > 0) {
+            for (const h of hotspots) {
+              const [hx, hy] = projectCoords(h.longitude, h.latitude, rect.width, rect.height);
+              if (Math.hypot(hx - clickX, hy - clickY) < 18) {
+                setSelectedHotspot(h);
+                break;
+              }
             }
           }
         }
@@ -523,7 +600,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       container.removeEventListener('wheel', onWheel);
       container.removeEventListener('dblclick', onDblClick);
     };
-  }, [interactive, hotspots, projectCoords]);
+  }, [interactive, hotspots, volcanoes, projectCoords]);
 
   // Main 60fps Planar Vector Rendering Engine
   useEffect(() => {
@@ -578,205 +655,139 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           return [px, py];
         };
 
-        // 1. Crisp Architectural Background Graticule Grid
-        ctx.lineWidth = 0.55;
-        ctx.strokeStyle = 'rgba(203, 213, 225, 0.40)';
-        ctx.font = '500 8px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#94a3b8';
+        // Offscreen Base Map Caching (Graticules + Landmasses + Subduction Trench)
+        // Eliminates re-projecting thousands of GeoJSON vertices every frame at 60fps
+        const baseMapKey = `${Math.round(w * dpr)}_${Math.round(h * dpr)}_${zoomRef.current.toFixed(4)}_${panLonRef.current.toFixed(4)}_${panLatRef.current.toFixed(4)}_${worldData.length}_${islandsData.length}`;
 
-        // Longitudes (Meridians)
-        for (let lon = 90; lon <= 145; lon += 5) {
-          const [gx] = project(lon, 0);
-          if (gx >= -10 && gx <= w + 10) {
-            ctx.beginPath();
-            ctx.moveTo(gx, 0);
-            ctx.lineTo(gx, h);
-            ctx.stroke();
-            ctx.fillText(`${lon}°E`, gx + 3, h - 8);
-          }
+        if (!offscreenCanvasRef.current) {
+          offscreenCanvasRef.current = document.createElement('canvas');
         }
+        const offCanvas = offscreenCanvasRef.current;
 
-        // Latitudes (Parallels)
-        for (let lat = -15; lat <= 10; lat += 5) {
-          const [, gy] = project(0, lat);
-          if (gy >= -10 && gy <= h + 10) {
-            ctx.beginPath();
-            ctx.moveTo(0, gy);
-            ctx.lineTo(w, gy);
-            ctx.stroke();
-            const label = lat === 0 ? '0°' : lat > 0 ? `${lat}°N` : `${Math.abs(lat)}°S`;
-            ctx.fillText(label, 8, gy - 3);
-          }
-        }
+        if (baseMapKeyRef.current !== baseMapKey || offCanvas.width !== canvas.width || offCanvas.height !== canvas.height) {
+          baseMapKeyRef.current = baseMapKey;
+          offCanvas.width = canvas.width;
+          offCanvas.height = canvas.height;
+          const offCtx = offCanvas.getContext('2d');
+          if (offCtx) {
+            offCtx.clearRect(0, 0, offCanvas.width, offCanvas.height);
+            offCtx.save();
+            offCtx.scale(dpr, dpr);
 
-        // Equator Hairline (0°)
-        const [, eqY] = project(0, 0);
-        if (eqY >= -10 && eqY <= h + 10) {
-          ctx.save();
-          ctx.setLineDash([4, 4]);
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.75)';
-          ctx.lineWidth = 0.8;
-          ctx.beginPath();
-          ctx.moveTo(0, eqY);
-          ctx.lineTo(w, eqY);
-          ctx.stroke();
-          ctx.restore();
-          ctx.fillText('EQUATOR 0°', w - 75, eqY - 4);
-        }
+            // 1. Crisp Architectural Background Graticule Grid
+            offCtx.lineWidth = 0.55;
+            offCtx.strokeStyle = 'rgba(203, 213, 225, 0.40)';
+            offCtx.font = '500 8px "JetBrains Mono", monospace';
+            offCtx.fillStyle = '#94a3b8';
 
-        // 2. High-Precision GeoJSON Landmasses
-        const renderFeatureCollection = (features: any[], fillColor: string, strokeColor: string, lineWidth: number) => {
-          ctx.fillStyle = fillColor;
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = lineWidth;
-          ctx.lineJoin = 'round';
-          ctx.lineCap = 'round';
-
-          for (let f = 0; f < features.length; f++) {
-            const geom = features[f]?.geometry;
-            if (!geom) continue;
-            const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
-
-            for (let p = 0; p < polys.length; p++) {
-              const poly = polys[p];
-              for (let r = 0; r < poly.length; r++) {
-                const ring = poly[r];
-                if (ring.length < 3) continue;
-
-                ctx.beginPath();
-                const [sx, sy] = project(ring[0][0], ring[0][1]);
-                ctx.moveTo(sx, sy);
-                for (let pt = 1; pt < ring.length; pt++) {
-                  const [px, py] = project(ring[pt][0], ring[pt][1]);
-                  ctx.lineTo(px, py);
-                }
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
+            // Longitudes (Meridians)
+            for (let lon = 90; lon <= 145; lon += 5) {
+              const [gx] = project(lon, 0);
+              if (gx >= -10 && gx <= w + 10) {
+                offCtx.beginPath();
+                offCtx.moveTo(gx, 0);
+                offCtx.lineTo(gx, h);
+                offCtx.stroke();
+                offCtx.fillText(`${lon}°E`, gx + 3, h - 8);
               }
             }
-          }
-        };
 
-        if (worldData.length > 0) renderFeatureCollection(worldData, '#f8fafc', '#cbd5e1', 0.6);
-        if (islandsData.length > 0) renderFeatureCollection(islandsData, '#ffffff', '#64748b', 0.85);
+            // Latitudes (Parallels)
+            for (let lat = -15; lat <= 10; lat += 5) {
+              const [, gy] = project(0, lat);
+              if (gy >= -10 && gy <= h + 10) {
+                offCtx.beginPath();
+                offCtx.moveTo(0, gy);
+                offCtx.lineTo(w, gy);
+                offCtx.stroke();
+                const label = lat === 0 ? '0°' : lat > 0 ? `${lat}°N` : `${Math.abs(lat)}°S`;
+                offCtx.fillText(label, 8, gy - 3);
+              }
+            }
 
-        // 3. Sunda Megathrust Subduction Trench Hairline
-        ctx.save();
-        ctx.setLineDash([3, 5]);
-        ctx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        const trenchCoords = [[93.5, 6], [95, -3], [98.5, -1], [102, -4.5], [107, -8.5], [114, -10.5], [121, -11], [129, -9.5]];
-        const [stX, stY] = project(trenchCoords[0][0], trenchCoords[0][1]);
-        ctx.moveTo(stX, stY);
-        for (let t = 1; t < trenchCoords.length; t++) {
-          const [tx, ty] = project(trenchCoords[t][0], trenchCoords[t][1]);
-          ctx.lineTo(tx, ty);
-        }
-        ctx.stroke();
-        ctx.restore();
+            // Equator Hairline (0°)
+            const [, eqY] = project(0, 0);
+            if (eqY >= -10 && eqY <= h + 10) {
+              offCtx.save();
+              offCtx.setLineDash([4, 4]);
+              offCtx.strokeStyle = 'rgba(148, 163, 184, 0.75)';
+              offCtx.lineWidth = 0.8;
+              offCtx.beginPath();
+              offCtx.moveTo(0, eqY);
+              offCtx.lineTo(w, eqY);
+              offCtx.stroke();
+              offCtx.restore();
+              offCtx.fillText('EQUATOR 0°', w - 75, eqY - 4);
+            }
 
-        // 4. Kinetic Dispersing Smoke Plume & Wind Vector Telemetry (Open-Meteo)
-        if (showWindPlume && hazardModeRef.current !== 'seismic') {
-          const now = performance.now();
+            // 2. High-Precision GeoJSON Landmasses
+            const renderFeatureCollection = (features: any[], fillColor: string, strokeColor: string, lineWidth: number) => {
+              offCtx.fillStyle = fillColor;
+              offCtx.strokeStyle = strokeColor;
+              offCtx.lineWidth = lineWidth;
+              offCtx.lineJoin = 'round';
+              offCtx.lineCap = 'round';
 
-          for (let i = 0; i < hotspots.length; i++) {
-            const hItem = hotspots[i];
-            const [px, py] = project(hItem.longitude, hItem.latitude);
-            if (px < -80 || px > w + 80 || py < -80 || py > h + 80) continue;
+              for (let f = 0; f < features.length; f++) {
+                const geom = features[f]?.geometry;
+                if (!geom) continue;
+                const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
 
-            const wind = getInterpolatedWind(hItem.latitude, hItem.longitude, windTelemetry);
-            const rad = ((wind.windDirection + 180) % 360) * (Math.PI / 180);
-            const frp = hItem.frp ?? 30;
-            const currentZoom = Math.sqrt(zoomRef.current);
-            const plumeLen = Math.max(26, Math.min(105, (wind.windSpeed * 1.8 + Math.sqrt(frp) * 2.8) * currentZoom));
+                for (let p = 0; p < polys.length; p++) {
+                  const poly = polys[p];
+                  for (let r = 0; r < poly.length; r++) {
+                    const ring = poly[r];
+                    if (ring.length < 3) continue;
 
-            const endX = px + Math.sin(rad) * plumeLen;
-            const endY = py - Math.cos(rad) * plumeLen;
+                    offCtx.beginPath();
+                    const [sx, sy] = project(ring[0][0], ring[0][1]);
+                    offCtx.moveTo(sx, sy);
+                    for (let pt = 1; pt < ring.length; pt++) {
+                      const [px, py] = project(ring[pt][0], ring[pt][1]);
+                      offCtx.lineTo(px, py);
+                    }
+                    offCtx.closePath();
+                    offCtx.fill();
+                    offCtx.stroke();
+                  }
+                }
+              }
+            };
 
-            // Perpendicular unit vector (normal to drift direction)
-            const nx = Math.cos(rad);
-            const ny = Math.sin(rad);
+            if (worldData.length > 0) renderFeatureCollection(worldData, '#f8fafc', '#cbd5e1', 0.6);
+            if (islandsData.length > 0) renderFeatureCollection(islandsData, '#ffffff', '#64748b', 0.85);
 
-            const wStart = Math.max(2, Math.min(5, Math.sqrt(frp) * 0.35 * currentZoom));
-            const wEnd = Math.max(10, Math.min(26, plumeLen * 0.26));
+            // 3. Sunda Megathrust Subduction Trench Hairline
+            offCtx.save();
+            offCtx.setLineDash([3, 5]);
+            offCtx.strokeStyle = 'rgba(148, 163, 184, 0.65)';
+            offCtx.lineWidth = 1.0;
+            offCtx.beginPath();
+            const trenchCoords = [[93.5, 6], [95, -3], [98.5, -1], [102, -4.5], [107, -8.5], [114, -10.5], [121, -11], [129, -9.5]];
+            const [stX, stY] = project(trenchCoords[0][0], trenchCoords[0][1]);
+            offCtx.moveTo(stX, stY);
+            for (let t = 1; t < trenchCoords.length; t++) {
+              const [tx, ty] = project(trenchCoords[t][0], trenchCoords[t][1]);
+              offCtx.lineTo(tx, ty);
+            }
+            offCtx.stroke();
+            offCtx.restore();
 
-            ctx.save();
-
-            // 4a. Dispersing Atmospheric Smoke Cone
-            const coneGrad = ctx.createLinearGradient(px, py, endX, endY);
-            coneGrad.addColorStop(0, 'rgba(239, 68, 68, 0.40)');
-            coneGrad.addColorStop(0.22, 'rgba(249, 115, 22, 0.24)');
-            coneGrad.addColorStop(0.65, 'rgba(148, 163, 184, 0.14)');
-            coneGrad.addColorStop(1, 'rgba(148, 163, 184, 0)');
-
-            ctx.beginPath();
-            ctx.moveTo(px - nx * wStart, py - ny * wStart);
-            ctx.lineTo(endX - nx * wEnd, endY - ny * wEnd);
-            ctx.quadraticCurveTo(endX, endY, endX + nx * wEnd, endY + ny * wEnd);
-            ctx.lineTo(px + nx * wStart, py + ny * wStart);
-            ctx.closePath();
-            ctx.fillStyle = coneGrad;
-            ctx.fill();
-
-            // 4b. Animated Kinetic Flow Streamlines (Dashed Streaks drifting downwind)
-            const flowSpeed = (wind.windSpeed * 0.035 + 0.35);
-            const dashOffset = -(now * flowSpeed * 0.04);
-
-            // Centerline streamline
-            ctx.setLineDash([7, 6]);
-            ctx.lineDashOffset = dashOffset;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
-            ctx.lineWidth = 0.85;
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(endX, endY);
-            ctx.stroke();
-
-            // Flanking left streamline
-            ctx.setLineDash([5, 7]);
-            ctx.lineDashOffset = dashOffset * 0.9 + 4;
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
-            ctx.lineWidth = 0.65;
-            ctx.beginPath();
-            ctx.moveTo(px - nx * (wStart * 0.5), py - ny * (wStart * 0.5));
-            ctx.lineTo(endX - nx * (wEnd * 0.55), endY - ny * (wEnd * 0.55));
-            ctx.stroke();
-
-            // Flanking right streamline
-            ctx.setLineDash([6, 8]);
-            ctx.lineDashOffset = dashOffset * 1.1 + 8;
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.35)';
-            ctx.lineWidth = 0.65;
-            ctx.beginPath();
-            ctx.moveTo(px + nx * (wStart * 0.5), py + ny * (wStart * 0.5));
-            ctx.lineTo(endX + nx * (wEnd * 0.55), endY + ny * (wEnd * 0.55));
-            ctx.stroke();
-
-            // 4c. Aerodynamic Micro Wind Vector Arrow at Tip
-            ctx.setLineDash([]);
-            const arrowLen = Math.max(4, Math.min(8, 5 * currentZoom));
-            const arrowRad1 = rad + Math.PI * 0.82;
-            const arrowRad2 = rad - Math.PI * 0.82;
-            ctx.beginPath();
-            ctx.moveTo(endX + Math.sin(arrowRad1) * arrowLen, endY - Math.cos(arrowRad1) * arrowLen);
-            ctx.lineTo(endX, endY);
-            ctx.lineTo(endX + Math.sin(arrowRad2) * arrowLen, endY - Math.cos(arrowRad2) * arrowLen);
-            ctx.strokeStyle = 'rgba(234, 88, 12, 0.75)';
-            ctx.lineWidth = 1.1;
-            ctx.stroke();
-
-            ctx.restore();
+            offCtx.restore();
           }
         }
+
+        // Blit pre-rendered crisp base map instantly
+        ctx.drawImage(offCanvas, 0, 0, w, h);
 
         const currentTimelapse = timelapseTimestampRef.current;
 
-        // 5a. Live Seismic Event Markers
-        if (hazardModeRef.current !== 'wildfire') {
+        // 4a. Live Seismic Event Markers (Crisp 3-tier hierarchy, pulse only for M >= 6.0)
+        const isSeismicVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'seismic';
+        if (isSeismicVisible) {
           const activeEvents = events;
           const currentMode = colorModeRef.current;
+          const now = performance.now();
 
           for (let i = 0; i < activeEvents.length; i++) {
             const item = activeEvents[i];
@@ -790,7 +801,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             if (px < -20 || px > w + 20 || py < -20 || py > h + 20) continue;
 
             const mag = item.magnitude ?? 3.5;
-            const size = Math.max(2.5, Math.min(7.0, (mag / 7.0) * 6.0));
+            const isMajor = mag >= 6.0;
+            const size = isMajor ? 5.5 : mag >= 4.5 ? 3.8 : 2.2;
 
             let fillColor = '#3b82f6';
             if (currentMode === 'depth') {
@@ -799,7 +811,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               else if (d <= 300) fillColor = '#f59e0b';
               else fillColor = '#06b6d4';
             } else {
-              fillColor = mag >= 5.5 ? '#ef4444' : '#3b82f6';
+              fillColor = mag >= 6.0 ? '#ef4444' : mag >= 5.0 ? '#f97316' : '#3b82f6';
             }
 
             // Fresh event rupture ripple pulse in time-lapse mode
@@ -816,22 +828,40 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                 ctx.stroke();
                 ctx.restore();
               }
+            } else if (isMajor) {
+              // Emergency pulse ring ONLY for M >= 6.0
+              const pulse = (Math.sin(now * 0.004 + i) + 1) * 0.5;
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(px, py, size + 2 + pulse * 6, 0, Math.PI * 2);
+              ctx.strokeStyle = fillColor;
+              ctx.lineWidth = 0.8 * (1 - pulse * 0.4);
+              ctx.globalAlpha = (1 - pulse) * 0.6;
+              ctx.stroke();
+              ctx.restore();
             }
 
+            // Draw core dot with subtle alpha hierarchy for minor quakes
+            ctx.save();
+            if (mag < 4.5) {
+              ctx.globalAlpha = 0.72;
+            }
             ctx.fillStyle = fillColor;
             ctx.beginPath();
             ctx.arc(px, py, size, 0, Math.PI * 2);
             ctx.fill();
 
-            // Hairline white ring
+            // Hairline white boundary ring
             ctx.lineWidth = 0.5;
             ctx.strokeStyle = '#ffffff';
             ctx.stroke();
+            ctx.restore();
           }
         }
 
-        // 5b. NASA FIRMS Wildfire Hotspots (Technical Diamond Reticle & Thermal Core)
-        if (hazardModeRef.current !== 'seismic') {
+        // 4b. NASA FIRMS Wildfire Hotspots (Flat high-performance diamond, pulse ONLY for FRP >= 150MW)
+        const isWildfireVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'wildfire';
+        if (isWildfireVisible) {
           const now = performance.now();
 
           for (let i = 0; i < hotspots.length; i++) {
@@ -840,27 +870,29 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             if (px < -30 || px > w + 30 || py < -30 || py > h + 30) continue;
 
             const frp = hItem.frp ?? 30;
-            const radius = Math.min(7.5, Math.max(2.8, Math.sqrt(frp) * 0.45));
+            const isEmergencyHotspot = frp >= 150;
+            const radius = isEmergencyHotspot ? 5.2 : frp >= 80 ? 4.0 : 2.8;
 
             let coreColor = '#eab308';
-            let haloColor = 'rgba(234, 179, 8, 0.22)';
-            if (frp >= 150) { coreColor = '#dc2626'; haloColor = 'rgba(220, 38, 38, 0.26)'; }
-            else if (frp >= 80) { coreColor = '#ea580c'; haloColor = 'rgba(234, 88, 12, 0.24)'; }
-            else if (frp >= 40) { coreColor = '#f59e0b'; haloColor = 'rgba(245, 158, 11, 0.22)'; }
+            if (frp >= 150) coreColor = '#dc2626';
+            else if (frp >= 80) coreColor = '#ea580c';
+            else if (frp >= 40) coreColor = '#f59e0b';
 
             ctx.save();
 
-            // 1. Subtle Thermal Breathing Halo
-            const pulse = (Math.sin(now * 0.0035 + i * 1.8) + 1) * 0.5; // 0 to 1
-            const haloSize = radius * (1.9 + pulse * 0.75);
-            ctx.beginPath();
-            ctx.arc(px, py, haloSize, 0, Math.PI * 2);
-            ctx.fillStyle = haloColor;
-            ctx.fill();
+            // Pulse ONLY for emergency scale (FRP >= 150 MW)
+            if (isEmergencyHotspot) {
+              const pulse = (Math.sin(now * 0.004 + i * 1.5) + 1) * 0.5;
+              ctx.beginPath();
+              ctx.arc(px, py, radius * 2.0 + pulse * 6, 0, Math.PI * 2);
+              ctx.strokeStyle = 'rgba(220, 38, 38, 0.45)';
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+            }
 
-            // 2. Technical Diamond Glyph (Vertical Architectural Hazard Diamond ◆)
-            const dw = radius * 1.45;
-            const dh = radius * 1.95;
+            // Technical Diamond Glyph (Vertical Architectural Hazard Diamond ◆)
+            const dw = radius * 1.35;
+            const dh = radius * 1.85;
 
             ctx.beginPath();
             ctx.moveTo(px, py - dh);
@@ -872,33 +904,138 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             ctx.fill();
 
             // Crisp hairline outer border
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 0.65;
             ctx.stroke();
 
-            // 3. Inner White-Hot Thermal Core
-            const inDw = dw * 0.42;
-            const inDh = dh * 0.42;
+            // Inner White-Hot Thermal Core for severe hotspots
+            if (frp >= 80) {
+              const inDw = dw * 0.38;
+              const inDh = dh * 0.38;
+              ctx.beginPath();
+              ctx.moveTo(px, py - inDh);
+              ctx.lineTo(px + inDw, py);
+              ctx.lineTo(px, py + inDh);
+              ctx.lineTo(px - inDw, py);
+              ctx.closePath();
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
+            }
+
+            // Precision Crosshair Reticle for Emergency Hotspots (FRP >= 150)
+            if (isEmergencyHotspot) {
+              ctx.strokeStyle = coreColor;
+              ctx.lineWidth = 0.75;
+              const tick = dh + 3;
+              ctx.beginPath();
+              ctx.moveTo(px, py - tick); ctx.lineTo(px, py - dh);
+              ctx.moveTo(px, py + dh); ctx.lineTo(px, py + tick);
+              ctx.moveTo(px - tick, py); ctx.lineTo(px - dw, py);
+              ctx.moveTo(px + dw, py); ctx.lineTo(px + tick, py);
+              ctx.stroke();
+            }
+
+            ctx.restore();
+          }
+        }
+
+        // 4c. Active Volcanology Telemetry (PVMBG / MAGMA Indonesia)
+        // Level IV (Awas): Pulse halo & permanent text badge
+        // Level I - III: Crisp triangle icon, label shown on hover/click only
+        const isVolcanoVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'volcano';
+        if (isVolcanoVisible && volcanoes.length > 0) {
+          const now = performance.now();
+
+          for (let i = 0; i < volcanoes.length; i++) {
+            const v = volcanoes[i];
+            const [vx, vy] = project(v.longitude, v.latitude);
+            if (vx < -50 || vx > w + 50 || vy < -50 || vy > h + 50) continue;
+
+            const isCritical = v.alert_level === 'Level IV';
+            const isWarning = v.alert_level === 'Level III';
+            const alertColor = isCritical
+              ? '#e11d48'
+              : isWarning
+              ? '#f97316'
+              : v.alert_level === 'Level II'
+              ? '#eab308'
+              : '#10b981';
+
+            // Ash Plume Dispersion Polygon (ONLY for Level IV Awas)
+            if (isCritical && v.ash_plume?.dispersion_polygon) {
+              const poly = v.ash_plume.dispersion_polygon;
+              if (poly.length >= 3) {
+                ctx.save();
+                ctx.beginPath();
+                const [startPx, startPy] = project(poly[0][0], poly[0][1]);
+                ctx.moveTo(startPx, startPy);
+                for (let p = 1; p < poly.length; p++) {
+                  const [px, py] = project(poly[p][0], poly[p][1]);
+                  ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(225, 29, 72, 0.12)';
+                ctx.fill();
+                ctx.setLineDash([3, 3]);
+                ctx.strokeStyle = 'rgba(225, 29, 72, 0.45)';
+                ctx.lineWidth = 0.8;
+                ctx.stroke();
+                ctx.restore();
+              }
+            }
+
+            ctx.save();
+
+            // Warning Halo Pulse ONLY for Level IV (Awas)
+            if (isCritical) {
+              const pulse = (Math.sin(now * 0.004 + i * 1.5) + 1) * 0.5;
+              const haloR = 14 + pulse * 8;
+              ctx.beginPath();
+              ctx.arc(vx, vy, haloR, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(225, 29, 72, 0.18)';
+              ctx.fill();
+            }
+
+            // Technical Volcano Architectural Triangle Beacon (▲)
+            const triSize = isCritical ? 8.5 : isWarning ? 6.8 : 5.2;
             ctx.beginPath();
-            ctx.moveTo(px, py - inDh);
-            ctx.lineTo(px + inDw, py);
-            ctx.lineTo(px, py + inDh);
-            ctx.lineTo(px - inDw, py);
+            ctx.moveTo(vx, vy - triSize * 1.25);
+            ctx.lineTo(vx + triSize, vy + triSize * 0.8);
+            ctx.lineTo(vx - triSize, vy + triSize * 0.8);
             ctx.closePath();
+            ctx.fillStyle = alertColor;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 0.9;
+            ctx.stroke();
+
+            // Inner White Crater Dot
+            ctx.beginPath();
+            ctx.arc(vx, vy - triSize * 0.1, 1.3, 0, Math.PI * 2);
             ctx.fillStyle = '#ffffff';
             ctx.fill();
 
-            // 4. Precision Crosshair Sensor Reticle for Extreme Hotspots (FRP >= 65)
-            if (frp >= 65) {
-              ctx.strokeStyle = coreColor;
-              ctx.lineWidth = 0.75;
-              const tick = dh + 3.5;
-              ctx.beginPath();
-              ctx.moveTo(px, py - tick); ctx.lineTo(px, py - dh - 1);
-              ctx.moveTo(px, py + dh + 1); ctx.lineTo(px, py + tick);
-              ctx.moveTo(px - tick, py); ctx.lineTo(px - dw - 1, py);
-              ctx.moveTo(px + dw + 1, py); ctx.lineTo(px + tick, py);
-              ctx.stroke();
+            // Permanent label ONLY for Level IV (Awas, e.g. Lewotobi)
+            // Other levels show label in tooltip on hover or detail modal on click
+            if (isCritical) {
+              const vShortName = v.name.replace('Gunung ', '').toUpperCase();
+              ctx.font = '600 8.5px "JetBrains Mono", monospace';
+              const labelText = `${vShortName} ▲ FL${v.ash_plume?.cloud_top_fl ?? '300'}`;
+              const textMetrics = ctx.measureText(labelText);
+              const textW = textMetrics.width;
+              const textX = vx - textW / 2;
+              const textY = vy + triSize * 0.8 + 10;
+
+              // Background pill for crisp readability on map
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+              ctx.fillRect(textX - 3, textY - 7.5, textW + 6, 10);
+              ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+              ctx.lineWidth = 0.5;
+              ctx.strokeRect(textX - 3, textY - 7.5, textW + 6, 10);
+
+              // Label text
+              ctx.fillStyle = alertColor;
+              ctx.fillText(labelText, textX, textY);
             }
 
             ctx.restore();
@@ -1070,7 +1207,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         if (shockwavesContainerRef.current) {
           const shockwaveChildren = shockwavesContainerRef.current.children;
           const mItems = majorEventsRef.current;
-          const isSeismicActive = hazardModeRef.current !== 'wildfire';
+          const isSeismicActive = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'seismic';
 
           if (!isSeismicActive) {
             for (let i = 0; i < shockwaveChildren.length; i++) {
@@ -1098,7 +1235,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
     animationFrameId = requestAnimationFrame(render);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [islandsData, worldData, events, hotspots, displayZoom, showWindPlume, windTelemetry]);
+  }, [islandsData, worldData, events, hotspots, volcanoes, displayZoom]);
 
   return (
     <div
@@ -1196,19 +1333,6 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                 <RefreshCw className={`w-2.5 h-2.5 ${isSyncingFIRMS ? 'animate-spin text-blue-600' : ''}`} />
               </button>
             </div>
-
-            {/* Wind Plume Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowWindPlume(!showWindPlume)}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded transition-colors cursor-pointer ${showWindPlume
-                  ? 'bg-slate-900 text-white font-semibold shadow-2xs'
-                  : 'text-slate-600 hover:bg-slate-100'
-                }`}
-            >
-              <Wind className="w-2.5 h-2.5" />
-              <span>{lang === 'id' ? 'ARAH ANGIN' : 'WIND PLUME'}</span>
-            </button>
           </div>
         );
       })()}
