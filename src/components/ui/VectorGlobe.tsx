@@ -3,7 +3,13 @@ import { createPortal } from 'react-dom';
 import { SeismicEvent, WildfireHotspot, HazardMode, RegionalWindData } from '../../types/seismic';
 import { fetchNusantaraWindTelemetry, getInterpolatedWind, degreesToCompass } from '../../utils/weatherService';
 import { fetchLiveWildfireHotspots } from '../../utils/firmsService';
-import { Wind, RefreshCw, Flame, X } from 'lucide-react';
+import { useUserLocation } from '../../hooks/useUserLocation';
+import {
+  calculateDistanceKm,
+  formatWildfireWAMessage,
+  openWhatsAppShare,
+} from '../../utils/geoProximity';
+import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2 } from 'lucide-react';
 
 export interface CameraCoordinates {
   lat: number;
@@ -32,6 +38,9 @@ interface VectorGlobeProps {
   showControls?: boolean;
   controlsProgress?: number | null;
   activeChapterIndex?: number;
+  lang?: 'id' | 'en';
+  selectedHotspot?: WildfireHotspot | null;
+  onSelectHotspot?: (h: WildfireHotspot | null) => void;
 }
 
 // Bounding box for Indonesian Archipelago (Nusantara)
@@ -106,6 +115,9 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   showControls = true,
   controlsProgress = null,
   activeChapterIndex = -1,
+  lang = 'id',
+  selectedHotspot: externalSelectedHotspot,
+  onSelectHotspot,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -146,15 +158,27 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const tooltipDepthRef = useRef<HTMLSpanElement>(null);
   const hoveredEventRef = useRef<SeismicEvent | null>(null);
 
-  const labelsContainerRef = useRef<HTMLDivElement>(null);
   const shockwavesContainerRef = useRef<HTMLDivElement>(null);
 
   // Wind Telemetry & Live FIRMS Polling
   const [windTelemetry, setWindTelemetry] = useState<RegionalWindData[]>([]);
   const [showWindPlume, setShowWindPlume] = useState<boolean>(true);
-  const [selectedHotspot, setSelectedHotspot] = useState<WildfireHotspot | null>(null);
+  const [internalSelectedHotspot, setInternalSelectedHotspot] = useState<WildfireHotspot | null>(null);
+  const selectedHotspot = externalSelectedHotspot !== undefined ? externalSelectedHotspot : internalSelectedHotspot;
+  const setSelectedHotspot = (h: WildfireHotspot | null) => {
+    if (onSelectHotspot) onSelectHotspot(h);
+    else setInternalSelectedHotspot(h);
+  };
   const [isSyncingFIRMS, setIsSyncingFIRMS] = useState<boolean>(false);
   const [firmsStatus, setFirmsStatus] = useState<string>('NASA FIRMS LIVE');
+
+  // User Geolocation for Proximity Matrix
+  const {
+    coords: userCoords,
+    status: userGeoStatus,
+    errorMessage: userGeoError,
+    requestLocation: requestUserLocation,
+  } = useUserLocation();
 
   // Close Wildfire Hotspot detail modal on Escape key
   useEffect(() => {
@@ -232,15 +256,6 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     return () => { isMounted = false; };
   }, []);
 
-  // Top Major Events for Floating Data Flag Badges
-  const topEvents = useMemo(() => {
-    if (events.length === 0) return [];
-    const valid = events.filter((e) => e.magnitude != null);
-    const sorted = [...valid].sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0));
-    return sorted.slice(0, 4);
-  }, [events]);
-  const topEventsRef = useRef<SeismicEvent[]>(topEvents);
-  topEventsRef.current = topEvents;
 
   // Major Events for Expanding Sonar Shockwaves (M >= 5.8)
   const majorEvents = useMemo(() => {
@@ -266,44 +281,6 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     targetZoomRef.current = 1.0;
   }, [resetSignal]);
 
-  // Zoom control actions
-  const handleZoomIn = () => {
-    targetZoomRef.current = Math.min(4.5, parseFloat((targetZoomRef.current + 0.35).toFixed(2)));
-  };
-
-  const handleZoomOut = () => {
-    targetZoomRef.current = Math.max(0.75, parseFloat((targetZoomRef.current - 0.35).toFixed(2)));
-  };
-
-  const handleZoomReset = () => {
-    targetPanLonRef.current = BASE_CENTER_LON;
-    targetPanLatRef.current = BASE_CENTER_LAT;
-    targetZoomRef.current = 1.0;
-  };
-
-  const focusIsland = (island: 'all' | 'sumatra' | 'kalimantan' | 'sulawesi' | 'papua') => {
-    if (island === 'all') {
-      targetPanLonRef.current = BASE_CENTER_LON;
-      targetPanLatRef.current = BASE_CENTER_LAT;
-      targetZoomRef.current = 1.0;
-    } else if (island === 'sumatra') {
-      targetPanLonRef.current = 101.5;
-      targetPanLatRef.current = 0.5;
-      targetZoomRef.current = 2.4;
-    } else if (island === 'kalimantan') {
-      targetPanLonRef.current = 113.5;
-      targetPanLatRef.current = -1.8;
-      targetZoomRef.current = 2.2;
-    } else if (island === 'sulawesi') {
-      targetPanLonRef.current = 121.5;
-      targetPanLatRef.current = -2.0;
-      targetZoomRef.current = 2.4;
-    } else if (island === 'papua') {
-      targetPanLonRef.current = 138.0;
-      targetPanLatRef.current = -4.5;
-      targetZoomRef.current = 2.0;
-    }
-  };
 
   // Convert (Lon, Lat) to current canvas screen coordinates [px, py]
   const projectCoords = useCallback((lon: number, lat: number, w: number, h: number): [number, number] => {
@@ -405,7 +382,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       if (!interactive) return;
       if (e.button !== 0 && e.pointerType === 'mouse') return;
       const target = e.target as HTMLElement | null;
-      if (target && target.closest('button, [role="button"], input, select, a, [data-interactive="true"]')) {
+      if (target && target.closest('button, [role="button"], input, select, a, [data-interactive="true"], .label-tag')) {
         return;
       }
 
@@ -1088,55 +1065,12 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
         ctx.restore();
 
-        // 6. Update Floating Data Flag Badges (ANTI-NEMBUS FIX)
-        const isSeismicActive = hazardModeRef.current !== 'wildfire';
-
-        if (labelsContainerRef.current) {
-          const children = labelsContainerRef.current.children;
-          const items = topEventsRef.current;
-
-          if (!isSeismicActive) {
-            for (let i = 0; i < children.length; i++) {
-              const el = children[i] as HTMLElement;
-              el.style.opacity = '0';
-              el.style.pointerEvents = 'none';
-            }
-          } else {
-            for (let i = 0; i < items.length && i < children.length; i++) {
-              const item = items[i];
-              const el = children[i] as HTMLElement;
-              const [px, py] = project(item.longitude, item.latitude);
-
-              // ANTI-NEMBUS EXCLUSION ZONE:
-              const inBounds = px >= 25 && px <= w - 25 && py >= 75 && py <= h - 40;
-              const inHeroHeadlineZone = px < 460 && py < 480;
-              const inTopRightZone = px > w - 280 && py < 180;
-
-              // If spotlight is active, only show HTML badges within or near spotlight radius
-              let inSpotlightZone = true;
-              if (currentSpotOp > 0.45) {
-                const distToSpot = Math.hypot(px - spot.x, py - spot.y);
-                inSpotlightZone = distToSpot <= spot.radius * 1.25;
-              }
-
-              const isVisible = inBounds && !inHeroHeadlineZone && !inTopRightZone && inSpotlightZone;
-
-              if (isVisible) {
-                el.style.opacity = '1';
-                el.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -100%) translateY(-6px)`;
-                el.style.pointerEvents = 'auto';
-              } else {
-                el.style.opacity = '0';
-                el.style.pointerEvents = 'none';
-              }
-            }
-          }
-        }
 
         // 7. Sonar Shockwaves for Major Earthquakes
         if (shockwavesContainerRef.current) {
           const shockwaveChildren = shockwavesContainerRef.current.children;
           const mItems = majorEventsRef.current;
+          const isSeismicActive = hazardModeRef.current !== 'wildfire';
 
           if (!isSeismicActive) {
             for (let i = 0; i < shockwaveChildren.length; i++) {
@@ -1204,47 +1138,6 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         ))}
       </div>
 
-      {/* 3. Floating Architectural Data Flag Badges (ANTI-NEMBUS WITH LEADER STEM) */}
-      <div ref={labelsContainerRef} className="absolute inset-0 pointer-events-none">
-        {topEvents.map((evt) => {
-          const mag = evt.magnitude?.toFixed(1) ?? '';
-          const isMajor = (evt.magnitude ?? 0) >= 6.0;
-
-          return (
-            <div
-              key={evt.usgs_id || evt.id}
-              className="label-tag absolute top-0 left-0 transition-opacity duration-300 z-20 cursor-pointer pointer-events-auto will-change-transform flex flex-col items-center"
-              style={{ opacity: 0 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectEventRef.current?.(evt);
-              }}
-            >
-              {/* Precision Data Flag */}
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/95 hover:bg-white text-slate-900 font-mono text-[10px] tracking-wide shadow-xs border border-slate-300/90 whitespace-nowrap hover:scale-105 active:scale-95 transition-all backdrop-blur-md">
-                <span
-                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${isMajor
-                      ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)] animate-pulse'
-                      : 'bg-blue-600'
-                    }`}
-                />
-                <span className="font-semibold text-slate-900 tracking-wider">
-                  {cleanPlace(evt.place)}
-                </span>
-                <span className="text-slate-300 font-light">/</span>
-                <span
-                  className={`font-bold tabular-nums ${isMajor ? 'text-rose-600' : 'text-slate-900'
-                    }`}
-                >
-                  {mag}
-                </span>
-              </div>
-              {/* 1px Hairline Leader Stem pointing precisely to epicenter */}
-              <div className="w-px h-2 bg-slate-400/90" />
-            </div>
-          );
-        })}
-      </div>
 
       {/* 4. Precision Micro-Telemetry Tooltip Reticle */}
       <div
@@ -1271,56 +1164,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         </div>
       </div>
 
-      {/* 5. Minimalist Editorial Zoom HUD (Hidden on mobile, 2-finger pinch replaces it) */}
-      {(() => {
-        const effP = controlsProgress != null ? controlsProgress : (interactive && showControls ? 1 : 0);
-        const isScrollDriven = controlsProgress != null;
-        return (
-          <div
-            style={{
-              opacity: effP,
-              filter: effP < 0.99 ? `blur(${(1 - effP) * 6}px)` : 'none',
-              transform: `translate(-50%, ${(1 - effP) * 14}px)`,
-              transition: isScrollDriven ? 'none' : 'opacity 200ms ease-out, filter 200ms ease-out, transform 200ms ease-out',
-              willChange: 'opacity, transform, filter',
-              pointerEvents: effP > 0.4 ? 'auto' : 'none',
-              visibility: effP <= 0.001 ? 'hidden' : 'visible',
-            }}
-            className="absolute bottom-16 sm:bottom-20 left-1/2 z-30 hidden sm:flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-slate-200/95 rounded-md p-0.5 sm:p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] font-mono text-[10.5px] tracking-tight select-none"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={handleZoomIn}
-              title="Zoom in (+)"
-              aria-label="Zoom in"
-              className="w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-bold active:scale-90 cursor-pointer text-sm sm:text-xs"
-            >
-              +
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomReset}
-              title="Reset overview (1.0x)"
-              aria-label="Reset overview"
-              className="px-2.5 h-7 sm:px-2 sm:h-5 flex items-center justify-center rounded font-semibold text-slate-900 hover:bg-slate-100 transition-colors tabular-nums cursor-pointer text-xs sm:text-[10.5px]"
-            >
-              {displayZoom.toFixed(1)}x
-            </button>
-            <button
-              type="button"
-              onClick={handleZoomOut}
-              title="Zoom out (−)"
-              aria-label="Zoom out"
-              className="w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-bold active:scale-90 cursor-pointer text-sm sm:text-xs"
-            >
-              −
-            </button>
-          </div>
-        );
-      })()}
-
-      {/* 6. Floating Top Instrument Bar (Hidden on mobile to prevent overlapping) */}
+      {/* 5. Floating Top Instrument Bar (Minimalist & Clean) */}
       {(() => {
         const effP = controlsProgress != null ? controlsProgress : (showControls ? 1 : 0);
         const isScrollDriven = controlsProgress != null;
@@ -1338,7 +1182,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             className="absolute top-2.5 left-1/2 z-30 hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-lg px-2.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)] font-mono text-[9.5px] select-none max-w-[92vw] overflow-x-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Live NASA FIRMS */}
+            {/* Live NASA FIRMS Status */}
             <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100/90 text-slate-700">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="font-semibold">{firmsStatus}</span>
@@ -1363,28 +1207,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                 }`}
             >
               <Wind className="w-2.5 h-2.5" />
-              <span>WIND PLUME</span>
+              <span>{lang === 'id' ? 'ARAH ANGIN' : 'WIND PLUME'}</span>
             </button>
-
-            {/* Island Presets */}
-            <div className="hidden sm:flex items-center gap-0.5 border-l border-slate-200 pl-1.5 text-slate-500">
-              {[
-                { id: 'all', label: 'NUSANTARA' },
-                { id: 'sumatra', label: 'SUMATRA' },
-                { id: 'kalimantan', label: 'KALIMANTAN' },
-                { id: 'sulawesi', label: 'SULAWESI' },
-                { id: 'papua', label: 'PAPUA' },
-              ].map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => focusIsland(p.id as any)}
-                  className="px-1.5 py-0.5 rounded hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
           </div>
         );
       })()}
@@ -1396,6 +1220,16 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           const ageH = (Date.now() - new Date(selectedHotspot.detected_at).getTime()) / 3_600_000;
           const wind = getInterpolatedWind(selectedHotspot.latitude, selectedHotspot.longitude, windTelemetry);
           const driftCompass = degreesToCompass((wind.windDirection + 180) % 360);
+
+          // Geodesic distance from user
+          const hotspotDistKm = userCoords
+            ? calculateDistanceKm(
+                userCoords.latitude,
+                userCoords.longitude,
+                selectedHotspot.latitude,
+                selectedHotspot.longitude
+              )
+            : null;
 
           // FRP Gauge Stratum (clamped 0 - 200 MW)
           const frpClamped = Math.max(0, Math.min(200, selectedHotspot.frp));
@@ -1602,6 +1436,86 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                     </div>
                   </div>
 
+                  {/* 2.5 LIVE PROXIMITY & SMOKE DRIFT MATRIX (LIQUID GLASS STYLE) */}
+                  <div className="my-3 p-3 rounded-2xl bg-white/70 border border-slate-200/80 shadow-2xs backdrop-blur-md relative overflow-hidden">
+                    {userGeoStatus !== 'granted' || !userCoords || hotspotDistKm == null ? (
+                      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
+                            <MapPin className="w-3.5 h-3.5 text-orange-700" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-mono font-bold text-slate-800 block tracking-wider uppercase">
+                              CEK JARAK DARI LOKASI SAYA
+                            </span>
+                            <span className="text-[9px] font-mono text-slate-500 block truncate">
+                              Hitung jarak langsung ke titik api & pantau sebaran asap
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={requestUserLocation}
+                          disabled={userGeoStatus === 'requesting'}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-mono text-[10px] font-semibold tracking-wider transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
+                        >
+                          {userGeoStatus === 'requesting' ? (
+                            <>
+                              <Loader2 className="w-3 h-3 text-orange-400 animate-spin" />
+                              <span>MENGUKUR...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Navigation className="w-3 h-3 text-orange-300" />
+                              <span>UKUR SEKARANG</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                            </span>
+                            <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-700">
+                              JARAK TITIK API KE LOKASI ANDA
+                            </span>
+                          </div>
+                          <span className="text-[12px] font-mono font-black tabular-nums text-slate-950 bg-white/95 px-2 py-0.5 rounded-md border border-slate-200/90 shadow-2xs">
+                            ~{hotspotDistKm.toLocaleString('id-ID')} KM
+                          </span>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-start gap-2.5">
+                          <div className="w-1.5 self-stretch rounded-full shrink-0 bg-orange-500" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm text-white bg-orange-600">
+                                ASAP MENUJU {driftCompass}
+                              </span>
+                              <span className="text-[10.5px] font-mono font-bold text-slate-800">
+                                Kecepatan Angin {wind.windSpeed.toFixed(1)} km/h
+                              </span>
+                            </div>
+                            <p className="text-[9.5px] font-mono text-slate-600 mt-1 leading-snug">
+                              {hotspotDistKm < 100
+                                ? 'Perhatian: Titik api terdeteksi dalam radius dekat (<100 km). Waspadai potensi penurunan kualitas udara / kabut asap.'
+                                : 'Titik api berada di luar radius pemukiman dekat Anda. Pantau arah angin untuk potensi sebaran asap regional.'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {userGeoError && (
+                      <p className="text-[9px] font-mono text-rose-600 mt-1.5">{userGeoError}</p>
+                    )}
+                  </div>
+
                   {/* 3. TECHNICAL METRICS FOOTER */}
                   <div className="py-2.5 space-y-1.5 font-mono text-xs">
                     <div className="flex items-center justify-between">
@@ -1653,6 +1567,30 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                           <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
                         </svg>
                         <span>FOCUS MAP</span>
+                      </button>
+
+                      {/* WhatsApp One-Click Broadcast */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const msg = formatWildfireWAMessage(
+                            selectedHotspot,
+                            {
+                              windSpeed: wind.windSpeed,
+                              windDirection: wind.windDirection,
+                              driftCompass,
+                            },
+                            hotspotDistKm ?? undefined
+                          );
+                          openWhatsAppShare(msg);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10.5px] font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
+                        title="Bagikan Ringkasan Laporan Titik Api ke WhatsApp"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
+                          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                        </svg>
+                        <span>WHATSAPP</span>
                       </button>
                     </div>
 

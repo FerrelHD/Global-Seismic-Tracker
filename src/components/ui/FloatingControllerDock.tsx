@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { LiquidCard } from './liquid-glass';
-import { Play, Pause, RotateCcw, List, History, Activity } from 'lucide-react';
+import {
+  Play,
+  Pause,
+  RotateCcw,
+  List,
+  History,
+  Activity,
+  SlidersHorizontal,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
 import { HazardMode } from '../../types/seismic';
+import { translations, Language } from '../../utils/i18n';
 
 interface FloatingControllerDockProps {
   searchQuery: string;
@@ -25,6 +36,11 @@ interface FloatingControllerDockProps {
   visible?: boolean;
   progress?: number;
   style?: React.CSSProperties;
+  lang?: Language;
+  magCategory?: 'all' | 'felt' | 'significant';
+  onMagCategoryChange?: (cat: 'all' | 'felt' | 'significant') => void;
+  isAudioMuted?: boolean;
+  onToggleAudio?: () => void;
 }
 
 export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
@@ -49,13 +65,28 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   visible = true,
   progress,
   style,
+  lang = 'id',
+  magCategory = 'all',
+  onMagCategoryChange,
+  isAudioMuted = false,
+  onToggleAudio,
 }) => {
-  const pillGroup = 'flex items-center gap-0.5 sm:gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shrink-0';
-  const pillBase = 'px-2.5 sm:px-2.5 py-1 sm:py-1 min-h-[26px] sm:min-h-[24px] rounded-full text-[9.5px] sm:text-[10px] xl:text-[10.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center';
-  const pillActive = 'bg-slate-900 text-white font-semibold shadow-xs border border-slate-950';
-  const pillInactive = 'text-slate-500 hover:text-slate-800 hover:bg-white/60';
-  const smallPillBase = 'px-2 sm:px-2 py-1 sm:py-1 min-h-[26px] sm:min-h-[24px] rounded-full text-[9px] sm:text-[9.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center';
-  const divider = <div className="w-[1px] h-3.5 sm:h-3.5 bg-slate-300/60 shrink-0" />;
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const t = translations[lang];
+
+  const pillGroup =
+    'flex items-center gap-0.5 sm:gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shrink-0';
+  const pillBase =
+    'px-2.5 sm:px-2.5 py-1 sm:py-1 min-h-[26px] sm:min-h-[24px] rounded-full text-[9.5px] sm:text-[10px] xl:text-[10.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center';
+  const pillActive =
+    'bg-slate-900 text-white font-semibold shadow-xs border border-slate-950';
+  const pillInactive =
+    'text-slate-500 hover:text-slate-800 hover:bg-white/60';
+  const smallPillBase =
+    'px-2 sm:px-2 py-1 sm:py-1 min-h-[26px] sm:min-h-[24px] rounded-full text-[9px] sm:text-[9.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center';
+  const divider = (
+    <div className="w-[1px] h-3.5 sm:h-3.5 bg-slate-300/60 shrink-0" />
+  );
 
   const effectiveProgress = progress != null ? progress : (visible ? 1 : 0);
   const isScrollDriven = progress != null;
@@ -73,7 +104,7 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
         pointerEvents: effectiveProgress > 0.4 ? 'auto' : 'none',
         visibility: effectiveProgress <= 0.001 ? 'hidden' : 'visible',
       }}
-      className="fixed bottom-3 sm:bottom-5 left-1/2 z-40 select-none w-auto max-w-[calc(100vw-1.5rem)] px-1 flex justify-center"
+      className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] sm:bottom-5 left-1/2 z-40 select-none w-auto max-w-[calc(100vw-1.5rem)] px-1 flex justify-center"
     >
       <div className="pointer-events-auto max-w-full">
         <LiquidCard className="rounded-full shadow-2xl border border-slate-200/90 max-w-full overflow-hidden relative">
@@ -96,197 +127,243 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                 <div className={pillGroup}>
                   <button
                     onClick={() => onHazardModeChange('dual')}
-                    title="Tampilkan Gempa dan Karhutla Bersamaan"
+                    title={lang === 'id' ? 'Tampilkan Gempa dan Titik Api Bersamaan' : 'Show Earthquakes & Wildfires Together'}
                     className={`${smallPillBase} ${hazardMode === 'dual' ? pillActive : pillInactive}`}
                   >
-                    DUAL
+                    {t.dualMode}
                   </button>
                   <button
                     onClick={() => onHazardModeChange('seismic')}
-                    title="Filter Khusus Seismik / Gempa"
+                    title={lang === 'id' ? 'Filter Khusus Seismik / Gempa' : 'Filter Seismic Events Only'}
                     className={`${smallPillBase} ${
                       hazardMode === 'seismic'
                         ? 'bg-slate-900 text-white shadow-xs font-semibold'
                         : pillInactive
                     }`}
                   >
-                    SEIS
+                    {t.seismicOnly}
                   </button>
                   <button
                     onClick={() => onHazardModeChange('wildfire')}
-                    title="Filter Khusus Titik Panas Karhutla (NASA FIRMS)"
+                    title={lang === 'id' ? 'Filter Khusus Titik Api Karhutla' : 'Filter Wildfire Hotspots Only'}
                     className={`${smallPillBase} ${
                       hazardMode === 'wildfire'
                         ? 'bg-slate-900 text-white shadow-xs font-semibold'
                         : pillInactive
                     }`}
                   >
-                    FIRE
+                    {t.fireOnly}
                   </button>
                 </div>
                 {divider}
               </>
             )}
 
-            {/* Segment 1: Region Pills with Adaptive Responsive Labels */}
+            {/* Segment 1: Region Pills */}
             <div className={pillGroup}>
               <button
                 onClick={() => onSearchChange('')}
-                title="Semua Wilayah Nusantara"
+                title={lang === 'id' ? 'Seluruh Nusantara' : 'All Archipelago'}
                 className={`${pillBase} ${searchQuery === '' ? pillActive : pillInactive}`}
               >
-                <span className="hidden 2xl:inline">ALL NUSANTARA</span>
-                <span className="2xl:hidden">ALL</span>
+                <span>{lang === 'id' ? 'SEMUA' : 'ALL'}</span>
               </button>
               <button
                 onClick={() => onSearchChange('sumatra')}
-                title="Sektor Sumatra & Sunda Arc"
+                title="Sumatra & Sunda Arc"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'sumatra' ? pillActive : pillInactive}`}
               >
-                <span className="hidden 2xl:inline">SUMATRA</span>
-                <span className="2xl:hidden">SUM</span>
+                <span>SUM</span>
               </button>
               <button
                 onClick={() => onSearchChange('java')}
-                title="Sektor Jawa & Selat Sunda"
+                title="Jawa & Selat Sunda"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'java' ? pillActive : pillInactive}`}
               >
-                <span className="hidden 2xl:inline">JAVA</span>
-                <span className="2xl:hidden">JAV</span>
+                <span>{lang === 'id' ? 'JAW' : 'JAV'}</span>
               </button>
               <button
                 onClick={() => onSearchChange('sulawesi')}
-                title="Sektor Sulawesi & Sesar Palu-Koro"
+                title="Sulawesi & Sesar Palu"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'sulawesi' ? pillActive : pillInactive}`}
               >
-                <span className="hidden 2xl:inline">SULAWESI</span>
-                <span className="2xl:hidden">SUL</span>
+                <span>SUL</span>
               </button>
               <button
-                onClick={() => onSearchChange('banda')}
-                title="Sektor Laut Banda (Deep Wadati-Benioff Slab)"
-                className={`${pillBase} ${searchQuery.toLowerCase() === 'banda' ? pillActive : pillInactive}`}
+                onClick={() => onSearchChange('kalimantan')}
+                title="Kalimantan"
+                className={`${pillBase} ${searchQuery.toLowerCase() === 'kalimantan' ? pillActive : pillInactive}`}
               >
-                <span className="hidden 2xl:inline">BANDA</span>
-                <span className="2xl:hidden">BAN</span>
+                <span>KAL</span>
               </button>
               <button
                 onClick={() => onSearchChange('papua')}
-                title="Sektor Papua & Yapen Fault"
+                title="Papua & Maluku"
                 className={`${pillBase} ${searchQuery.toLowerCase() === 'papua' ? pillActive : pillInactive}`}
               >
-                <span className="hidden 2xl:inline">PAPUA</span>
-                <span className="2xl:hidden">PAP</span>
+                <span>PAP</span>
               </button>
             </div>
 
             {/* Divider */}
             {divider}
 
+            {/* Segment 1.5: Magnitude Quick Category Filter */}
+            {onMagCategoryChange && (
+              <>
+                <div className={pillGroup}>
+                  <button
+                    onClick={() => onMagCategoryChange('all')}
+                    title={lang === 'id' ? 'Tampilkan Semua Magnitudo' : 'Show All Magnitudes'}
+                    className={`${smallPillBase} ${magCategory === 'all' ? pillActive : pillInactive}`}
+                  >
+                    <span>{lang === 'id' ? 'SEMUA MAG' : 'ALL MAG'}</span>
+                  </button>
+                  <button
+                    onClick={() => onMagCategoryChange('felt')}
+                    title={lang === 'id' ? 'Gempa Dirasakan (M ≥ 4.0)' : 'Felt Earthquakes (M ≥ 4.0)'}
+                    className={`${smallPillBase} ${magCategory === 'felt' ? pillActive : pillInactive}`}
+                  >
+                    <span>≥4.0 {lang === 'id' ? 'DIRASAKAN' : 'FELT'}</span>
+                  </button>
+                  <button
+                    onClick={() => onMagCategoryChange('significant')}
+                    title={lang === 'id' ? 'Gempa Signifikan / Merusak (M ≥ 5.5)' : 'Significant Earthquakes (M ≥ 5.5)'}
+                    className={`${smallPillBase} ${
+                      magCategory === 'significant'
+                        ? 'bg-rose-600 text-white font-semibold shadow-xs border border-rose-700'
+                        : pillInactive
+                    }`}
+                  >
+                    <span>≥5.5 {lang === 'id' ? 'SIGNIFIKAN' : 'MAJOR'}</span>
+                  </button>
+                </div>
+                {divider}
+              </>
+            )}
+
             {/* Segment 2: Time Horizon Scrubber Pills */}
             <div className={pillGroup}>
-              <button
-                onClick={() => onTimeFilterChange('all')}
-                className={`${smallPillBase} ${timeFilter === 'all' ? pillActive : pillInactive}`}
-              >
-                ALL
-              </button>
               <button
                 onClick={() => onTimeFilterChange('24h')}
                 className={`${smallPillBase} ${timeFilter === '24h' ? pillActive : pillInactive}`}
               >
-                24H
+                {t.last24h}
               </button>
               <button
                 onClick={() => onTimeFilterChange('7d')}
                 className={`${smallPillBase} ${timeFilter === '7d' ? pillActive : pillInactive}`}
               >
-                7D
+                {t.last7d}
+              </button>
+              <button
+                onClick={() => onTimeFilterChange('all')}
+                className={`${smallPillBase} ${timeFilter === 'all' ? pillActive : pillInactive}`}
+              >
+                {t.allTime}
               </button>
             </div>
 
             {/* Divider */}
             {divider}
 
-            {/* Segment 3: Depth Filter */}
-            <div className={pillGroup}>
-              <button
-                onClick={() => onDepthFilterChange('all')}
-                className={`${smallPillBase} ${depthFilter === 'all' ? pillActive : pillInactive}`}
-              >
-                ALL
-              </button>
-              <button
-                onClick={() => onDepthFilterChange('shallow')}
-                title="Kedalaman Dangkal < 30km"
-                className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive}`}
-              >
-                &lt;30KM
-              </button>
-              <button
-                onClick={() => onDepthFilterChange('deep')}
-                title="Kedalaman Dalam > 100km"
-                className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive}`}
-              >
-                &gt;100KM
-              </button>
-            </div>
-
-            {/* Divider */}
-            {divider}
-
-            {/* Segment 4: Color Palette Mode */}
-            {onColorModeChange && (
+            {/* Segment 3 & 4 & 5: Collapsible Advanced Filters */}
+            {showAdvanced && (
               <>
+                {/* Depth Filter */}
                 <div className={pillGroup}>
                   <button
-                    onClick={() => onColorModeChange('magnitude')}
-                    title="Warna: Skala Magnitudo"
-                    className={`${smallPillBase} ${colorMode === 'magnitude' ? pillActive : pillInactive}`}
+                    onClick={() => onDepthFilterChange('all')}
+                    className={`${smallPillBase} ${depthFilter === 'all' ? pillActive : pillInactive}`}
                   >
-                    MAG
+                    {t.allTime}
                   </button>
                   <button
-                    onClick={() => onColorModeChange('depth')}
-                    title="Warna: Kedalaman Hiposenter (Subduksi)"
-                    className={`${smallPillBase} ${colorMode === 'depth' ? pillActive : pillInactive}`}
+                    onClick={() => onDepthFilterChange('shallow')}
+                    title="< 30km"
+                    className={`${smallPillBase} ${depthFilter === 'shallow' ? pillActive : pillInactive}`}
                   >
-                    DEPTH
+                    &lt;30KM
+                  </button>
+                  <button
+                    onClick={() => onDepthFilterChange('deep')}
+                    title="> 100km"
+                    className={`${smallPillBase} ${depthFilter === 'deep' ? pillActive : pillInactive}`}
+                  >
+                    &gt;100KM
                   </button>
                 </div>
+
                 {divider}
+
+                {/* Color Palette Mode */}
+                {onColorModeChange && (
+                  <>
+                    <div className={pillGroup}>
+                      <button
+                        onClick={() => onColorModeChange('magnitude')}
+                        className={`${smallPillBase} ${colorMode === 'magnitude' ? pillActive : pillInactive}`}
+                      >
+                        {t.colorMag}
+                      </button>
+                      <button
+                        onClick={() => onColorModeChange('depth')}
+                        className={`${smallPillBase} ${colorMode === 'depth' ? pillActive : pillInactive}`}
+                      >
+                        {t.colorDepth}
+                      </button>
+                    </div>
+                    {divider}
+                  </>
+                )}
+
+                {/* Time-Lapse Replay Button */}
+                {onOpenTimeLapse && (
+                  <>
+                    <button
+                      onClick={onOpenTimeLapse}
+                      title="Putar Time-Lapse Seismik 7 Hari"
+                      className="group flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
+                    >
+                      <History className="w-3 h-3 text-slate-600 group-hover:scale-110 transition-transform" />
+                      <span>{t.replay}</span>
+                    </button>
+                    {divider}
+                  </>
+                )}
               </>
             )}
 
-            {/* Segment 5: Time-Lapse Replay Button */}
-            {onOpenTimeLapse && (
-              <>
-                <button
-                  onClick={onOpenTimeLapse}
-                  title="Putar Time-Lapse Seismik 7 Hari"
-                  className="group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
-                >
-                  <History className="w-3 h-3 text-slate-600 group-hover:scale-110 transition-transform" />
-                  <span className="hidden sm:inline">REPLAY</span>
-                </button>
-                {divider}
-              </>
-            )}
+            {/* Toggle Advanced Filters Button */}
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              title={lang === 'id' ? 'Filter & Pengaturan Lanjutan' : 'Advanced Filters & Settings'}
+              className={`p-1.5 rounded-full border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shrink-0 ${
+                showAdvanced
+                  ? 'bg-slate-900 text-white border-slate-950 shadow-xs'
+                  : 'bg-slate-100 hover:bg-slate-200/90 text-slate-700 border-slate-200/90'
+              }`}
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+            </button>
+
+            {divider}
 
             {/* Segment 6: Virtual Seismogram Oscilloscope Button */}
             {onOpenSeismogram && (
               <>
                 <button
                   onClick={onOpenSeismogram}
-                  title="Buka Monitor Seismograf Real-Time"
-                  className={`group flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-full text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border cursor-pointer shrink-0 ${
+                  title="Monitor Seismograf Real-Time"
+                  className={`group flex items-center gap-1 px-2.5 py-1 rounded-full text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border cursor-pointer shrink-0 ${
                     isSeismogramOpen
                       ? 'bg-slate-900 text-white border-slate-950'
                       : 'bg-slate-100 hover:bg-slate-200/90 text-slate-800 border-slate-200/90'
                   }`}
                 >
                   <Activity className="w-3 h-3 text-slate-600 group-hover:scale-110 transition-transform" />
-                  <span className="hidden sm:inline">SEISMOGRAM</span>
+                  <span className="hidden sm:inline">{t.seismogram}</span>
                   <span className="sm:hidden text-[8.5px]">WAVE</span>
                 </button>
                 {divider}
@@ -298,11 +375,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               <>
                 <button
                   onClick={onOpenFeed}
-                  title="Buka Daftar Gempa Terkini"
-                  className="group flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
+                  title="Daftar Gempa Terkini"
+                  className="group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-800 text-[9.5px] font-mono tracking-wider font-semibold transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs border border-slate-200/90 cursor-pointer shrink-0"
                 >
                   <List className="w-3 h-3 text-slate-600 group-hover:text-slate-950 group-hover:rotate-12 transition-all duration-200" />
-                  <span>FEED</span>
+                  <span>{t.feed}</span>
                   {eventCount !== undefined && (
                     <span className="px-1.5 py-0.2 rounded-full bg-slate-200 text-[8.5px] font-mono font-bold text-slate-700 border border-slate-300/50">
                       {eventCount}
@@ -313,11 +390,38 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
               </>
             )}
 
-            {/* Segment 8: Action Toggles (Play/Pause Orbit & Reset) */}
+            {/* Segment 8: Action Toggles (Audio, Play/Pause Orbit & Reset) */}
             <div className="flex items-center gap-1 shrink-0">
+              {onToggleAudio && (
+                <button
+                  type="button"
+                  onClick={onToggleAudio}
+                  title={
+                    isAudioMuted
+                      ? lang === 'id'
+                        ? 'Aktifkan Audio Seismik Akustik'
+                        : 'Unmute Seismic Audio'
+                      : lang === 'id'
+                      ? 'Senyapkan Audio Seismik'
+                      : 'Mute Seismic Audio'
+                  }
+                  className={`group p-1.5 rounded-full border transition-all duration-200 hover:scale-110 active:scale-90 shadow-xs cursor-pointer ${
+                    isAudioMuted
+                      ? 'bg-slate-100/90 text-slate-400 border-slate-200/80 hover:text-slate-700'
+                      : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                  }`}
+                >
+                  {isAudioMuted ? (
+                    <VolumeX className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                  ) : (
+                    <Volume2 className="w-3 h-3 group-hover:scale-110 transition-transform" />
+                  )}
+                </button>
+              )}
+
               <button
                 onClick={onToggleRotation}
-                title={isRotating ? 'Pause rotasi bola' : 'Putar bola otomatis'}
+                title={isRotating ? 'Pause rotasi' : 'Putar otomatis'}
                 className="group p-1.5 rounded-full bg-slate-100/90 hover:bg-slate-200 text-slate-700 hover:text-slate-950 border border-slate-200/80 transition-all duration-200 hover:scale-110 active:scale-90 shadow-xs cursor-pointer"
               >
                 {isRotating ? (

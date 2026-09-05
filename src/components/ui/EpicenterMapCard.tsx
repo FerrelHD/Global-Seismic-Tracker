@@ -9,6 +9,7 @@ interface EpicenterMapCardProps {
   time?: string;
   shortTime?: string;
   potensi?: string;
+  lang?: 'id' | 'en';
   onFocusEpicenter?: () => void;
   onOpenShakemap?: () => void;
   onOpenSeismogram?: () => void;
@@ -24,6 +25,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
   time = '04 Sep 2026 · 02:15 WIB',
   shortTime = '04 Sep, 02:15 WIB',
   potensi = 'No Tsunami Threat',
+  lang = 'id',
   onFocusEpicenter,
   onOpenShakemap,
   onOpenSeismogram,
@@ -32,6 +34,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showTsunamiGuide, setShowTsunamiGuide] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [isMobile, setIsMobile] = useState(false);
@@ -312,7 +315,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
 
             <div className="flex items-center gap-1 shrink-0">
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-950 text-white font-mono text-[9px] font-bold tracking-wider shadow-2xs">
-                <span>SURVEY</span>
+                <span>{lang === 'id' ? 'DETAIL' : 'SURVEY'}</span>
                 <span className="text-[10px] leading-none">▾</span>
               </span>
             </div>
@@ -326,7 +329,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                 <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
                 <div>
                   <span className="text-[9.5px] font-mono font-bold tracking-widest text-slate-400 uppercase">
-                    BMKG GROUND ZERO
+                    {lang === 'id' ? 'PUSAT GEMPA TERKINI (BMKG)' : 'BMKG GROUND ZERO'}
                   </span>
                   <AnimatePresence>
                     {isExpanded && (
@@ -336,7 +339,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                         exit={{ opacity: 0, height: 0 }}
                         className="text-[9px] font-mono text-slate-500 uppercase tracking-wide"
                       >
-                        EPICENTER SURVEY
+                        {lang === 'id' ? 'SURVEI HIPOSENTER' : 'EPICENTER SURVEY'}
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -386,23 +389,59 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex items-center justify-between text-[9.5px]">
-                      <span className="text-slate-400 uppercase shrink-0">EVENT TIMESTAMP</span>
+                      <span className="text-slate-400 uppercase shrink-0">{lang === 'id' ? 'WAKTU KEJADIAN' : 'EVENT TIMESTAMP'}</span>
                       <span className="text-slate-900 font-bold">{time}</span>
                     </div>
                     <div className="flex items-center justify-between text-[9.5px]">
-                      <span className="text-slate-400 uppercase">COORDINATES</span>
+                      <span className="text-slate-400 uppercase">{lang === 'id' ? 'KOORDINAT' : 'COORDINATES'}</span>
                       <span className="text-slate-800 font-semibold">{coordinates}</span>
                     </div>
                     <div className="flex items-center justify-between text-[9.5px]">
-                      <span className="text-slate-400 uppercase">HYPOCENTER DEPTH</span>
+                      <span className="text-slate-400 uppercase">{lang === 'id' ? 'KEDALAMAN' : 'HYPOCENTER DEPTH'}</span>
                       <span className="text-slate-800 font-semibold">{depth}</span>
                     </div>
-                    <div className="flex items-start justify-between text-[9.5px] gap-2">
-                      <span className="text-slate-400 uppercase shrink-0">TSUNAMI STATUS</span>
-                      <span className="text-emerald-600 font-semibold text-right leading-tight">
-                        {potensi}
-                      </span>
-                    </div>
+                    {(() => {
+                      const isTsunamiActive = (potensi || '').toLowerCase().includes('berpotensi tsunami') && !(potensi || '').toLowerCase().includes('tidak');
+                      return (
+                        <div className="space-y-1">
+                          <div className="flex items-start justify-between text-[9.5px] gap-2">
+                            <span className="text-slate-400 uppercase shrink-0">{lang === 'id' ? 'POTENSI TSUNAMI' : 'TSUNAMI STATUS'}</span>
+                            <span className={`font-bold text-right leading-tight ${isTsunamiActive ? 'text-rose-600 animate-pulse' : 'text-emerald-600'}`}>
+                              {potensi}
+                            </span>
+                          </div>
+
+                          {/* BMKG 20-20-20 Evacuation Protocol Accordion */}
+                          <div className="pt-0.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowTsunamiGuide((prev) => !prev);
+                              }}
+                              className="w-full flex items-center justify-between px-2 py-1 rounded bg-slate-100/90 hover:bg-slate-200/90 border border-slate-200/80 font-mono text-[9px] text-slate-700 transition-colors cursor-pointer"
+                            >
+                              <span className="flex items-center gap-1 font-semibold">
+                                <span>🛡️</span>
+                                <span>{lang === 'id' ? 'Protokol Evakuasi 20-20-20' : '20-20-20 Evacuation Rule'}</span>
+                              </span>
+                              <span className="text-slate-400">{showTsunamiGuide ? '▲' : '▼'}</span>
+                            </button>
+
+                            {showTsunamiGuide && (
+                              <div className="mt-1 p-2 rounded-lg bg-amber-50/90 border border-amber-200/80 text-[8.5px] font-mono text-amber-950 space-y-0.5 leading-tight animate-fadeIn">
+                                <p className="font-bold text-amber-900">
+                                  {lang === 'id' ? 'PANDUAN MANDIRI PESISIR (BMKG):' : 'COASTAL EMERGENCY GUIDELINE:'}
+                                </p>
+                                <p>{lang === 'id' ? '• 20 Detik: Jika gempa terasa mengguncang kuat ≥ 20 detik' : '• 20 Sec: If strong shaking lasts ≥ 20 seconds'}</p>
+                                <p>{lang === 'id' ? '• 20 Menit: Waktu evakuasi maksimal sebelum gelombang tiba' : '• 20 Min: Evacuation window before first wave'}</p>
+                                <p>{lang === 'id' ? '• 20 Meter: Jauhi pesisir menuju ketinggian minimal 20m' : '• 20 Meters: Evacuate inland to at least 20m elevation'}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Interactive Action Buttons */}
                     <div className="pt-2.5 flex items-center justify-between gap-1.5 flex-wrap">
@@ -427,7 +466,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                               onOpenSeismogram();
                             }}
                             className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-slate-900 text-slate-700 hover:text-white border border-slate-300/80 font-mono text-[9.5px] tracking-wider transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 uppercase font-semibold"
-                            title="Monitor Seismograf Real-Time"
+                            title={lang === 'id' ? 'Monitor Seismograf Real-Time' : 'Monitor Real-Time Seismograph'}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-[#0f2f63]" />
                             <span>WAVEFORM</span>
@@ -441,9 +480,9 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                               onOpenInfographic();
                             }}
                             className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-slate-900 text-slate-700 hover:text-white border border-slate-300/80 font-mono text-[9.5px] tracking-wider transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 uppercase font-semibold"
-                            title="Generate Kartu Infografis Bencana"
+                            title={lang === 'id' ? 'Bagikan Kartu Infografis Bencana' : 'Generate Disaster Infographic'}
                           >
-                            <span>SHARE</span>
+                            <span>{lang === 'id' ? 'BAGIKAN' : 'SHARE'}</span>
                           </button>
                         )}
                       </div>
@@ -456,7 +495,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                           }}
                           className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-mono text-[10px] tracking-wider transition-all duration-150 cursor-pointer shadow-xs active:scale-95 uppercase font-bold ml-auto"
                         >
-                          <span>⌖ FOCUS</span>
+                          <span>{lang === 'id' ? '⌖ FOKUS' : '⌖ FOCUS'}</span>
                         </button>
                       )}
                     </div>
