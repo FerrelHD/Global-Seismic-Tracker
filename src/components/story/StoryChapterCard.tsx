@@ -26,7 +26,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
           : 'opacity-70 translate-y-2 scale-[0.98] hover:opacity-95 hover:-translate-y-0.5'
       }`}
     >
-      <LiquidCard className="rounded-3xl p-6 sm:p-7 shadow-2xl select-none backdrop-blur-2xl relative overflow-hidden bg-white/90 transition-shadow duration-300 hover:shadow-3xl">
+      <LiquidCard className="rounded-3xl p-5 sm:p-7 shadow-2xl select-none backdrop-blur-2xl relative overflow-hidden bg-white/90 transition-shadow duration-300 hover:shadow-3xl">
         {/* Subtle Technical Corner Crosshairs (No Art Style) */}
         <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">
           ┌

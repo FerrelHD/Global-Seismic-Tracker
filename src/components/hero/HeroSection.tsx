@@ -290,7 +290,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
 
             {/* Giant Title Lines with FLIP Kinematics (1 Horizontal Line Centered -> 2 Lines Stacked Top-Left) */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[3.2rem] xl:text-[3.75rem] font-sans font-black text-slate-950 tracking-tight leading-[0.92] uppercase pointer-events-none">
+            <h1 className="text-[clamp(1.35rem,6.2vw,3.75rem)] font-sans font-black text-slate-950 tracking-tight leading-[0.92] uppercase pointer-events-none">
               {/* Row 1: INDONESIAN CRUSTAL */}
               <div
                 ref={row1Ref}

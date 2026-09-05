@@ -391,31 +391,58 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     };
   }, [events, projectCoords]);
 
-  // Pointer Drag Pan, Mouse Wheel Zoom, and Click Select
+  // Pointer Drag Pan, Mouse Wheel Zoom, Multi-Touch Pinch Zoom, and Click Select
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     let hasDragged = false;
+    const activePointers = new Map<number, { x: number; y: number }>();
+    let initialPinchDistance = 0;
+    let initialZoomAtPinch = 1.0;
 
     const onPointerDown = (e: PointerEvent) => {
       if (!interactive) return;
-      if (e.button !== 0) return;
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
       const target = e.target as HTMLElement | null;
       if (target && target.closest('button, [role="button"], input, select, a, [data-interactive="true"]')) {
         return;
       }
-      isDraggingRef.current = true;
-      hasDragged = false;
-      dragStartRef.current = { x: e.clientX, y: e.clientY };
-      panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
-      container.style.cursor = 'grabbing';
+
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 1) {
+        isDraggingRef.current = true;
+        hasDragged = false;
+        dragStartRef.current = { x: e.clientX, y: e.clientY };
+        panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
+        container.style.cursor = 'grabbing';
+      } else if (activePointers.size === 2) {
+        // Multi-touch pinch-to-zoom detected on touchscreen
+        const pts = Array.from(activePointers.values());
+        initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        initialZoomAtPinch = targetZoomRef.current;
+      }
+
       try {
         container.setPointerCapture(e.pointerId);
       } catch { }
     };
 
     const onPointerMove = (e: PointerEvent) => {
+      if (!activePointers.has(e.pointerId)) return;
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size >= 2 && initialPinchDistance > 10) {
+        // Pinch zoom
+        const pts = Array.from(activePointers.values());
+        const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const ratio = currentDist / initialPinchDistance;
+        targetZoomRef.current = Math.max(0.75, Math.min(4.5, parseFloat((initialZoomAtPinch * ratio).toFixed(2))));
+        hasDragged = true;
+        return;
+      }
+
       if (!isDraggingRef.current) return;
       const dx = e.clientX - dragStartRef.current.x;
       const dy = e.clientY - dragStartRef.current.y;
@@ -433,9 +460,18 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
-      isDraggingRef.current = false;
-      container.style.cursor = interactive ? 'grab' : 'default';
+      activePointers.delete(e.pointerId);
+
+      if (activePointers.size === 0) {
+        isDraggingRef.current = false;
+        container.style.cursor = interactive ? 'grab' : 'default';
+      } else if (activePointers.size === 1) {
+        // Fall back to single pointer drag
+        const remaining = Array.from(activePointers.values())[0];
+        dragStartRef.current = { x: remaining.x, y: remaining.y };
+        panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
+      }
+
       try {
         container.releasePointerCapture(e.pointerId);
       } catch { }
@@ -451,7 +487,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           const clickY = e.clientY - rect.top;
           for (const h of hotspots) {
             const [hx, hy] = projectCoords(h.longitude, h.latitude, rect.width, rect.height);
-            if (Math.hypot(hx - clickX, hy - clickY) < 16) {
+            if (Math.hypot(hx - clickX, hy - clickY) < 18) {
               setSelectedHotspot(h);
               break;
             }
@@ -1123,7 +1159,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       {/* 1. Vector Map Canvas */}
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: '100%', touchAction: 'none' }}
+        style={{ width: '100%', height: '100%', touchAction: interactive ? 'none' : 'auto' }}
       />
 
       {/* 2. Expanding Sonar Shockwave Rings on Major Earthquakes (M >= 5.8) */}
@@ -1225,7 +1261,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               pointerEvents: effP > 0.4 ? 'auto' : 'none',
               visibility: effP <= 0.001 ? 'hidden' : 'visible',
             }}
-            className="absolute bottom-16 sm:bottom-20 left-1/2 z-30 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-slate-200/95 rounded-md p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] font-mono text-[10.5px] tracking-tight select-none"
+            className="absolute bottom-16 sm:bottom-20 left-1/2 z-30 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-slate-200/95 rounded-md p-0.5 sm:p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] font-mono text-[10.5px] tracking-tight select-none"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -1233,7 +1269,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               onClick={handleZoomIn}
               title="Zoom in (+)"
               aria-label="Zoom in"
-              className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-bold active:scale-90 cursor-pointer"
+              className="w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-bold active:scale-90 cursor-pointer text-sm sm:text-xs"
             >
               +
             </button>
@@ -1242,7 +1278,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               onClick={handleZoomReset}
               title="Reset overview (1.0x)"
               aria-label="Reset overview"
-              className="px-2 h-5 flex items-center justify-center rounded font-semibold text-slate-900 hover:bg-slate-100 transition-colors tabular-nums cursor-pointer"
+              className="px-2.5 h-7 sm:px-2 sm:h-5 flex items-center justify-center rounded font-semibold text-slate-900 hover:bg-slate-100 transition-colors tabular-nums cursor-pointer text-xs sm:text-[10.5px]"
             >
               {displayZoom.toFixed(1)}x
             </button>
@@ -1251,7 +1287,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               onClick={handleZoomOut}
               title="Zoom out (−)"
               aria-label="Zoom out"
-              className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-bold active:scale-90 cursor-pointer"
+              className="w-7 h-7 sm:w-5 sm:h-5 flex items-center justify-center rounded text-slate-700 hover:text-slate-950 hover:bg-slate-100 transition-colors font-bold active:scale-90 cursor-pointer text-sm sm:text-xs"
             >
               −
             </button>
@@ -1366,7 +1402,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               <div
                 onClick={(e) => e.stopPropagation()}
                 onWheel={(e) => e.stopPropagation()}
-                className="w-full max-w-[560px] overflow-hidden my-auto rounded-3xl"
+                data-lenis-prevent="true"
+                className="w-full max-w-[560px] max-h-[88vh] overflow-y-auto my-auto rounded-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
               >
                 {/* Container Liquid Glass Native */}
                 <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 select-none bg-white/85 backdrop-blur-2xl relative overflow-hidden ring-1 ring-black/[0.04]">

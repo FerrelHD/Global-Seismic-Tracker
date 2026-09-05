@@ -168,7 +168,7 @@ export const EventModal: React.FC<EventModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
         data-lenis-prevent="true"
-        className="w-full max-w-[560px] overflow-hidden my-auto rounded-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="w-full max-w-[560px] max-h-[88vh] overflow-y-auto my-auto rounded-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
         <LiquidCard className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 select-none backdrop-blur-2xl relative overflow-hidden">
           {/* Subtle Technical Corner Crosshairs (No Art Style) */}

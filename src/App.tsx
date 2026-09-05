@@ -747,7 +747,9 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             transform: `translate3d(${effectiveTranslateX}, 0px, 0) scale(${globeScale})`,
             willChange: 'transform',
           }}
-          className="relative w-full max-w-6xl flex items-center justify-center pointer-events-auto h-[64vh] max-h-[620px] my-auto"
+          className={`relative w-full max-w-6xl flex items-center justify-center h-[64vh] max-h-[620px] my-auto ${
+            isObservatoryActive ? 'pointer-events-auto' : 'pointer-events-none'
+          }`}
         >
           {/* Architectural Vector Nusantara Map */}
           <VectorGlobe
@@ -759,7 +761,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             targetFocus={targetFocus}
             onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
             onUpdateHotspots={setHotspots}
-            interactive={true}
+            interactive={isObservatoryActive}
             onCameraChange={setCameraCoords}
             scrollPhi={scrollRotation.phi}
             scrollTheta={scrollRotation.theta}

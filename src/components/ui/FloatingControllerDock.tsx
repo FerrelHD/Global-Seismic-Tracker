@@ -51,11 +51,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   style,
 }) => {
   const pillGroup = 'flex items-center gap-0.5 sm:gap-1 bg-slate-100/90 p-0.5 rounded-full border border-slate-200/80 shrink-0';
-  const pillBase = 'px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] xl:text-[10.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
+  const pillBase = 'px-2.5 sm:px-2.5 py-1 sm:py-1 min-h-[26px] sm:min-h-[24px] rounded-full text-[9.5px] sm:text-[10px] xl:text-[10.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center';
   const pillActive = 'bg-slate-900 text-white font-semibold shadow-xs border border-slate-950';
   const pillInactive = 'text-slate-500 hover:text-slate-800 hover:bg-white/60';
-  const smallPillBase = 'px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[8.5px] sm:text-[9.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap';
-  const divider = <div className="w-[1px] h-3 sm:h-3.5 bg-slate-300/60 shrink-0" />;
+  const smallPillBase = 'px-2 sm:px-2 py-1 sm:py-1 min-h-[26px] sm:min-h-[24px] rounded-full text-[9px] sm:text-[9.5px] font-mono tracking-wider font-medium transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap flex items-center justify-center';
+  const divider = <div className="w-[1px] h-3.5 sm:h-3.5 bg-slate-300/60 shrink-0" />;
 
   const effectiveProgress = progress != null ? progress : (visible ? 1 : 0);
   const isScrollDriven = progress != null;
@@ -76,10 +76,14 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
       className="fixed bottom-3 sm:bottom-5 left-1/2 z-40 select-none w-auto max-w-[calc(100vw-1.5rem)] px-1 flex justify-center"
     >
       <div className="pointer-events-auto max-w-full">
-        <LiquidCard className="rounded-full shadow-2xl border border-slate-200/90 max-w-full overflow-hidden">
+        <LiquidCard className="rounded-full shadow-2xl border border-slate-200/90 max-w-full overflow-hidden relative">
+          {/* Scroll fade gradient indicator on small screens */}
+          <div className="pointer-events-none absolute left-0 inset-y-0 w-3 bg-gradient-to-r from-white/90 to-transparent z-10 sm:hidden rounded-l-full" />
+          <div className="pointer-events-none absolute right-0 inset-y-0 w-3 bg-gradient-to-l from-white/90 to-transparent z-10 sm:hidden rounded-r-full" />
+
           {/* Horizontally scrollable inner content with smooth momentum on small screens, centered on desktop */}
           <div
-            className="flex items-center justify-start xl:justify-center gap-1 sm:gap-1.5 font-mono text-xs whitespace-nowrap px-2 py-1 sm:px-3 sm:py-1.5 overflow-x-auto text-slate-800 touch-pan-x"
+            className="flex items-center justify-start xl:justify-center gap-1 sm:gap-1.5 font-mono text-xs whitespace-nowrap px-2.5 py-1 sm:px-3 sm:py-1.5 overflow-x-auto text-slate-800 touch-pan-x"
             style={{
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
