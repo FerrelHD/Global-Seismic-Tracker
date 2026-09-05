@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { SeismicEvent } from '../../types/seismic';
 import { LiquidCard } from './liquid-glass';
 import { useUserLocation } from '../../hooks/useUserLocation';
+import { useLanguage } from '../../utils/i18n';
 import {
   calculateDistanceKm,
   estimateMMI,
@@ -33,9 +34,17 @@ interface EventModalProps {
   onOpenInfographic?: (event: SeismicEvent) => void;
 }
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: string, lang: 'id' | 'en' = 'id'): string {
   const diff = Date.now() - new Date(dateString).getTime();
   const mins = Math.floor(diff / 60000);
+  if (lang === 'id') {
+    if (mins < 1) return 'Baru saja';
+    if (mins < 60) return `${mins}m yang lalu`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}j yang lalu`;
+    const days = Math.floor(hours / 24);
+    return `${days}h yang lalu`;
+  }
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
@@ -113,6 +122,7 @@ export const EventModal: React.FC<EventModalProps> = ({
   onOpenSeismogram,
   onOpenInfographic,
 }) => {
+  const { t, lang } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [showTsunamiGuide, setShowTsunamiGuide] = useState(false);
   const { coords, status: geoStatus, errorMessage: geoError, requestLocation } = useUserLocation();
@@ -133,24 +143,26 @@ export const EventModal: React.FC<EventModalProps> = ({
 
   if (!event) return null;
 
+  const isEn = lang === 'en';
+  const locale = isEn ? 'en-US' : 'id-ID';
   const mag = magVal > 0 ? magVal.toFixed(1) : 'N/A';
   const isMajor = magVal >= 6.0;
   const isModerate = magVal >= 5.0;
   const usgsUrl = `https://earthquake.usgs.gov/earthquakes/eventpage/${event.usgs_id}/executive`;
-  const relTime = formatRelativeTime(event.occurred_at);
+  const relTime = formatRelativeTime(event.occurred_at, lang);
 
   const latDir = event.latitude >= 0 ? 'N' : 'S';
   const lonDir = event.longitude >= 0 ? 'E' : 'W';
   const formattedCoords = `${Math.abs(event.latitude).toFixed(3)}° ${latDir}, ${Math.abs(event.longitude).toFixed(3)}° ${lonDir}`;
 
   const dateObj = new Date(event.occurred_at);
-  const formattedDate = dateObj.toLocaleDateString('en-US', {
+  const formattedDate = dateObj.toLocaleDateString(locale, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
-  const formattedTime = dateObj.toLocaleTimeString('en-US', {
+  const formattedTime = dateObj.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     timeZoneName: 'short',
@@ -161,7 +173,13 @@ export const EventModal: React.FC<EventModalProps> = ({
   const depthPct = Math.max(6, Math.min(94, (depthClamped / 700) * 100));
 
   const crustLayerLabel =
-    event.depth < 70
+    lang === 'id'
+      ? event.depth < 70
+        ? 'KERAK DANGKAL (< 70 KM)'
+        : event.depth < 300
+        ? 'SUBDUKSI MENENGAH (70-300 KM)'
+        : 'SLAB MANTEL DALAM (> 300 KM)'
+      : event.depth < 70
       ? 'SHALLOW CRUST (< 70 KM)'
       : event.depth < 300
       ? 'INTERMEDIATE SUBDUCTION (70-300 KM)'
@@ -478,10 +496,10 @@ export const EventModal: React.FC<EventModalProps> = ({
                 <span className="text-sm">🛡️</span>
                 <div className="min-w-0">
                   <span className="text-[10px] font-mono font-bold text-slate-800 uppercase tracking-wider block">
-                    PANDUAN EVAKUASI TSUNAMI (BMKG 20-20-20)
+                    {lang === 'id' ? 'PANDUAN EVAKUASI TSUNAMI (BMKG 20-20-20)' : 'TSUNAMI EVACUATION GUIDE (BMKG 20-20-20)'}
                   </span>
                   <span className="text-[9px] font-mono text-slate-500 block truncate">
-                    Aturan keselamatan mandiri jika berada di dekat garis pantai
+                    {lang === 'id' ? 'Aturan keselamatan mandiri jika berada di dekat garis pantai' : 'Self-evacuation safety protocol if near coastline'}
                   </span>
                 </div>
               </div>
@@ -493,19 +511,21 @@ export const EventModal: React.FC<EventModalProps> = ({
             {showTsunamiGuide && (
               <div className="px-3 pb-3 pt-1 border-t border-slate-200/60 bg-amber-50/60 text-amber-950 font-mono text-[9.5px] space-y-1.5 leading-snug">
                 <div className="flex items-start gap-1.5">
-                  <span className="font-bold text-amber-800 shrink-0">20 DETIK:</span>
-                  <span>Jika merasakan gempa berayun kuat atau terus-menerus selama minimal 20 detik.</span>
+                  <span className="font-bold text-amber-800 shrink-0">{lang === 'id' ? '20 DETIK:' : '20 SECONDS:'}</span>
+                  <span>{lang === 'id' ? 'Jika merasakan gempa berayun kuat atau terus-menerus selama minimal 20 detik.' : 'If you feel strong or continuous shaking lasting at least 20 seconds.'}</span>
                 </div>
                 <div className="flex items-start gap-1.5">
-                  <span className="font-bold text-amber-800 shrink-0">20 MENIT:</span>
-                  <span>Anda memiliki waktu sekitar 20 menit sebelum gelombang pertama tiba ke bibir pantai.</span>
+                  <span className="font-bold text-amber-800 shrink-0">{lang === 'id' ? '20 MENIT:' : '20 MINUTES:'}</span>
+                  <span>{lang === 'id' ? 'Anda memiliki waktu sekitar 20 menit sebelum gelombang pertama tiba ke bibir pantai.' : 'You have roughly 20 minutes before the first wave crests onto shore.'}</span>
                 </div>
                 <div className="flex items-start gap-1.5">
-                  <span className="font-bold text-amber-800 shrink-0">20 METER:</span>
-                  <span>Segera lari menjauhi laut menuju dataran tinggi atau bangunan vertikal minimal ketinggian 20 meter.</span>
+                  <span className="font-bold text-amber-800 shrink-0">{lang === 'id' ? '20 METER:' : '20 METERS:'}</span>
+                  <span>{lang === 'id' ? 'Segera lari menjauhi laut menuju dataran tinggi atau bangunan vertikal minimal ketinggian 20 meter.' : 'Immediately run inland toward high ground or vertical shelter at least 20 meters high.'}</span>
                 </div>
                 <p className="text-[8.5px] text-amber-800/80 pt-1 italic border-t border-amber-200/50">
-                  *Jangan menunggu sirine atau konfirmasi resmi bila guncangan kuat membuat sulit berdiri di pesisir.
+                  {lang === 'id'
+                    ? '*Jangan menunggu sirine atau konfirmasi resmi bila guncangan kuat membuat sulit berdiri di pesisir.'
+                    : '*Do not wait for formal sirens if strong shaking makes standing difficult near the coast.'}
                 </p>
               </div>
             )}
@@ -514,19 +534,19 @@ export const EventModal: React.FC<EventModalProps> = ({
           {/* 3. TECHNICAL METRICS FOOTER */}
           <div className="py-2.5 space-y-1.5 font-mono text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-[10px] uppercase tracking-wider">TIMESTAMP:</span>
+              <span className="text-slate-400 text-[10px] uppercase tracking-wider">{t.timestamp}:</span>
               <span className="text-slate-800 text-[11px] font-medium tracking-wide">
                 {formattedDate} · {formattedTime} <span className="text-slate-400">({relTime})</span>
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-[10px] uppercase tracking-wider">COORDINATES:</span>
+              <span className="text-slate-400 text-[10px] uppercase tracking-wider">{t.coordinates}:</span>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-900 text-[11px] tracking-wider">{formattedCoords}</span>
                 <button
                   onClick={handleCopy}
-                  title="Copy Lat, Lon"
+                  title={lang === 'id' ? 'Salin Koordinat' : 'Copy Coordinates'}
                   className="p-1 rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -551,7 +571,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 <button
                   onClick={() => onOpenSeismogram(event)}
                   className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-neutral-200"
-                  title="Buka Seismogram Gelombang P & S"
+                  title={lang === 'id' ? 'Buka Seismogram Gelombang P & S' : 'Open P & S Wave Seismogram'}
                 >
                   <Activity className="w-3.5 h-3.5 text-[#0f2f63]" />
                   <span>WAVEFORM</span>
@@ -564,12 +584,13 @@ export const EventModal: React.FC<EventModalProps> = ({
                   const msg = formatSeismicWAMessage(
                     event,
                     userDistanceKm ?? undefined,
-                    mmiInfo ?? undefined
+                    mmiInfo ?? undefined,
+                    lang
                   );
                   openWhatsAppShare(msg);
                 }}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10.5px] font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
-                title="Bagikan Ringkasan Laporan ke WhatsApp"
+                title={lang === 'id' ? 'Bagikan Ringkasan Laporan ke WhatsApp' : 'Share Telemetry Summary to WhatsApp'}
               >
                 <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />

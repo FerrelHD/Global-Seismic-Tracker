@@ -113,44 +113,65 @@ export function estimateMMI(
 export function formatSeismicWAMessage(
   event: SeismicEvent,
   userDistKm?: number,
-  mmi?: MMIIntensity
+  mmi?: MMIIntensity,
+  lang: 'id' | 'en' = 'id'
 ): string {
+  const isEn = lang === 'en';
+  const locale = isEn ? 'en-US' : 'id-ID';
   const dateObj = new Date(event.occurred_at);
-  const formattedDate = dateObj.toLocaleDateString('id-ID', {
+  const formattedDate = dateObj.toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
-  const formattedTime = dateObj.toLocaleTimeString('id-ID', {
+  const formattedTime = dateObj.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     timeZoneName: 'short',
   });
 
-  const place = (event.place || 'Pusat Gempa').toUpperCase();
+  const place = (event.place || (isEn ? 'Earthquake Epicenter' : 'Pusat Gempa')).toUpperCase();
   const mag = event.magnitude != null ? event.magnitude.toFixed(1) : '-';
   const depth = event.depth != null ? event.depth.toFixed(0) : '-';
 
-  const lines = [
-    `🚨 *INFO GEMPA TERKINI (BMKG / USGS)* 🚨`,
-    ``,
-    `📍 *Lokasi:* ${place}`,
-    `💥 *Kekuatan:* M ${mag}`,
-    `🌊 *Kedalaman:* ${depth} km`,
-    `🕒 *Waktu:* ${formattedDate} - ${formattedTime}`,
-  ];
+  const lines = isEn
+    ? [
+        `🚨 *LATEST EARTHQUAKE BULLETIN (BMKG / USGS)* 🚨`,
+        ``,
+        `📍 *Location:* ${place}`,
+        `💥 *Magnitude:* M ${mag}`,
+        `🌊 *Depth:* ${depth} km`,
+        `🕒 *Time:* ${formattedDate} - ${formattedTime}`,
+      ]
+    : [
+        `🚨 *INFO GEMPA TERKINI (BMKG / USGS)* 🚨`,
+        ``,
+        `📍 *Lokasi:* ${place}`,
+        `💥 *Kekuatan:* M ${mag}`,
+        `🌊 *Kedalaman:* ${depth} km`,
+        `🕒 *Waktu:* ${formattedDate} - ${formattedTime}`,
+      ];
 
   if (userDistKm != null) {
-    lines.push(`📌 *Jarak dari saya:* ~${userDistKm.toLocaleString('id-ID')} km`);
-    if (mmi) {
-      lines.push(`📊 *Estimasi Getaran:* ${mmi.scale} (${mmi.label})`);
+    if (isEn) {
+      lines.push(`📌 *Distance from my location:* ~${userDistKm.toLocaleString('en-US')} km`);
+      if (mmi) {
+        lines.push(`📊 *Estimated Shaking:* ${mmi.scale} (${mmi.label})`);
+      }
+    } else {
+      lines.push(`📌 *Jarak dari saya:* ~${userDistKm.toLocaleString('id-ID')} km`);
+      if (mmi) {
+        lines.push(`📊 *Estimasi Getaran:* ${mmi.scale} (${mmi.label})`);
+      }
     }
   }
 
   lines.push(
     ``,
-    `🌐 *Pantau Seismogram & Peta Interaktif Langsung:*`,
+    isEn
+      ? `🌐 *Monitor Live Seismogram & 3D Interactive Map:*`
+      : `🌐 *Pantau Seismogram & Peta Interaktif Langsung:*`,
     `https://global-seismic-tracker.vercel.app`
   );
 

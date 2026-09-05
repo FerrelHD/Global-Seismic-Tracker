@@ -70,6 +70,41 @@ export interface Translations {
   timestamp: string;
   coordinates: string;
   close: string;
+
+  // Major Hazards HUD Bar
+  megathrustTitle: string;
+  megathrustStatus: string;
+  megathrustMesh: string;
+  tsunamiProtocolBtn: string;
+  hazardEval: string;
+
+  // Quick Filters
+  allMag: string;
+  magFelt: string;
+  magSignificant: string;
+
+  // BMKG 20-20-20 & Alerts
+  tsunamiProtocolTitle: string;
+  tsunamiRule20: string;
+  tsunamiRuleDesc: string;
+  copyInfo: string;
+  copied: string;
+  shareWhatsAppBtn: string;
+  feltEarthquake: string;
+  shallowCrustBadge: string;
+
+  // Storytelling & Actions
+  focusSector: string;
+  exploreObservatory: string;
+  sectorMonitored: string;
+  laboratoryUnlocked: string;
+
+  // Hero & Navigation
+  crustalStations: string;
+  clickToEnter: string;
+  feedLink: string;
+  tsunamiLink: string;
+  storyLink: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -141,6 +176,41 @@ export const translations: Record<Language, Translations> = {
     timestamp: 'WAKTU DETEKSI',
     coordinates: 'KOORDINAT EPISENTER',
     close: 'TUTUP',
+
+    // Major Hazards HUD Bar
+    megathrustTitle: 'MEGATHRUST SUMATERA-JAWA',
+    megathrustStatus: 'STATUS: TELEMETRI AKTIF',
+    megathrustMesh: 'JARINGAN SEISMIK BMKG & USGS',
+    tsunamiProtocolBtn: 'PROTOKOL TSUNAMI 20-20-20',
+    hazardEval: 'EVALUASI BAHAYA',
+
+    // Quick Filters
+    allMag: 'SEMUA MAG',
+    magFelt: '≥4.0 DIRASAKAN',
+    magSignificant: '≥5.5 SIGNIFIKAN',
+
+    // BMKG 20-20-20 & Alerts
+    tsunamiProtocolTitle: 'PEDOMAN EVAKUASI MANDIRI TSUNAMI',
+    tsunamiRule20: 'ATURAN 20-20-20 BMKG',
+    tsunamiRuleDesc: 'Gempa terasa 20 detik atau lebih? Evakuasi dalam 20 menit menuju tempat setinggi minimal 20 meter.',
+    copyInfo: 'SALIN DATA GEMPA',
+    copied: 'DATA TERSALIN!',
+    shareWhatsAppBtn: 'SEBARKAN VIA WHATSAPP',
+    feltEarthquake: 'GEMPA BUMI DIRASAKAN',
+    shallowCrustBadge: 'KERAK DANGKAL (< 60 KM)',
+
+    // Storytelling & Actions
+    focusSector: 'FOKUS SEKTOR ⌖',
+    exploreObservatory: 'JELAJAHI OBSERVATORIUM',
+    sectorMonitored: 'SEKTOR TERPANTAU',
+    laboratoryUnlocked: 'LABORATORIUM TERBUKA',
+
+    // Hero & Navigation
+    crustalStations: '2.200 STASIUN KERAK BUMI TERSINKRONISASI',
+    clickToEnter: 'KLIK DI MANA SAJA UNTUK MASUK',
+    feedLink: 'KATALOG SEISMIK',
+    tsunamiLink: 'BMKG TSUNAMI',
+    storyLink: 'BAB CERITA',
   },
   en: {
     // Navigation & Header
@@ -210,6 +280,41 @@ export const translations: Record<Language, Translations> = {
     timestamp: 'TIMESTAMP',
     coordinates: 'COORDINATES',
     close: 'CLOSE',
+
+    // Major Hazards HUD Bar
+    megathrustTitle: 'SUMATRA-JAVA MEGATHRUST',
+    megathrustStatus: 'STATUS: CRUSTAL UNLOCKED',
+    megathrustMesh: 'BMKG & USGS SEISMIC MESH',
+    tsunamiProtocolBtn: 'BMKG 20-20-20 PROTOCOL',
+    hazardEval: 'HAZARD EVALUATION',
+
+    // Quick Filters
+    allMag: 'ALL MAG',
+    magFelt: '≥4.0 FELT',
+    magSignificant: '≥5.5 SIGNIFICANT',
+
+    // BMKG 20-20-20 & Alerts
+    tsunamiProtocolTitle: 'COASTAL TSUNAMI EVACUATION PROTOCOL',
+    tsunamiRule20: 'BMKG 20-20-20 RULE',
+    tsunamiRuleDesc: 'Shaking felt for 20 seconds or more? Evacuate within 20 minutes to at least 20 meters elevation.',
+    copyInfo: 'COPY SEISMIC DATA',
+    copied: 'DATA COPIED!',
+    shareWhatsAppBtn: 'SHARE VIA WHATSAPP',
+    feltEarthquake: 'FELT EARTHQUAKE',
+    shallowCrustBadge: 'SHALLOW CRUST (< 60 KM)',
+
+    // Storytelling & Actions
+    focusSector: 'FOCUS SECTOR ⌖',
+    exploreObservatory: 'EXPLORE OBSERVATORY',
+    sectorMonitored: 'SECTOR MONITORED',
+    laboratoryUnlocked: 'LABORATORY UNLOCKED',
+
+    // Hero & Navigation
+    crustalStations: '2,200 CRUSTAL STATIONS SYNCHRONIZED',
+    clickToEnter: 'CLICK ANYWHERE TO ENTER',
+    feedLink: 'SEISMIC FEED',
+    tsunamiLink: 'BMKG TSUNAMI',
+    storyLink: 'STORY MODE',
   },
 };
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { StoryChapter } from '../../utils/storyAnalytics';
 import { LiquidCard } from '../ui/liquid-glass';
 import { MapPin, ArrowDown, Compass, Activity } from 'lucide-react';
+import { useLanguage } from '../../utils/i18n';
 
 interface StoryChapterCardProps {
   chapter: StoryChapter;
@@ -16,6 +17,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
   onExploreClick,
   onFocusSector,
 }) => {
+  const { t } = useLanguage();
   const isFinalChapter = chapter.id === 'chapter-5';
 
   return (
@@ -116,11 +118,11 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-mono font-semibold tracking-wider transition-colors cursor-pointer border border-slate-200"
             >
               <Compass className="w-3.5 h-3.5 text-slate-600" />
-              <span>FOCUS SECTOR ⌖</span>
+              <span>{t.focusSector}</span>
             </button>
           ) : (
             <span className="text-[10px] font-mono text-slate-400 tracking-wider uppercase">
-              {isFinalChapter ? 'Laboratory Unlocked' : 'Sector Monitored'}
+              {isFinalChapter ? t.laboratoryUnlocked : t.sectorMonitored}
             </span>
           )}
 
@@ -129,7 +131,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
               onClick={onExploreClick}
               className="flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#0f2f63] hover:bg-[#153e7e] text-white text-xs font-mono font-semibold tracking-wider transition-colors cursor-pointer"
             >
-              <span>EXPLORE OBSERVATORY</span>
+              <span>{t.exploreObservatory}</span>
               <ArrowDown className="w-3.5 h-3.5" />
             </button>
           )}

@@ -169,8 +169,8 @@ export const App: React.FC = () => {
     setBookmarks(getLocalBookmarks());
   }, []);
 
-  // Compute dynamic story chapters from active dataset
-  const storyChapters = useMemo(() => buildStoryChapters(events), [events]);
+  // Compute dynamic story chapters from active dataset and active language
+  const storyChapters = useMemo(() => buildStoryChapters(events, lang), [events, lang]);
 
   // Screen Width state for responsive translation
   const [isDesktop, setIsDesktop] = useState(
