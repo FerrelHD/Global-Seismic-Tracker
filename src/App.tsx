@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Bookmark as BookmarkIcon,
   ArrowDown,
+  ArrowUp,
   Bell,
 } from 'lucide-react';
 
@@ -849,13 +850,14 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                     </div>
                   </div>
 
-                  {/* Return to Hero / Tour */}
+                  {/* Return to Hero / Stories */}
                   <button
                     onClick={scrollToHero}
-                    title="Return to Hero"
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all text-[11px] font-semibold cursor-pointer whitespace-nowrap active:scale-95"
+                    title="Return to Stories / Hero"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-all text-[11px] font-mono font-semibold cursor-pointer whitespace-nowrap active:scale-95 shadow-xs"
                   >
-                    <span>TOUR</span>
+                    <ArrowUp className="w-3.5 h-3.5" />
+                    <span>STORIES</span>
                   </button>
 
                   {/* Bookmarks */}
@@ -980,7 +982,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                       )}
 
                       {/* Scroll Zoom Indicator HUD */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] text-slate-600 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                      <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] text-slate-600 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
                         <span className="tracking-wider uppercase font-semibold text-slate-900">SCROLL ZOOM</span>
                         <span className="text-slate-300">|</span>
@@ -994,7 +996,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                       </div>
 
                       {/* Telemetry Counter: plain bordered */}
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] tracking-wider text-slate-500 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                      <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] tracking-wider text-slate-500 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                         <span className="font-bold text-slate-900 tabular-nums">{events.length}</span>
                         <span>EQ</span>
                         <span className="text-slate-300 px-0.5">/</span>

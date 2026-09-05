@@ -411,38 +411,68 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (activePointers.size === 1) {
+      if (e.pointerType === 'mouse') {
+        // Desktop single-cursor mouse dragging
         isDraggingRef.current = true;
         hasDragged = false;
         dragStartRef.current = { x: e.clientX, y: e.clientY };
         panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
         container.style.cursor = 'grabbing';
-      } else if (activePointers.size === 2) {
-        // Multi-touch pinch-to-zoom detected on touchscreen
-        const pts = Array.from(activePointers.values());
-        initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        initialZoomAtPinch = targetZoomRef.current;
+        try {
+          container.setPointerCapture(e.pointerId);
+        } catch { }
+      } else {
+        // Touchscreen: 1 finger is reserved for page scrolling, 2 fingers for map pan & pinch-zoom
+        if (activePointers.size === 1) {
+          isDraggingRef.current = false;
+          hasDragged = false;
+          dragStartRef.current = { x: e.clientX, y: e.clientY };
+        } else if (activePointers.size === 2) {
+          isDraggingRef.current = true;
+          hasDragged = true;
+          const pts = Array.from(activePointers.values());
+          initialPinchDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          initialZoomAtPinch = targetZoomRef.current;
+          dragStartRef.current = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+          panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
+          try {
+            container.setPointerCapture(e.pointerId);
+          } catch { }
+        }
       }
-
-      try {
-        container.setPointerCapture(e.pointerId);
-      } catch { }
     };
 
     const onPointerMove = (e: PointerEvent) => {
       if (!activePointers.has(e.pointerId)) return;
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-      if (activePointers.size >= 2 && initialPinchDistance > 10) {
-        // Pinch zoom
-        const pts = Array.from(activePointers.values());
-        const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-        const ratio = currentDist / initialPinchDistance;
-        targetZoomRef.current = Math.max(0.75, Math.min(4.5, parseFloat((initialZoomAtPinch * ratio).toFixed(2))));
-        hasDragged = true;
+      if (e.pointerType !== 'mouse') {
+        // Touchscreen: 2-finger pinch zoom and pan
+        if (activePointers.size >= 2 && initialPinchDistance > 10) {
+          const pts = Array.from(activePointers.values());
+          // 1. Pinch zoom
+          const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+          const ratio = currentDist / initialPinchDistance;
+          targetZoomRef.current = Math.max(0.75, Math.min(4.5, parseFloat((initialZoomAtPinch * ratio).toFixed(2))));
+
+          // 2. Two-finger pan
+          const midX = (pts[0].x + pts[1].x) / 2;
+          const midY = (pts[0].y + pts[1].y) / 2;
+          const dx = midX - dragStartRef.current.x;
+          const dy = midY - dragStartRef.current.y;
+
+          const rect = container.getBoundingClientRect();
+          const baseScale = Math.min(rect.width / BASE_SPAN_LON, rect.height / BASE_SPAN_LAT);
+          const scale = baseScale * zoomRef.current;
+
+          targetPanLonRef.current = panAtDragStartRef.current.lon - dx / scale;
+          targetPanLatRef.current = panAtDragStartRef.current.lat + dy / scale;
+          hasDragged = true;
+        }
         return;
       }
 
+      // Desktop mouse drag
       if (!isDraggingRef.current) return;
       const dx = e.clientX - dragStartRef.current.x;
       const dy = e.clientY - dragStartRef.current.y;
@@ -465,11 +495,6 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       if (activePointers.size === 0) {
         isDraggingRef.current = false;
         container.style.cursor = interactive ? 'grab' : 'default';
-      } else if (activePointers.size === 1) {
-        // Fall back to single pointer drag
-        const remaining = Array.from(activePointers.values())[0];
-        dragStartRef.current = { x: remaining.x, y: remaining.y };
-        panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
       }
 
       try {
@@ -1146,7 +1171,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       ref={containerRef}
       style={{
         cursor: interactive ? 'grab' : 'default',
-        touchAction: interactive ? 'none' : 'auto',
+        touchAction: interactive ? 'pan-y' : 'auto',
         maskImage: isPanoramic
           ? 'radial-gradient(ellipse 90% 75% at 50% 50%, black 50%, rgba(0,0,0,0.85) 68%, rgba(0,0,0,0.2) 88%, transparent 100%)'
           : 'none',
@@ -1159,7 +1184,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       {/* 1. Vector Map Canvas */}
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: '100%', touchAction: interactive ? 'none' : 'auto' }}
+        style={{ width: '100%', height: '100%', touchAction: interactive ? 'pan-y' : 'auto' }}
       />
 
       {/* 2. Expanding Sonar Shockwave Rings on Major Earthquakes (M >= 5.8) */}
@@ -1246,7 +1271,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         </div>
       </div>
 
-      {/* 5. Minimalist Editorial Zoom HUD (Continuous Scroll Blur Fade Out) */}
+      {/* 5. Minimalist Editorial Zoom HUD (Hidden on mobile, 2-finger pinch replaces it) */}
       {(() => {
         const effP = controlsProgress != null ? controlsProgress : (interactive && showControls ? 1 : 0);
         const isScrollDriven = controlsProgress != null;
@@ -1261,7 +1286,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               pointerEvents: effP > 0.4 ? 'auto' : 'none',
               visibility: effP <= 0.001 ? 'hidden' : 'visible',
             }}
-            className="absolute bottom-16 sm:bottom-20 left-1/2 z-30 flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-slate-200/95 rounded-md p-0.5 sm:p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] font-mono text-[10.5px] tracking-tight select-none"
+            className="absolute bottom-16 sm:bottom-20 left-1/2 z-30 hidden sm:flex items-center gap-0.5 bg-white/95 backdrop-blur-md border border-slate-200/95 rounded-md p-0.5 sm:p-0.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] font-mono text-[10.5px] tracking-tight select-none"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -1295,7 +1320,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         );
       })()}
 
-      {/* 6. Floating Top Instrument Bar (Continuous Scroll Blur Fade Out) */}
+      {/* 6. Floating Top Instrument Bar (Hidden on mobile to prevent overlapping) */}
       {(() => {
         const effP = controlsProgress != null ? controlsProgress : (showControls ? 1 : 0);
         const isScrollDriven = controlsProgress != null;
@@ -1310,7 +1335,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               pointerEvents: effP > 0.4 ? 'auto' : 'none',
               visibility: effP <= 0.001 ? 'hidden' : 'visible',
             }}
-            className="absolute top-2.5 left-1/2 z-30 flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-lg px-2.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)] font-mono text-[9.5px] select-none max-w-[92vw] overflow-x-auto no-scrollbar"
+            className="absolute top-2.5 left-1/2 z-30 hidden sm:flex items-center gap-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 rounded-lg px-2.5 py-1 shadow-[0_2px_8px_rgba(0,0,0,0.06)] font-mono text-[9.5px] select-none max-w-[92vw] overflow-x-auto no-scrollbar"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Live NASA FIRMS */}
