@@ -9,7 +9,8 @@ import {
   formatWildfireWAMessage,
   openWhatsAppShare,
 } from '../../utils/geoProximity';
-import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2 } from 'lucide-react';
+import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2, Newspaper, ExternalLink } from 'lucide-react';
+import { isMajorWildfire, fetchDisasterNews, DisasterNewsItem } from '../../utils/newsService';
 
 export interface CameraCoordinates {
   lat: number;
@@ -99,6 +100,105 @@ function getFRPSeverity(frp: number): { label: string; color: string; bg: string
   if (frp >= 40) return { label: 'MODERATE', color: '#d97706', bg: '#fffbeb', border: '#fde68a' };
   return { label: 'LOW', color: '#ca8a04', bg: '#fefce8', border: '#fef08a' };
 }
+
+const WildfireNewsBlock: React.FC<{ hotspot: WildfireHotspot }> = ({ hotspot }) => {
+  const isMajor = isMajorWildfire(hotspot.frp) || hotspot.frp >= 80;
+  const [newsList, setNewsList] = useState<DisasterNewsItem[]>([]);
+  const [googleNewsUrl, setGoogleNewsUrl] = useState<string>('');
+  const [isNewsLoading, setIsNewsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isMajor) {
+      setNewsList([]);
+      setGoogleNewsUrl('');
+      return;
+    }
+    let isMounted = true;
+    setIsNewsLoading(true);
+    fetchDisasterNews(`${hotspot.island} kebakaran hutan lahan karhutla`, 'wildfire', hotspot.island)
+      .then((res) => {
+        if (isMounted) {
+          setNewsList(res.articles);
+          setGoogleNewsUrl(res.googleNewsUrl);
+          setIsNewsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setIsNewsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [hotspot, isMajor]);
+
+  if (!isMajor) return null;
+
+  return (
+    <div className="my-3 p-3.5 rounded-2xl bg-orange-50/70 border border-orange-200/90 shadow-2xs">
+      <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-700">
+            <Newspaper className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <span className="text-[10px] font-mono font-bold tracking-wider text-slate-900 uppercase block">
+              LIPUTAN MEDIA & PANTAUAN KARHUTLA
+            </span>
+            <span className="text-[8.5px] font-mono text-slate-500 block">
+              Bukti laporan penanganan titik api {hotspot.island} dari media terpercaya
+            </span>
+          </div>
+        </div>
+        {googleNewsUrl && (
+          <a
+            href={googleNewsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-[9.5px] font-mono font-semibold text-orange-700 hover:text-orange-900 transition-colors"
+          >
+            <span>GOOGLE NEWS</span>
+            <ExternalLink className="w-2.5 h-2.5" />
+          </a>
+        )}
+      </div>
+
+      {isNewsLoading ? (
+        <div className="flex items-center justify-center py-4 text-slate-400 font-mono text-[10px] gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-500" />
+          <span>Memuat berita karhutla...</span>
+        </div>
+      ) : newsList.length > 0 ? (
+        <div className="space-y-2">
+          {newsList.map((item) => (
+            <a
+              key={item.id}
+              href={item.url}
+              target="_blank"
+              rel="noreferrer"
+              className="group block p-2.5 rounded-xl bg-white border border-orange-100 hover:border-orange-300 hover:shadow-xs transition-all"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="px-1.5 py-0.5 rounded bg-orange-50 group-hover:bg-orange-100 text-[8.5px] font-mono font-bold text-orange-800 transition-colors uppercase">
+                  {item.source}
+                </span>
+                <span className="text-[8.5px] font-mono text-slate-400">{item.publishedAt}</span>
+              </div>
+              <h4 className="text-xs font-semibold text-slate-900 group-hover:text-orange-900 transition-colors leading-snug line-clamp-2">
+                {item.title}
+              </h4>
+              {item.snippet && (
+                <p className="text-[10px] text-slate-500 font-sans line-clamp-2 mt-1 leading-relaxed">
+                  {item.snippet}
+                </p>
+              )}
+            </a>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+};
 
 export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   events,
@@ -1639,6 +1739,9 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                       <p className="text-[9px] font-mono text-rose-600 mt-1.5">{userGeoError}</p>
                     )}
                   </div>
+
+                  {/* 2.8 VERIFIED NEWS & MEDIA COVERAGE FOR WILDFIRES */}
+                  <WildfireNewsBlock hotspot={selectedHotspot} />
 
                   {/* 3. TECHNICAL METRICS FOOTER */}
                   <div className="py-2.5 space-y-1.5 font-mono text-xs">

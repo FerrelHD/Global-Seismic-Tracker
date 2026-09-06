@@ -44,6 +44,13 @@ import {
   ArrowDown,
   ArrowUp,
   Bell,
+  ChevronDown,
+  ChevronUp,
+  Newspaper,
+  X,
+  Flame,
+  Activity,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -121,6 +128,23 @@ export const App: React.FC = () => {
   const [observatoryScrollZoom, setObservatoryScrollZoom] = useState<number>(1.0);
   const [observatoryProgress, setObservatoryProgress] = useState<number>(0);
   const [obsTopOffset, setObsTopOffset] = useState<number>(0);
+  const [isMajorHubOpen, setIsMajorHubOpen] = useState(false);
+  const majorHubRef = useRef<HTMLDivElement>(null);
+
+  // Close Major Hazards Hub on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (majorHubRef.current && !majorHubRef.current.contains(event.target as Node)) {
+        setIsMajorHubOpen(false);
+      }
+    }
+    if (isMajorHubOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMajorHubOpen]);
 
   // Magnitude Quick Filter: 'all' | 'felt' (>=4.0) | 'significant' (>=5.5)
   const [magCategory, setMagCategory] = useState<'all' | 'felt' | 'significant'>('all');
@@ -1171,66 +1195,187 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                         />
                       )}
 
-                      {/* Option 1: Quick Focus Major Hazards HUD Strip */}
+                      {/* Option C: Collapsible Major Hazards Intelligence Hub */}
                       {majorHighlights.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto no-scrollbar max-w-[calc(100vw-2.5rem)] sm:max-w-md py-0.5">
-                          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1 px-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                            <span>{lang === 'id' ? 'SOROTAN:' : 'MAJOR:'}</span>
-                          </span>
-                          {majorHighlights.map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                setTargetFocus([item.lat, item.lon]);
-                                if (item.type === 'event') {
-                                  setSelectedEvent(item.data);
-                                } else if (item.type === 'hotspot') {
-                                  setSelectedHotspot(item.data);
-                                } else if (item.type === 'volcano') {
-                                  setSelectedVolcano(item.data);
-                                }
-                              }}
-                              className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 font-mono text-[10px] tracking-wide shadow-xs border transition-all cursor-pointer active:scale-95 backdrop-blur-md hover:scale-105 hover:shadow-md ${
-                                item.type === 'event'
-                                  ? 'border-rose-200/90 hover:border-rose-400 text-slate-900'
-                                  : item.type === 'volcano'
-                                  ? 'border-red-300/90 hover:border-red-500 text-slate-900'
-                                  : 'border-orange-200/90 hover:border-orange-400 text-slate-900'
+                        <div ref={majorHubRef} className="relative z-30 pointer-events-auto">
+                          {/* Compact Capsule Trigger Button */}
+                          <button
+                            type="button"
+                            onClick={() => setIsMajorHubOpen((prev) => !prev)}
+                            className={`group flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-xl border transition-all cursor-pointer shadow-xs active:scale-95 ${
+                              isMajorHubOpen
+                                ? 'bg-slate-900 text-white border-slate-800 shadow-md'
+                                : 'bg-white/95 text-slate-800 border-slate-200/90 hover:border-slate-300 hover:shadow-sm'
+                            }`}
+                            title={
+                              lang === 'id'
+                                ? 'Buka Ringkasan Bencana Mayor & Liputan Berita'
+                                : 'Toggle Major Hazards & Verified News Intel'
+                            }
+                          >
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+                            </span>
+
+                            <span className="font-mono text-[10px] font-bold tracking-wider uppercase">
+                              {lang === 'id' ? 'SOROTAN MAYOR' : 'MAJOR HAZARDS'}
+                            </span>
+
+                            <span
+                              className={`px-1.5 py-0.2 rounded-full font-mono text-[9px] font-black leading-none ${
+                                isMajorHubOpen
+                                  ? 'bg-rose-500 text-white'
+                                  : 'bg-rose-100 text-rose-800'
                               }`}
-                              title={
-                                lang === 'id'
-                                  ? `Fokus kamera & buka detail ${item.place} (${item.badge})`
-                                  : `Focus camera & view details of ${item.place} (${item.badge})`
-                              }
                             >
+                              {majorHighlights.length}
+                            </span>
+
+                            {/* Mini Preview Chip of the top critical event */}
+                            {majorHighlights[0] && (
                               <span
-                                className={`w-2 h-2 rounded-full shrink-0 animate-pulse ${
-                                  item.type === 'event'
-                                    ? 'bg-rose-600'
-                                    : item.type === 'volcano'
-                                    ? 'bg-red-600'
-                                    : 'bg-orange-500'
-                                }`}
-                              />
-                              <span
-                                className={`font-bold ${
-                                  item.type === 'event'
-                                    ? 'text-rose-700'
-                                    : item.type === 'volcano'
-                                    ? 'text-red-700'
-                                    : 'text-orange-700'
+                                className={`hidden sm:inline-block text-[9.5px] font-mono truncate max-w-[130px] ${
+                                  isMajorHubOpen ? 'text-slate-300' : 'text-slate-500'
                                 }`}
                               >
-                                {item.badge}
+                                · {majorHighlights[0].badge} {majorHighlights[0].place}
                               </span>
-                              <span className="text-slate-300">·</span>
-                              <span className="font-semibold uppercase text-slate-800 group-hover:text-slate-950">
-                                {item.place}
-                              </span>
-                            </button>
-                          ))}
+                            )}
+
+                            {isMajorHubOpen ? (
+                              <ChevronUp className="w-3.5 h-3.5 opacity-70" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5 opacity-70" />
+                            )}
+                          </button>
+
+                          {/* Floating Glassmorphism Popover Panel */}
+                          {isMajorHubOpen && (
+                            <div className="absolute top-full left-0 mt-2 w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:w-[400px] sm:max-w-md max-h-[60vh] sm:max-h-[72vh] overflow-y-auto rounded-2xl bg-white/95 backdrop-blur-2xl border border-slate-200/90 shadow-2xl p-3 sm:p-3.5 space-y-2.5 sm:space-y-3 animate-in fade-in slide-in-from-top-2 duration-150 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                              {/* Panel Header */}
+                              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
+                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div>
+                                    <h3 className="font-mono text-xs font-bold text-slate-900 tracking-wide uppercase">
+                                      {lang === 'id' ? 'BENCANA SKALA MAYOR' : 'MAJOR SCALE HAZARDS'}
+                                    </h3>
+                                    <p className="text-[9px] font-mono text-slate-500">
+                                      {lang === 'id'
+                                        ? 'M ≥ 6.0 · Level IV/III · FRP ≥ 150MW'
+                                        : 'M ≥ 6.0 · Level IV/III · FRP ≥ 150MW'}
+                                    </p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsMajorHubOpen(false)}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Grouped Items List */}
+                              <div className="space-y-2">
+                                {majorHighlights.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    onClick={() => {
+                                      setTargetFocus([item.lat, item.lon]);
+                                      if (item.type === 'event') {
+                                        setSelectedEvent(item.data);
+                                      } else if (item.type === 'hotspot') {
+                                        setSelectedHotspot(item.data);
+                                      } else if (item.type === 'volcano') {
+                                        setSelectedVolcano(item.data);
+                                      }
+                                      setIsMajorHubOpen(false);
+                                    }}
+                                    className={`group flex items-center justify-between gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer bg-white hover:shadow-xs active:scale-[0.99] ${
+                                      item.type === 'event'
+                                        ? 'border-rose-100 hover:border-rose-300 hover:bg-rose-50/40'
+                                        : item.type === 'volcano'
+                                        ? 'border-red-100 hover:border-red-300 hover:bg-red-50/40'
+                                        : 'border-orange-100 hover:border-orange-300 hover:bg-orange-50/40'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      {/* Category Icon Badge */}
+                                      <div
+                                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                          item.type === 'event'
+                                            ? 'bg-rose-50 text-rose-600'
+                                            : item.type === 'volcano'
+                                            ? 'bg-red-50 text-red-600'
+                                            : 'bg-orange-50 text-orange-600'
+                                        }`}
+                                      >
+                                        {item.type === 'event' ? (
+                                          <Activity className="w-3.5 h-3.5" />
+                                        ) : item.type === 'volcano' ? (
+                                          <ShieldAlert className="w-3.5 h-3.5" />
+                                        ) : (
+                                          <Flame className="w-3.5 h-3.5" />
+                                        )}
+                                      </div>
+
+                                      {/* Hazard Info */}
+                                      <div className="min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                          <span
+                                            className={`px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold ${
+                                              item.type === 'event'
+                                                ? 'bg-rose-100 text-rose-800'
+                                                : item.type === 'volcano'
+                                                ? 'bg-red-100 text-red-800'
+                                                : 'bg-orange-100 text-orange-800'
+                                            }`}
+                                          >
+                                            {item.badge}
+                                          </span>
+                                          <span className="font-mono text-xs font-bold text-slate-900 truncate">
+                                            {item.place}
+                                          </span>
+                                        </div>
+                                        <span className="text-[9px] font-mono text-slate-400 block truncate mt-0.5">
+                                          {item.type === 'event'
+                                            ? 'USGS Catalog · M6+ Alert'
+                                            : item.type === 'volcano'
+                                            ? 'PVMBG / MAGMA · Erupsi'
+                                            : 'NASA FIRMS · Thermal Flux'}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Action Tags */}
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-slate-100 text-[8.5px] font-mono font-medium text-slate-600 group-hover:bg-rose-100 group-hover:text-rose-800 transition-colors">
+                                        <Newspaper className="w-2.5 h-2.5" />
+                                        <span className="hidden sm:inline">BERITA</span>
+                                      </span>
+                                      <span className="text-[10px] font-mono font-semibold text-slate-400 group-hover:text-slate-900 transition-colors pl-1">
+                                        →
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Footer Note */}
+                              <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] font-mono text-slate-400">
+                                <span>
+                                  {lang === 'id'
+                                    ? 'Klik item untuk analisis & liputan'
+                                    : 'Click item for telemetry & coverage'}
+                                </span>
+                                <span className="text-slate-300">Klik luar untuk tutup</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

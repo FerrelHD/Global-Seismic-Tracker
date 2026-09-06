@@ -1,4 +1,10 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+// Type declaration for Deno when opened in editors without Deno language server
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve: (handler: (req: Request) => Promise<Response> | Response) => void;
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,7 +32,7 @@ function resolveIsland(lat: number, lon: number): string {
   return 'Nusantara';
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

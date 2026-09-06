@@ -1,7 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { VolcanoActivity } from '../../types/seismic';
-import { X, Flame, Wind, Mountain, Compass, ShieldAlert, Share2, AlertTriangle } from 'lucide-react';
+import {
+  X,
+  Flame,
+  Wind,
+  Mountain,
+  Compass,
+  ShieldAlert,
+  Share2,
+  AlertTriangle,
+  Newspaper,
+  ExternalLink,
+  Loader2,
+} from 'lucide-react';
 import { Language } from '../../utils/i18n';
+import { isMajorVolcano, fetchDisasterNews, DisasterNewsItem } from '../../utils/newsService';
 
 interface VolcanoDetailModalProps {
   volcano: VolcanoActivity | null;
@@ -14,6 +27,36 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
   onClose,
   lang,
 }) => {
+  const isMajor = isMajorVolcano(volcano?.alert_level);
+  const [newsList, setNewsList] = useState<DisasterNewsItem[]>([]);
+  const [googleNewsUrl, setGoogleNewsUrl] = useState<string>('');
+  const [isNewsLoading, setIsNewsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!volcano || !isMajor) {
+      setNewsList([]);
+      setGoogleNewsUrl('');
+      return;
+    }
+    let isMounted = true;
+    setIsNewsLoading(true);
+    fetchDisasterNews(`${volcano.name} erupsi`, 'volcano', volcano.name)
+      .then((res) => {
+        if (isMounted) {
+          setNewsList(res.articles);
+          setGoogleNewsUrl(res.googleNewsUrl);
+          setIsNewsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setIsNewsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [volcano, isMajor]);
+
   if (!volcano) return null;
 
   const isCritical = volcano.alert_level === 'Level IV';
@@ -193,6 +236,76 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* 4.5 VERIFIED MEDIA INTEL & ERUPTION NEWS */}
+          {isMajor && (
+            <div className="my-2 p-3.5 rounded-2xl bg-slate-50/90 border border-slate-200/90 shadow-2xs">
+              <div className="flex items-center justify-between gap-2 mb-2.5 flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-700">
+                    <Newspaper className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-bold tracking-wider text-slate-900 uppercase block">
+                      {lang === 'id' ? 'LIPUTAN MEDIA & PANTAUAN ERUPSI' : 'VERIFIED ERUPTION COVERAGE'}
+                    </span>
+                    <span className="text-[8.5px] font-mono text-slate-500 block">
+                      {lang === 'id'
+                        ? 'Laporan perkembangan kawah & evakuasi dari media nasional'
+                        : 'Field reports and evacuation status from verified news media'}
+                    </span>
+                  </div>
+                </div>
+                {googleNewsUrl && (
+                  <a
+                    href={googleNewsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[9.5px] font-mono font-semibold text-rose-700 hover:text-rose-900 transition-colors"
+                  >
+                    <span>GOOGLE NEWS</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+
+              {isNewsLoading ? (
+                <div className="flex items-center justify-center py-4 text-slate-400 font-mono text-[10px] gap-2">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                  <span>{lang === 'id' ? 'Memuat berita erupsi...' : 'Fetching eruption reports...'}</span>
+                </div>
+              ) : newsList.length > 0 ? (
+                <div className="space-y-2">
+                  {newsList.map((item) => (
+                    <a
+                      key={item.id}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group block p-2.5 rounded-xl bg-white border border-slate-200/80 hover:border-rose-300 hover:shadow-xs transition-all"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 group-hover:bg-rose-50 text-[8.5px] font-mono font-bold text-slate-700 group-hover:text-rose-700 transition-colors uppercase">
+                          {item.source}
+                        </span>
+                        <span className="text-[8.5px] font-mono text-slate-400">
+                          {item.publishedAt}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-semibold text-slate-900 group-hover:text-rose-900 transition-colors leading-snug line-clamp-2">
+                        {item.title}
+                      </h4>
+                      {item.snippet && (
+                        <p className="text-[10px] text-slate-500 font-sans line-clamp-2 mt-1 leading-relaxed">
+                          {item.snippet}
+                        </p>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
 
           {/* 5. FOOTER ACTIONS */}
           <div className="pt-3 flex items-center justify-between gap-3 border-t border-slate-100">
