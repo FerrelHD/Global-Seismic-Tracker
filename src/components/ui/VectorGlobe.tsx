@@ -11,6 +11,7 @@ import {
 } from '../../utils/geoProximity';
 import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2, Activity, Newspaper } from 'lucide-react';
 import { DisasterNewsVerification } from './DisasterNewsVerification';
+import { BMKGAlert } from '../../utils/supabase';
 
 export interface CameraCoordinates {
   lat: number;
@@ -22,6 +23,7 @@ interface VectorGlobeProps {
   hotspots?: WildfireHotspot[];
   volcanoes?: VolcanoActivity[];
   hazardMode?: HazardMode;
+  bmkgAlert?: BMKGAlert | null;
   className?: string;
   speed?: number;
   isRotating?: boolean;
@@ -125,6 +127,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   lang = 'id',
   selectedHotspot: externalSelectedHotspot,
   onSelectHotspot,
+  bmkgAlert,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -165,7 +168,6 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const tooltipDepthRef = useRef<HTMLSpanElement>(null);
   const hoveredEventRef = useRef<SeismicEvent | null>(null);
 
-  const shockwavesContainerRef = useRef<HTMLDivElement>(null);
   const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const baseMapKeyRef = useRef<string>('');
 
@@ -270,12 +272,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   }, []);
 
 
-  // Major Events for Expanding Sonar Shockwaves (M >= 5.8)
-  const majorEvents = useMemo(() => {
-    return events.filter((e) => (e.magnitude ?? 0) >= 5.8).slice(0, 3);
-  }, [events]);
-  const majorEventsRef = useRef<SeismicEvent[]>(majorEvents);
-  majorEventsRef.current = majorEvents;
+
 
   // Handle Target Focus updates from Storytelling Chapters or Event Selection
   useEffect(() => {
@@ -803,12 +800,15 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             const [px, py] = project(item.longitude, item.latitude);
             if (px < -20 || px > w + 20 || py < -20 || py > h + 20) continue;
 
+            const isBmkg = item.id === 'bmkg-autogempa' || item.usgs_id === 'bmkg-autogempa';
             const mag = item.magnitude ?? 3.5;
-            const isMajor = mag >= 6.0;
-            const size = isMajor ? 5.5 : mag >= 4.5 ? 3.8 : 2.2;
+            const isMajor = mag >= 6.0 || isBmkg;
+            const size = isBmkg ? 6.2 : isMajor ? 5.5 : mag >= 4.5 ? 3.8 : 2.2;
 
             let fillColor = '#3b82f6';
-            if (currentMode === 'depth') {
+            if (isBmkg) {
+              fillColor = '#dc2626';
+            } else if (currentMode === 'depth') {
               const d = item.depth;
               if (d < 70) fillColor = '#f43f5e';
               else if (d <= 300) fillColor = '#f59e0b';
@@ -817,8 +817,90 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               fillColor = mag >= 6.0 ? '#ef4444' : mag >= 5.0 ? '#f97316' : '#3b82f6';
             }
 
-            // Fresh event rupture ripple pulse in time-lapse mode
-            if (currentTimelapse != null) {
+            // 1. Primary Live BMKG Event Beacon (Banggai, Sulawesi) - 100% Canvas Native Locked
+            if (isBmkg) {
+              const cycleMs = 2000;
+              const pingP = (now % cycleMs) / cycleMs;
+              const pingR = 8 + pingP * 40;
+
+              ctx.save();
+
+              // Expanding sonar acoustic wave
+              ctx.beginPath();
+              ctx.arc(px, py, pingR, 0, Math.PI * 2);
+              ctx.strokeStyle = 'rgba(220, 38, 38, 0.85)';
+              ctx.lineWidth = 2.0 * (1 - pingP);
+              ctx.globalAlpha = (1 - pingP) * 0.9;
+              ctx.stroke();
+
+              // Secondary breathing warning halo
+              const pulse = (Math.sin(now * 0.005) + 1) * 0.5;
+              const haloR = 11 + pulse * 6;
+              ctx.beginPath();
+              ctx.arc(px, py, haloR, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(239, 68, 68, 0.20)';
+              ctx.fill();
+              ctx.strokeStyle = '#ef4444';
+              ctx.lineWidth = 1.0;
+              ctx.stroke();
+
+              // Precision Geodetic Crosshairs
+              ctx.strokeStyle = '#dc2626';
+              ctx.lineWidth = 1.0;
+              const tickL = 6;
+              ctx.beginPath();
+              ctx.moveTo(px, py - haloR - tickL); ctx.lineTo(px, py - haloR + 2);
+              ctx.moveTo(px, py + haloR - 2); ctx.lineTo(px, py + haloR + tickL);
+              ctx.moveTo(px - haloR - tickL, py); ctx.lineTo(px - haloR + 2, py);
+              ctx.moveTo(px + haloR - 2, py); ctx.lineTo(px + haloR + tickL, py);
+              ctx.stroke();
+
+              // Permanent Architectural Floating Label Badge (Compact & Responsive)
+              ctx.font = '700 8.5px "JetBrains Mono", monospace';
+              let placeLabel = 'BANGGAI, SULAWESI';
+              if (item.place) {
+                const match = item.place.match(/(?:laut|darat)?\s*\d*\s*km\s*[A-Za-z\s]*\s+([A-Za-z]+)/i);
+                if (match) {
+                  placeLabel = `${match[1].toUpperCase()}, SULAWESI`;
+                } else if (item.place.length > 20) {
+                  placeLabel = 'BANGGAI, SULAWESI';
+                } else {
+                  placeLabel = cleanPlace(item.place);
+                }
+              }
+              const badgeText = `BMKG M ${mag.toFixed(1)} · ${placeLabel}`;
+              const metrics = ctx.measureText(badgeText);
+              const bW = metrics.width + 20;
+              const bH = 15;
+              const bX = px - bW / 2;
+              const bY = py - haloR - 15;
+
+              // Crisp pill background
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+              ctx.strokeStyle = 'rgba(220, 38, 38, 0.45)';
+              ctx.lineWidth = 0.8;
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(bX, bY, bW, bH, 5);
+              } else {
+                ctx.rect(bX, bY, bW, bH);
+              }
+              ctx.fill();
+              ctx.stroke();
+
+              // Red indicator beacon dot inside badge
+              ctx.beginPath();
+              ctx.arc(bX + 8, bY + bH / 2, 2.5, 0, Math.PI * 2);
+              ctx.fillStyle = '#dc2626';
+              ctx.fill();
+
+              // Badge text
+              ctx.fillStyle = '#991b1b';
+              ctx.fillText(badgeText, bX + 15, bY + 11);
+
+              ctx.restore();
+            } else if (currentTimelapse != null) {
+              // Fresh event rupture ripple pulse in time-lapse mode
               const ageMs = currentTimelapse - eventTime;
               if (ageMs >= 0 && ageMs < 43200000) {
                 const pulseP = (ageMs % 21600000) / 21600000;
@@ -832,9 +914,20 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                 ctx.restore();
               }
             } else if (isMajor) {
+              // Native Sonar Shockwave Ping (100% Canvas Anchored)
+              const cycleMs = 2400;
+              const pingP = ((now + i * 700) % cycleMs) / cycleMs;
+              const pingR = size + 4 + pingP * 30;
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(px, py, pingR, 0, Math.PI * 2);
+              ctx.strokeStyle = fillColor;
+              ctx.lineWidth = Math.max(0.5, 1.8 * (1 - pingP));
+              ctx.globalAlpha = (1 - pingP) * 0.75;
+              ctx.stroke();
+
               // Emergency pulse ring ONLY for M >= 6.0
               const pulse = (Math.sin(now * 0.004 + i) + 1) * 0.5;
-              ctx.save();
               ctx.beginPath();
               ctx.arc(px, py, size + 2 + pulse * 6, 0, Math.PI * 2);
               ctx.strokeStyle = fillColor;
@@ -846,7 +939,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
             // Draw core dot with subtle alpha hierarchy for minor quakes
             ctx.save();
-            if (mag < 4.5) {
+            if (mag < 4.5 && !isBmkg) {
               ctx.globalAlpha = 0.72;
             }
             ctx.fillStyle = fillColor;
@@ -855,9 +948,18 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             ctx.fill();
 
             // Hairline white boundary ring
-            ctx.lineWidth = 0.5;
+            ctx.lineWidth = isBmkg ? 1.0 : 0.5;
             ctx.strokeStyle = '#ffffff';
             ctx.stroke();
+
+            // Inner white-hot dot for BMKG primary or major quakes
+            if (isBmkg || isMajor) {
+              ctx.beginPath();
+              ctx.arc(px, py, size * 0.35, 0, Math.PI * 2);
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
+            }
+
             ctx.restore();
           }
         }
@@ -1206,31 +1308,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         ctx.restore();
 
 
-        // 7. Sonar Shockwaves for Major Earthquakes
-        if (shockwavesContainerRef.current) {
-          const shockwaveChildren = shockwavesContainerRef.current.children;
-          const mItems = majorEventsRef.current;
-          const isSeismicActive = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'seismic';
 
-          if (!isSeismicActive) {
-            for (let i = 0; i < shockwaveChildren.length; i++) {
-              (shockwaveChildren[i] as HTMLElement).style.opacity = '0';
-            }
-          } else {
-            for (let i = 0; i < mItems.length && i < shockwaveChildren.length; i++) {
-              const item = mItems[i];
-              const el = shockwaveChildren[i] as HTMLElement;
-              const [px, py] = project(item.longitude, item.latitude);
-
-              if (px >= 0 && px <= w && py >= 0 && py <= h) {
-                el.style.opacity = '1';
-                el.style.transform = `translate3d(${px}px, ${py}px, 0) translate(-50%, -50%)`;
-              } else {
-                el.style.opacity = '0';
-              }
-            }
-          }
-        }
       }
 
       animationFrameId = requestAnimationFrame(render);
@@ -1261,22 +1339,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
         style={{ width: '100%', height: '100%', touchAction: interactive ? 'pan-y' : 'auto' }}
       />
 
-      {/* 2. Expanding Sonar Shockwave Rings on Major Earthquakes (M >= 5.8) */}
-      <div ref={shockwavesContainerRef} className="absolute inset-0 pointer-events-none overflow-hidden">
-        {majorEvents.map((evt) => (
-          <div
-            key={`shockwave-${evt.usgs_id || evt.id}`}
-            className="absolute top-0 left-0 transition-opacity duration-300 pointer-events-none"
-            style={{ opacity: 0 }}
-          >
-            <span className="relative flex items-center justify-center">
-              <span className="absolute w-14 h-14 rounded-full border border-rose-500/50 animate-ping duration-1000" />
-              <span className="absolute w-8 h-8 rounded-full border border-rose-400/60 animate-pulse" />
-              <span className="relative w-2 h-2 rounded-full bg-rose-500 shadow-sm" />
-            </span>
-          </div>
-        ))}
-      </div>
+
 
 
       {/* 4. Precision Micro-Telemetry Tooltip Reticle */}

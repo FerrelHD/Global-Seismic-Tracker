@@ -105,9 +105,9 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
               ? 'calc(100vw - 2rem)'
               : 365
             : isMobile
-            ? 'calc(100vw - 2rem)'
+            ? 'calc(100vw - 2.5rem)'
             : 270,
-          height: isExpanded ? 355 : isMobile ? 42 : 130,
+          height: isExpanded ? 355 : isMobile ? 46 : 130,
           borderRadius: isMobile && !isExpanded ? 9999 : 16,
         }}
         transition={{
@@ -299,7 +299,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
         {isMobile && !isExpanded ? (
           /* Mobile Collapsed State: Sleek Slim Capsule (Dynamic Island Style) */
           <div className="relative z-10 h-full flex items-center justify-between px-3.5 py-1.5 gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
               <div className="flex items-center gap-1 font-mono text-[10px] shrink-0">
                 <span className="font-bold text-slate-400">BMKG</span>
@@ -308,13 +308,24 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                 </span>
               </div>
               <span className="text-slate-300 font-light shrink-0">·</span>
-              <span className="text-[11px] font-bold text-slate-900 truncate uppercase font-sans">
-                {location}
-              </span>
+              {(() => {
+                let mobileLoc = location;
+                const m = location.match(/(?:laut|darat)?\s*\d*\s*km\s*[A-Za-z\s]*\s+([A-Za-z]+)/i);
+                if (m) {
+                  mobileLoc = `${m[1].toUpperCase()}, SULAWESI`;
+                } else if (location.length > 20) {
+                  mobileLoc = location.slice(0, 18).trim() + '...';
+                }
+                return (
+                  <span className="text-[10.5px] font-bold text-slate-900 truncate uppercase font-sans">
+                    {mobileLoc}
+                  </span>
+                );
+              })()}
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-950 text-white font-mono text-[9px] font-bold tracking-wider shadow-2xs">
+            <div className="flex items-center gap-1 shrink-0 ml-1">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-950 text-white font-mono text-[9px] font-bold tracking-wider shadow-2xs shrink-0">
                 <span>{lang === 'id' ? 'DETAIL' : 'SURVEY'}</span>
                 <span className="text-[10px] leading-none">▾</span>
               </span>

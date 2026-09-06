@@ -150,7 +150,10 @@ export const App: React.FC = () => {
     setLoading(true);
     try {
       const data = await fetchSeismicEvents();
-      setEvents(data);
+      setEvents((prev) => {
+        const bmkg = prev.find((e) => e.id === 'bmkg-autogempa');
+        return bmkg ? [bmkg, ...data.filter((e) => e.id !== 'bmkg-autogempa')] : data;
+      });
 
       // Deep linking support: ?event=<id> or ?id=<id> with optional &tab=news
       if (typeof window !== 'undefined' && window.location.search) {
@@ -173,7 +176,44 @@ export const App: React.FC = () => {
     }
 
     fetchBMKGAutogempa().then((res) => {
-      if (res) setBmkgAlert(res);
+      if (res) {
+        setBmkgAlert(res);
+        let lat = -0.38;
+        let lon = 123.13;
+        if (res.coordinates && res.coordinates.includes(',')) {
+          const parts = res.coordinates.split(',');
+          const parsedLat = parseFloat(parts[0]);
+          const parsedLon = parseFloat(parts[1]);
+          if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
+            lat = parsedLat;
+            lon = parsedLon;
+          }
+        } else if (res.lintang && res.bujur) {
+          const latVal = parseFloat(res.lintang);
+          const lonVal = parseFloat(res.bujur);
+          if (!isNaN(latVal)) lat = res.lintang.includes('LS') ? -Math.abs(latVal) : Math.abs(latVal);
+          if (!isNaN(lonVal)) lon = lonVal;
+        }
+
+        const mag = parseFloat(res.magnitude) || 4.9;
+
+        const bmkgEvent: SeismicEvent = {
+          id: 'bmkg-autogempa',
+          usgs_id: 'bmkg-autogempa',
+          magnitude: mag,
+          depth: parseFloat(res.kedalaman) || 7,
+          latitude: lat,
+          longitude: lon,
+          place: res.wilayah || 'Laut 74 km Timur Laut Banggai, Sulawesi',
+          occurred_at: res.datetime || new Date().toISOString(),
+        };
+
+        setEvents((prev) => {
+          const exists = prev.some((e) => e.id === 'bmkg-autogempa' || e.usgs_id === 'bmkg-autogempa');
+          if (exists) return prev;
+          return [bmkgEvent, ...prev];
+        });
+      }
     });
 
     fetchLiveWildfireHotspots().then((res) => {
@@ -462,6 +502,10 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
           const matchPlace = e.place?.toLowerCase().includes(q) ?? false;
           if (!matchPlace) return false;
         }
+      }
+      // Always retain BMKG real-time headline event (Banggai) across magnitude/depth filters
+      if (e.id === 'bmkg-autogempa') {
+        return true;
       }
 
       if (timeFilter !== 'all') {
@@ -1022,6 +1066,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
             activeChapterIndex={isObservatoryActive || isHeroActive ? -1 : activeChapterIndex}
             selectedHotspot={selectedHotspot}
             onSelectHotspot={setSelectedHotspot}
+            bmkgAlert={bmkgAlert}
           />
         </div>
       </div>
@@ -1181,16 +1226,16 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                   style={{
                     opacity: observatoryProgress,
                     filter: observatoryProgress < 0.99 ? `blur(${(1 - observatoryProgress) * 6}px)` : 'none',
-                    transform: `translate3d(0, -${Math.min(obsTopOffset, 320)}px, 0)`,
-                    willChange: 'opacity, transform, filter',
+                    transform: 'none',
+                    willChange: 'opacity, filter',
                     visibility: observatoryProgress <= 0.001 ? 'hidden' : 'visible',
                   }}
-                  className="sticky top-0 h-screen w-full flex flex-col justify-between pt-16 sm:pt-20 pb-6 px-3 sm:px-6 lg:px-12 pointer-events-none z-20"
+                  className="sticky top-0 h-screen w-full flex flex-col justify-between pt-20 sm:pt-20 pb-6 px-3 sm:px-6 lg:px-12 pointer-events-none z-20"
                 >
                   {/* Top Row: Left-Aligned Epicenter Card + Right Telemetry & Scroll Zoom Reticle */}
                   <div className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 pointer-events-none">
                     {/* Left Side: Interactive BMKG Epicenter Survey Card & Major Hazards Highlights HUD */}
-                    <div className="pointer-events-auto flex flex-col items-start gap-2 max-w-sm">
+                    <div className="pointer-events-auto flex flex-col items-start gap-3 max-w-sm w-full sm:w-auto">
                       {bmkgAlert && formattedBMKG && (
                         <EpicenterMapCard
                           location={formattedBMKG.location}
@@ -1234,7 +1279,13 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
 
                       {/* Option 1: Quick Focus Major Hazards HUD Strip */}
                       {majorHighlights.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2.5rem)] sm:max-w-md py-2 px-1">
+                        <div
+                          style={{
+                            maskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
+                            WebkitMaskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
+                          }}
+                          className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2rem)] sm:max-w-md py-1.5 px-1 pr-6"
+                        >
                           <span className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1 px-1 shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                             <span>{lang === 'id' ? 'SOROTAN:' : 'MAJOR:'}</span>

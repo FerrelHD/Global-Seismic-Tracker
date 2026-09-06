@@ -1,8 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { VolcanoActivity } from '../../types/seismic';
-import { X, Flame, Wind, Mountain, Compass, ShieldAlert, Share2, AlertTriangle, Activity, Newspaper } from 'lucide-react';
+import {
+  X,
+  Flame,
+  Wind,
+  Mountain,
+  Compass,
+  ShieldAlert,
+  Share2,
+  AlertTriangle,
+  Activity,
+  Newspaper,
+  Navigation,
+  MapPin,
+  CheckCircle2,
+  AlertOctagon,
+  ShieldCheck,
+  Building2,
+  ChevronDown,
+  Search,
+  Check,
+} from 'lucide-react';
 import { Language } from '../../utils/i18n';
 import { DisasterNewsVerification } from './DisasterNewsVerification';
+import { useUserLocation } from '../../hooks/useUserLocation';
+import {
+  INDONESIAN_REFERENCE_CITIES,
+  calculateDistanceKm,
+  calculateDistanceToPolygonKm,
+  getAshPlumeSafetyStatus,
+  IndonesianCity,
+} from '../../utils/geoProximity';
 
 interface VolcanoDetailModalProps {
   volcano: VolcanoActivity | null;
@@ -18,6 +46,99 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
   initialTab = 'telemetry',
 }) => {
   const [activeTab, setActiveTab] = useState<'telemetry' | 'news'>(initialTab);
+
+  // Ash Plume Proximity Calculator State
+  const { coords: userGpsCoords, status: gpsStatus, requestLocation: requestGpsLocation } = useUserLocation();
+  const [locationMode, setLocationMode] = useState<'gps' | 'city'>(() => {
+    return userGpsCoords ? 'gps' : 'city';
+  });
+
+  // Custom Glassmorphism Dropdown State
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+  const cityDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close city dropdown on click outside
+  useEffect(() => {
+    if (!isCityDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isCityDropdownOpen]);
+
+  // Default benchmark city (Default to closest NTT city if in NTT, else Depok/Jakarta)
+  const [selectedCityName, setSelectedCityName] = useState<string>(() => {
+    if (!volcano) return 'Depok';
+    if (volcano.island.toLowerCase().includes('nusa') || volcano.island.toLowerCase().includes('bali')) {
+      return 'Larantuka';
+    }
+    return 'Depok';
+  });
+
+  const selectedCity = useMemo<IndonesianCity>(() => {
+    return (
+      INDONESIAN_REFERENCE_CITIES.find((c) => c.name === selectedCityName) ||
+      INDONESIAN_REFERENCE_CITIES[0]
+    );
+  }, [selectedCityName]);
+
+  const filteredCities = useMemo(() => {
+    if (!citySearchQuery.trim()) return INDONESIAN_REFERENCE_CITIES;
+    const q = citySearchQuery.toLowerCase().trim();
+    return INDONESIAN_REFERENCE_CITIES.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.province.toLowerCase().includes(q)
+    );
+  }, [citySearchQuery]);
+
+  // Current active reference coordinates (GPS or City)
+  const activeCoordinates = useMemo(() => {
+    if (locationMode === 'gps' && userGpsCoords) {
+      return {
+        lat: userGpsCoords.latitude,
+        lon: userGpsCoords.longitude,
+        label: 'Posisi GPS Saya',
+        subLabel: `${userGpsCoords.latitude.toFixed(2)}°, ${userGpsCoords.longitude.toFixed(2)}°`,
+        isGps: true,
+      };
+    }
+    return {
+      lat: selectedCity.latitude,
+      lon: selectedCity.longitude,
+      label: selectedCity.name,
+      subLabel: selectedCity.province,
+      isGps: false,
+    };
+  }, [locationMode, userGpsCoords, selectedCity]);
+
+  // Calculated Distances & Safety Status
+  const proximityData = useMemo(() => {
+    if (!volcano) return null;
+    const { lat, lon } = activeCoordinates;
+
+    // 1. Distance to Volcano Crater
+    const craterDist = calculateDistanceKm(lat, lon, volcano.latitude, volcano.longitude);
+
+    // 2. Distance to nearest Ash Plume Polygon boundary (if available)
+    let plumeDist = craterDist;
+    const hasPolygon = Boolean(volcano.ash_plume?.dispersion_polygon && volcano.ash_plume.dispersion_polygon.length >= 3);
+    if (hasPolygon && volcano.ash_plume?.dispersion_polygon) {
+      plumeDist = calculateDistanceToPolygonKm(lat, lon, volcano.ash_plume.dispersion_polygon);
+    }
+
+    const safety = getAshPlumeSafetyStatus(plumeDist);
+
+    return {
+      craterDist,
+      plumeDist,
+      hasPolygon,
+      safety,
+    };
+  }, [volcano, activeCoordinates]);
+
   if (!volcano) return null;
 
   const isCritical = volcano.alert_level === 'Level IV';
@@ -47,9 +168,16 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
   }[volcano.alert_level];
 
   const handleShare = () => {
-    const text = `🌋 ${volcano.name} - Status: ${volcano.alert_level}\nKetinggian Kolom Abu: FL${
-      volcano.ash_plume?.cloud_top_fl || 'N/A'
-    }\nArah Sebaran: ${volcano.ash_plume?.direction || 'N/A'}\nInfo dari Nusantara Hazard Observatory: https://global-seismic-tracker.vercel.app/`;
+    let text = `🌋 *${volcano.name} - Status: ${volcano.alert_level}*\n`;
+    if (volcano.ash_plume) {
+      text += `💨 Ketinggian Kolom Abu: FL${volcano.ash_plume.cloud_top_fl || 'N/A'}\n`;
+      text += `🧭 Arah Sebaran: ${volcano.ash_plume.direction || 'N/A'} (${volcano.ash_plume.speed_knots || 0} Knots)\n`;
+    }
+    if (proximityData) {
+      text += `📍 *Jarak ke Awan Abu (${activeCoordinates.label}):* ~${proximityData.plumeDist.toLocaleString('id-ID')} km\n`;
+      text += `🛡️ *Status:* ${proximityData.safety.badge} - ${proximityData.safety.statusText}\n`;
+    }
+    text += `\n🌐 *Pantau Peta & Abu Vulkanik:* https://global-seismic-tracker.vercel.app/`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -69,11 +197,11 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
-        data-lenis-prevent="true"
-        className="w-full max-w-[560px] max-h-[88vh] overflow-y-auto my-auto rounded-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="w-full max-w-[560px] max-h-[85vh] overflow-y-auto my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {/* Editorial Liquid Glass Native Card */}
-        <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 select-none bg-white/90 backdrop-blur-2xl relative overflow-hidden ring-1 ring-black/[0.04]">
+        <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 pb-6 shadow-2xl border border-white/90 select-none bg-white/95 backdrop-blur-2xl relative overflow-visible ring-1 ring-black/[0.04]">
           {/* Technical Corner Crosshairs */}
           <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┌</span>
           <span className="absolute top-3 right-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┐</span>
@@ -215,7 +343,214 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 </div>
               )}
 
-              {/* 4. ACTIVITY NARRATIVE & CRATER REPORT */}
+              {/* 4. ASH PLUME PROXIMITY CALCULATOR (FITUR NOMOR 1) */}
+              {proximityData && (
+                <div className="py-3 border-b border-slate-100">
+                  <div className="flex flex-col gap-2.5">
+                    {/* Header & Location Selector */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Navigation className="w-3.5 h-3.5 text-slate-700" />
+                        <span className="text-[10.5px] font-mono font-bold text-slate-900 tracking-wide uppercase">
+                          KALKULATOR JARAK ABU VULKANIK
+                        </span>
+                      </div>
+
+                      {/* Location Controls (GPS or City select) */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLocationMode('gps');
+                            requestGpsLocation();
+                          }}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-[10px] font-semibold tracking-wider transition-all cursor-pointer ${
+                            locationMode === 'gps' && userGpsCoords
+                              ? 'bg-slate-900 text-white shadow-2xs'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80'
+                          }`}
+                          title="Gunakan posisi GPS browser"
+                        >
+                          <Navigation className={`w-3 h-3 ${gpsStatus === 'requesting' ? 'animate-spin' : ''}`} />
+                          <span>
+                            {gpsStatus === 'requesting'
+                              ? 'MENCARI GPS...'
+                              : locationMode === 'gps' && userGpsCoords
+                              ? 'GPS SAYA'
+                              : 'GPS SAYA'}
+                          </span>
+                        </button>
+
+                        {/* Custom Glassmorphism City Selector Dropdown */}
+                        <div className="relative" ref={cityDropdownRef}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCityDropdownOpen((prev) => !prev);
+                              setLocationMode('city');
+                            }}
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-[10px] font-semibold tracking-wider border transition-all cursor-pointer ${
+                              locationMode === 'city'
+                                ? 'bg-white text-slate-900 border-slate-300 shadow-2xs'
+                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
+                            }`}
+                            title="Pilih kota acuan jarak abu"
+                          >
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span className="max-w-[110px] sm:max-w-[150px] truncate">
+                              {selectedCity.name}
+                            </span>
+                            <ChevronDown
+                              className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${
+                                isCityDropdownOpen ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </button>
+
+                          {/* Custom Dropdown Popover with Max Height & Search (Opens Upward to avoid any bottom modal clipping) */}
+                          {isCityDropdownOpen && (
+                            <div className="absolute bottom-full mb-2 right-0 w-64 sm:w-72 bg-white/98 backdrop-blur-xl border border-slate-200/90 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col ring-1 ring-black/5 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                              {/* Mini Search Header */}
+                              <div className="p-2 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50/90">
+                                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <input
+                                  type="text"
+                                  value={citySearchQuery}
+                                  onChange={(e) => setCitySearchQuery(e.target.value)}
+                                  placeholder="Cari kota / provinsi..."
+                                  className="w-full bg-transparent text-[11px] font-sans text-slate-900 placeholder-slate-400 outline-none"
+                                  autoFocus
+                                />
+                                {citySearchQuery && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCitySearchQuery('')}
+                                    className="p-0.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Scrollable City List with Max-Height */}
+                              <div className="max-h-44 overflow-y-auto py-1 divide-y divide-slate-100/80 no-scrollbar sm:custom-scrollbar">
+                                {filteredCities.length === 0 ? (
+                                  <div className="px-3 py-3 text-[11px] font-sans text-slate-400 text-center">
+                                    Kota tidak ditemukan
+                                  </div>
+                                ) : (
+                                  filteredCities.map((city) => {
+                                    const isSelected = city.name === selectedCityName;
+                                    return (
+                                      <button
+                                        key={city.name}
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedCityName(city.name);
+                                          setLocationMode('city');
+                                          setIsCityDropdownOpen(false);
+                                          setCitySearchQuery('');
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3 py-1.5 text-left transition-colors cursor-pointer ${
+                                          isSelected
+                                            ? 'bg-slate-900 text-white'
+                                            : 'hover:bg-slate-100 text-slate-800'
+                                        }`}
+                                      >
+                                        <div className="min-w-0 pr-2">
+                                          <div
+                                            className={`font-mono text-[11px] font-bold truncate ${
+                                              isSelected ? 'text-white' : 'text-slate-900'
+                                            }`}
+                                          >
+                                            {city.name}
+                                          </div>
+                                          <div
+                                            className={`text-[9.5px] font-sans truncate ${
+                                              isSelected ? 'text-slate-300' : 'text-slate-500'
+                                            }`}
+                                          >
+                                            {city.province}
+                                          </div>
+                                        </div>
+                                        {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
+                                      </button>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Proximity Readout Card */}
+                    <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100/70 border border-slate-200/90 font-mono flex flex-col gap-2.5">
+                      {/* Metric Display */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <span>LOKASI: {activeCoordinates.label}</span>
+                          </div>
+                          <div className="flex items-baseline gap-1 mt-0.5">
+                            <span className="text-2xl font-black text-slate-950 tracking-tight">
+                              {proximityData.plumeDist === 0 ? '0' : `~${proximityData.plumeDist.toLocaleString('id-ID')}`}
+                            </span>
+                            <span className="text-xs font-bold text-slate-600">KM</span>
+                            <span className="text-[10px] text-slate-500 ml-1">
+                              ke lintasan abu terdekat
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 mt-0.5">
+                            Jarak ke kawah aktif: ~{proximityData.craterDist.toLocaleString('id-ID')} km
+                          </div>
+                        </div>
+
+                        {/* Status Pill Indicator */}
+                        <div className="text-right shrink-0">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-2xs ${proximityData.safety.badgeClass}`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            {proximityData.safety.badge}
+                          </span>
+                          <span className="block text-[8.5px] text-slate-400 mt-1 uppercase">
+                            {proximityData.plumeDist < 50 ? '< 50 KM RADIUS' : proximityData.plumeDist <= 250 ? '50 - 250 KM RADIUS' : '> 250 KM RADIUS'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Dynamic Safety Advisory Box */}
+                      <div
+                        className={`p-2.5 rounded-xl border text-[10.5px] leading-relaxed flex flex-col gap-1 ${proximityData.safety.bgClass} ${proximityData.safety.borderClass}`}
+                      >
+                        <div className="flex items-center gap-1.5 font-bold" style={{ color: proximityData.safety.colorHex }}>
+                          {proximityData.safety.level === 'danger' ? (
+                            <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+                          ) : proximityData.safety.level === 'warning' ? (
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          ) : (
+                            <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                          )}
+                          <span>{proximityData.safety.statusText}</span>
+                        </div>
+                        <p className="font-sans text-[11px] text-slate-700 leading-normal pl-5">
+                          {proximityData.safety.recommendation}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[8px] text-slate-400 tracking-wider pt-1 border-t border-slate-200/60 uppercase">
+                        <span>DATA: VAAC DARWIN & PVMBG POLIGON</span>
+                        <span>FLIGHT LEVEL: FL{volcano.ash_plume?.cloud_top_fl || '300'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. ACTIVITY NARRATIVE & CRATER REPORT */}
               <div className="py-3 flex flex-col gap-2 font-sans text-xs">
                 <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
                   CATATAN AKTIVITAS VISUAL & KEGEMPAAN (PVMBG)

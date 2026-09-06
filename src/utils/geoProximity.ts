@@ -248,3 +248,172 @@ export function openWhatsAppShare(text: string): void {
   const url = `https://api.whatsapp.com/send?text=${encoded}`;
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+/**
+ * Curated Indonesian benchmark cities for proximity calculation and simulation.
+ */
+export interface IndonesianCity {
+  name: string;
+  province: string;
+  latitude: number;
+  longitude: number;
+}
+
+export const INDONESIAN_REFERENCE_CITIES: IndonesianCity[] = [
+  // NTT & Nusa Tenggara
+  { name: 'Larantuka', province: 'Flores Timur, NTT', latitude: -8.344, longitude: 122.981 },
+  { name: 'Maumere', province: 'Sikka, NTT', latitude: -8.621, longitude: 122.214 },
+  { name: 'Ende', province: 'Ende, NTT', latitude: -8.843, longitude: 121.662 },
+  { name: 'Ruteng', province: 'Manggarai, NTT', latitude: -8.614, longitude: 120.464 },
+  { name: 'Labuan Bajo', province: 'Manggarai Barat, NTT', latitude: -8.503, longitude: 119.888 },
+  { name: 'Kupang', province: 'NTT', latitude: -10.177, longitude: 123.607 },
+  { name: 'Waingapu', province: 'Sumba Timur, NTT', latitude: -9.656, longitude: 120.264 },
+  { name: 'Mataram', province: 'Lombok, NTB', latitude: -8.583, longitude: 116.116 },
+  { name: 'Denpasar', province: 'Bali', latitude: -8.670, longitude: 115.212 },
+
+  // Jawa
+  { name: 'Surabaya', province: 'Jawa Timur', latitude: -7.257, longitude: 112.752 },
+  { name: 'Malang', province: 'Jawa Timur', latitude: -7.978, longitude: 112.630 },
+  { name: 'Yogyakarta', province: 'DI Yogyakarta', latitude: -7.795, longitude: 110.369 },
+  { name: 'Semarang', province: 'Jawa Tengah', latitude: -6.993, longitude: 110.420 },
+  { name: 'Bandung', province: 'Jawa Barat', latitude: -6.917, longitude: 107.619 },
+  { name: 'Depok', province: 'Jawa Barat', latitude: -6.402, longitude: 106.818 },
+  { name: 'Jakarta', province: 'DKI Jakarta', latitude: -6.208, longitude: 106.845 },
+
+  // Sumatra
+  { name: 'Bandar Lampung', province: 'Lampung', latitude: -5.450, longitude: 105.266 },
+  { name: 'Palembang', province: 'Sumatera Selatan', latitude: -2.976, longitude: 104.775 },
+  { name: 'Padang', province: 'Sumatera Barat', latitude: -0.949, longitude: 100.354 },
+  { name: 'Pekanbaru', province: 'Riau', latitude: 0.507, longitude: 101.447 },
+  { name: 'Medan', province: 'Sumatera Utara', latitude: 3.595, longitude: 98.672 },
+  { name: 'Banda Aceh', province: 'Aceh', latitude: 5.548, longitude: 95.323 },
+
+  // Kalimantan
+  { name: 'Pontianak', province: 'Kalimantan Barat', latitude: -0.026, longitude: 109.342 },
+  { name: 'Palangka Raya', province: 'Kalimantan Tengah', latitude: -2.216, longitude: 113.916 },
+  { name: 'Banjarmasin', province: 'Kalimantan Selatan', latitude: -3.319, longitude: 114.590 },
+  { name: 'Balikpapan', province: 'Kalimantan Timur', latitude: -1.265, longitude: 116.831 },
+  { name: 'Samarinda', province: 'Kalimantan Timur', latitude: -0.502, longitude: 117.153 },
+
+  // Sulawesi, Maluku & Papua
+  { name: 'Makassar', province: 'Sulawesi Selatan', latitude: -5.147, longitude: 119.432 },
+  { name: 'Manado', province: 'Sulawesi Utara', latitude: 1.487, longitude: 124.842 },
+  { name: 'Palu', province: 'Sulawesi Tengah', latitude: -0.900, longitude: 119.877 },
+  { name: 'Ambon', province: 'Maluku', latitude: -3.695, longitude: 128.181 },
+  { name: 'Ternate', province: 'Maluku Utara', latitude: 0.790, longitude: 127.382 },
+  { name: 'Jayapura', province: 'Papua', latitude: -2.533, longitude: 140.718 },
+  { name: 'Sorong', province: 'Papua Barat Daya', latitude: -0.876, longitude: 131.255 },
+];
+
+/**
+ * Checks if a point [lat, lon] is strictly inside a 2D polygon using Ray-Casting algorithm.
+ * Note: polygon is GeoJSON [lon, lat][]
+ */
+export function isPointInsidePolygon(lat: number, lon: number, polygon: [number, number][]): boolean {
+  if (!polygon || polygon.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0]; // lon
+    const yi = polygon[i][1]; // lat
+    const xj = polygon[j][0]; // lon
+    const yj = polygon[j][1]; // lat
+
+    const intersect = ((yi > lat) !== (yj > lat)) &&
+      (lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Calculates shortest geodesic distance from a point to a 2D polygon (in km).
+ * Returns 0 if point is inside the polygon.
+ */
+export function calculateDistanceToPolygonKm(
+  userLat: number,
+  userLon: number,
+  polygon: [number, number][]
+): number {
+  if (!polygon || polygon.length === 0) return 0;
+  if (isPointInsidePolygon(userLat, userLon, polygon)) {
+    return 0;
+  }
+
+  let minDistance = Infinity;
+
+  for (let i = 0; i < polygon.length; i++) {
+    const p1 = polygon[i];
+    const p2 = polygon[(i + 1) % polygon.length];
+
+    // Compute distance to vertex p1
+    const distToVertex = calculateDistanceKm(userLat, userLon, p1[1], p1[0]);
+    if (distToVertex < minDistance) minDistance = distToVertex;
+
+    // Approximate point projection onto geodesic segment p1-p2
+    const dLon = p2[0] - p1[0];
+    const dLat = p2[1] - p1[1];
+    const segLenSq = dLon * dLon + dLat * dLat;
+    if (segLenSq > 0.00000001) {
+      const t = Math.max(0, Math.min(1, ((userLon - p1[0]) * dLon + (userLat - p1[1]) * dLat) / segLenSq));
+      const projLon = p1[0] + t * dLon;
+      const projLat = p1[1] + t * dLat;
+      const distToProj = calculateDistanceKm(userLat, userLon, projLat, projLon);
+      if (distToProj < minDistance) minDistance = distToProj;
+    }
+  }
+
+  return minDistance === Infinity ? 0 : parseFloat(minDistance.toFixed(1));
+}
+
+export interface AshPlumeSafetyStatus {
+  level: 'danger' | 'warning' | 'safe';
+  badge: string;
+  statusText: string;
+  recommendation: string;
+  colorHex: string;
+  badgeClass: string;
+  borderClass: string;
+  bgClass: string;
+}
+
+/**
+ * Returns standardized Indonesian civil protection safety status based on distance to ash plume.
+ */
+export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatus {
+  if (distanceKm < 50) {
+    return {
+      level: 'danger',
+      badge: 'WASPADA TINGGI',
+      statusText: distanceKm === 0 ? 'Posisi berada di dalam zona sebaran abu!' : 'Sangat dekat dengan lintasan abu vulkanik.',
+      recommendation: 'Gunakan masker standar N95 / medis dan batasi aktivitas luar ruang.',
+      colorHex: '#e11d48',
+      badgeClass: 'bg-rose-600 text-white',
+      borderClass: 'border-rose-200',
+      bgClass: 'bg-rose-50/80',
+    };
+  }
+
+  if (distanceKm <= 250) {
+    return {
+      level: 'warning',
+      badge: 'RADIUS SIAGA',
+      statusText: 'Waspadai pergeseran arah angin muson.',
+      recommendation: 'Siapkan perlindungan masker dan pantau rute penerbangan setempat.',
+      colorHex: '#d97706',
+      badgeClass: 'bg-amber-500 text-white',
+      borderClass: 'border-amber-200',
+      bgClass: 'bg-amber-50/80',
+    };
+  }
+
+  return {
+    level: 'safe',
+    badge: 'ZONA AMAN',
+    statusText: 'Di luar jangkauan abu permukaan saat ini.',
+    recommendation: 'Lokasi Anda aman dan jauh dari lintasan dispersi abu vulkanik aktif.',
+    colorHex: '#059669',
+    badgeClass: 'bg-emerald-600 text-white',
+    borderClass: 'border-emerald-200',
+    bgClass: 'bg-emerald-50/80',
+  };
+}
