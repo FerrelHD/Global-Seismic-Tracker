@@ -1083,18 +1083,18 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         className="fixed top-3.5 sm:top-4 left-1/2 z-40 w-full max-w-6xl px-3 sm:px-4 pointer-events-none select-none"
       >
         <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/75 backdrop-blur-md pointer-events-auto">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-1.5 sm:px-4 sm:py-2">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-4 px-2.5 py-1.5 sm:px-4 sm:py-2">
             {/* Logo + Branding: Sharp, Crisp Typography & Return to Hero Trigger */}
             <div
               onClick={scrollToHero}
               title={lang === 'id' ? 'Klik untuk kembali ke Bab Cerita / Beranda' : 'Click to return to Stories / Hero'}
-              className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink cursor-pointer group"
+              className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink cursor-pointer group"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                 <GlobeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1.5 text-xs sm:text-sm">
+                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1.5 text-[11px] sm:text-sm">
                   <span className="whitespace-nowrap font-extrabold tracking-tight">
                     {lang === 'id' ? 'OBSERVATORIUM' : 'SEISMIC'}
                   </span>
@@ -1102,7 +1102,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                   <span className="hidden md:inline text-neutral-500 font-mono font-medium text-xs truncate max-w-[140px] lg:max-w-none">
                     {t.observatorySubtitle}
                   </span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/90 font-mono tracking-wider font-semibold whitespace-nowrap">
+                  <span className="hidden sm:inline-block text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/90 font-mono tracking-wider font-semibold whitespace-nowrap">
                     {t.liveBadge}
                   </span>
                 </h1>
@@ -1116,10 +1116,10 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                 <button
                   type="button"
                   onClick={scrollToObservatory}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
+                  className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[10px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
                 >
                   <span>{lang === 'id' ? 'PETA' : 'MAP'}</span>
-                  <ArrowDown className="w-3 h-3 text-slate-300" />
+                  <ArrowDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-300" />
                 </button>
               )}
 
@@ -1128,7 +1128,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                 type="button"
                 onClick={toggleLanguage}
                 title={lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
-                className="flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                className="flex items-center gap-0.5 px-2 py-1 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[10.5px] sm:text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
               >
                 <span className={lang === 'id' ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}>ID</span>
                 <span className="text-slate-300 font-light">/</span>
@@ -1148,7 +1148,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                     ? 'Aktifkan Alarm Akustik Seismik'
                     : 'Enable Seismic Acoustic Alarm'
                 }
-                className={`p-2 rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center ${
+                className={`p-1.5 sm:p-2 rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center ${
                   alertsEnabled
                     ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
                     : 'bg-neutral-100/80 text-neutral-500 border-neutral-200/80 hover:bg-neutral-200/90'
@@ -1163,7 +1163,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                 id="bookmarks-btn"
                 onClick={() => setIsDrawerOpen(true)}
                 title={t.saved}
-                className="relative p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center"
+                className="relative p-1.5 sm:p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center"
               >
                 <BookmarkIcon className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
                 {bookmarks.length > 0 && (
@@ -1173,13 +1173,13 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                 )}
               </button>
 
-              {/* Refresh (Icon Only) */}
+              {/* Refresh (Icon Only - hidden on mobile to give generous space) */}
               <button
                 type="button"
                 id="refresh-btn"
                 onClick={loadData}
                 title={lang === 'id' ? 'Muat Ulang Telemetri' : 'Reload Telemetry'}
-                className="p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs flex items-center justify-center"
+                className="hidden sm:flex p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs items-center justify-center"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               </button>

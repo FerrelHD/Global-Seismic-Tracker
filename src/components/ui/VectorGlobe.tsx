@@ -456,11 +456,15 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           container.setPointerCapture(e.pointerId);
         } catch { }
       } else {
-        // Touchscreen: 1 finger is reserved for page scrolling, 2 fingers for map pan & pinch-zoom
+        // Touchscreen: 1 finger pans map, 2 fingers for pinch-zoom and 2-finger pan
         if (activePointers.size === 1) {
-          isDraggingRef.current = false;
+          isDraggingRef.current = true;
           hasDragged = false;
           dragStartRef.current = { x: e.clientX, y: e.clientY };
+          panAtDragStartRef.current = { lon: targetPanLonRef.current, lat: targetPanLatRef.current };
+          try {
+            container.setPointerCapture(e.pointerId);
+          } catch { }
         } else if (activePointers.size === 2) {
           isDraggingRef.current = true;
           hasDragged = true;
@@ -502,6 +506,24 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
           targetPanLonRef.current = panAtDragStartRef.current.lon - dx / scale;
           targetPanLatRef.current = panAtDragStartRef.current.lat + dy / scale;
           hasDragged = true;
+          return;
+        }
+
+        // Touchscreen: 1-finger fluid map pan (native mobile gesture)
+        if (activePointers.size === 1 && isDraggingRef.current) {
+          const dx = e.clientX - dragStartRef.current.x;
+          const dy = e.clientY - dragStartRef.current.y;
+
+          if (Math.hypot(dx, dy) > 4) {
+            hasDragged = true;
+          }
+
+          const rect = container.getBoundingClientRect();
+          const baseScale = Math.min(rect.width / BASE_SPAN_LON, rect.height / BASE_SPAN_LAT);
+          const scale = baseScale * zoomRef.current;
+
+          targetPanLonRef.current = panAtDragStartRef.current.lon - dx / scale;
+          targetPanLatRef.current = panAtDragStartRef.current.lat + dy / scale;
         }
         return;
       }
@@ -1323,7 +1345,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       ref={containerRef}
       style={{
         cursor: interactive ? 'grab' : 'default',
-        touchAction: interactive ? 'pan-y' : 'auto',
+        touchAction: interactive ? 'none' : 'auto',
         maskImage: isPanoramic
           ? 'radial-gradient(ellipse 90% 75% at 50% 50%, black 50%, rgba(0,0,0,0.85) 68%, rgba(0,0,0,0.2) 88%, transparent 100%)'
           : 'none',
@@ -1336,7 +1358,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
       {/* 1. Vector Map Canvas */}
       <canvas
         ref={canvasRef}
-        style={{ width: '100%', height: '100%', touchAction: interactive ? 'pan-y' : 'auto' }}
+        style={{ width: '100%', height: '100%', touchAction: interactive ? 'none' : 'auto' }}
       />
 
 

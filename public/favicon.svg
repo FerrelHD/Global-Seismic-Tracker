@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <!-- Radial glow for dark observatory disc -->
+    <radialGradient id="discGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="70%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+
+    <!-- Vibrant seismic pulse glow -->
+    <radialGradient id="pulseGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff2e63" stop-opacity="1" />
+      <stop offset="50%" stop-color="#f43f5e" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#e11d48" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Linear gradient for tectonic fault line -->
+    <linearGradient id="faultGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Observatory Disc -->
+  <circle cx="32" cy="32" r="30" fill="url(#discGrad)" stroke="#334155" stroke-width="1.5" />
+
+  <!-- Subtle Coordinate Graticule (Equator & Meridian) -->
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#475569" stroke-width="0.75" stroke-dasharray="2 2" stroke-opacity="0.6" />
+  <line x1="8" y1="32" x2="56" y2="32" stroke="#475569" stroke-width="0.75" stroke-opacity="0.5" />
+  <line x1="32" y1="8" x2="32" y2="56" stroke="#475569" stroke-width="0.75" stroke-opacity="0.5" />
+
+  <!-- Sunda Megathrust Arc Trench -->
+  <path d="M 12 39 Q 28 47 52 35" fill="none" stroke="url(#faultGrad)" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Outer Seismic Shockwave Ring -->
+  <circle cx="32" cy="32" r="16" fill="none" stroke="#f43f5e" stroke-width="1.2" stroke-dasharray="3 3" stroke-opacity="0.5" />
+
+  <!-- Mid Seismic Wave Ring -->
+  <circle cx="32" cy="32" r="10" fill="none" stroke="#f43f5e" stroke-width="1.8" stroke-opacity="0.85" />
+
+  <!-- Core Epicenter Beacon Glow -->
+  <circle cx="32" cy="32" r="6.5" fill="url(#pulseGlow)" />
+  <circle cx="32" cy="32" r="3.2" fill="#ffffff" />
+</svg>

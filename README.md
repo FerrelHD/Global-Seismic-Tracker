@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🌍 Indonesian Crustal Observatory & Global Seismic Tracker
-### *Nusantara Seismic Telemetry & Interactive Multi-Hazard Planetary Observatory*
+### *Nusantara Seismic Telemetry, Volcanic Eruption Intelligence & Multi-Hazard Planetary Observatory*
 
 [![React](https://img.shields.io/badge/React-19.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -14,7 +14,7 @@
 <br />
 
 <p align="center">
-  A high-performance, research-grade planetary hazard monitoring observatory. Combines high-precision 2D Canvas vector cartography, live USGS and BMKG earthquake telemetry, NASA FIRMS active wildfire hotspots, 4D time-lapse chronos, virtual seismogram oscilloscope, and scrollytelling data journalism across all device viewports.
+  A high-performance, research-grade planetary hazard monitoring observatory. Combines high-precision 2D Canvas vector cartography, live USGS and BMKG earthquake telemetry, NASA FIRMS active wildfire hotspots, PVMBG volcanic eruption telemetry with VAAC Darwin ash dispersal calculations, 4D time-lapse chronos, virtual seismogram oscilloscope, and scrollytelling data journalism across all device viewports.
 </p>
 
 </div>
@@ -25,50 +25,62 @@
 
 **Indonesian Crustal Observatory / Global Seismic Tracker** transforms multi-source geoscientific telemetry into an intuitive, high-fidelity interactive web observatory. Built with **React 19**, **HTML5 Canvas 2D Vector Cartography**, and **Supabase (PostgreSQL)**, the system visualizes planetary crustal dynamics with scientific precision:
 
-- **High-Precision Nusantara Vector Map:** Sub-millimeter architectural 2D canvas cartography mapping the Indonesian archipelago, equatorial parallels, and Sunda Megathrust subduction trench lines with kinetic momentum panning, wheel zoom, and multi-touch pinch-to-zoom.
-- **Seismic Telemetry:** Real-time USGS and BMKG feeds with hypocenter depth color coding, sonar shockwave ripples, and collision-free event tags.
+- **High-Precision Nusantara Vector Map:** Sub-millimeter architectural 2D canvas cartography mapping the Indonesian archipelago, equatorial parallels, and Sunda Megathrust subduction trench lines with kinetic momentum panning, wheel zoom, multi-touch pinch-to-zoom, and grounded landmark coordinates.
+- **Seismic Telemetry:** Real-time USGS and BMKG AutoGempa feeds with hypocenter depth color coding, sonar shockwave ripples, and collision-free event tags.
+- **Volcanic Eruptions & Ash Intelligence:** Live PVMBG (MAGMA Indonesia) volcano monitoring, official VAAC Darwin ash advisories (Flight Level, wind vectors), and geodesic distance calculation to active eruption plumes.
 - **NASA FIRMS Wildfire Hotspots:** Active thermal anomalies from VIIRS/MODIS satellites displaying Fire Radiative Power (MW) and atmospheric wind drift vectors.
 - **Scrollytelling Journalism:** Algorithmic narrative chapters guided by smooth inertial scrolling (Lenis) and dynamic telemetry analytics.
-- **Tactical Observatory Tools:** Virtual seismogram oscilloscope, official BMKG shakemaps, 7-day 4D time-lapse replay, synthesized Web Audio beacon alerts, and emergency broadcast social infographic generation.
+- **Tactical Observatory Tools:** Virtual seismogram oscilloscope, official BMKG shakemaps, 7-day 4D time-lapse replay, synthesized Web Audio beacon alerts, disaster news verification (TurnBackHoax / Google Fact Check), and emergency broadcast social infographic generation.
+- **Full Bilingual Localization:** Seamless instant toggle between Bahasa Indonesia (ID) and English (EN).
 
 ---
 
 ## ✨ Key Features
 
 ### 🗺️ 1. High-Performance Nusantara Vector Map
-- **Architectural Planar Vector Cartography:** Canvas 2D rendering engine projecting high-resolution GeoJSON landmasses of Indonesia and surrounding territories at a stable 60 FPS.
-- **Sunda Megathrust Subduction Trench:** Crisp vector line mapping the tectonic subduction interface where the Indo-Australian and Eurasian plates collide.
-- **Smooth Inertial Navigation:** Kinetic momentum dragging, mouse wheel zoom, double-click focus, and multi-touch pinch-to-zoom for tablet and mobile devices.
+- **Architectural Planar Vector Cartography:** Canvas 2D rendering engine projecting high-resolution GeoJSON landmasses of Indonesia and surrounding territories at a rock-solid 60 FPS.
+- **Sunda Megathrust Subduction Trench:** Crisp vector lines mapping the tectonic subduction interface where the Indo-Australian and Eurasian plates collide.
+- **Smooth Inertial Navigation:** Kinetic momentum dragging, mouse wheel zoom, double-click focus, and multi-touch pinch-to-zoom for mobile devices.
+- **Anchored Grounded Markers:** Telemetry coordinates and hazard markers stay pinned to geographic coordinates with zero floating drift during smooth scrollytelling transitions.
 
-### 🌋 2. Dual-Hazard Telemetry (Seismic + Thermal Anomalies)
+### 🌋 2. Multi-Hazard Planetary Telemetry
 - **Real-Time Earthquake Feeds:** Automated USGS ingestion pipeline coupled with live Indonesian BMKG AutoGempa telemetry.
+- **Active Volcano Telemetry (PVMBG - MAGMA Indonesia):** Real-time monitoring of major active Indonesian volcanoes (Lewotobi Laki-laki, Anak Krakatau, Merapi, Semeru, Marapi, Ili Lewotolok, Ibu, etc.) with standardized alert levels (**Level IV AWAS**, **Level III SIAGA**, **Level II WASPADA**).
+- **Volcanic Ash Cloud Advisory (VAAC Darwin):** Integrated aviation advisory codes, Flight Level ceiling (e.g. FL300 / ~9,144m), wind direction & velocity in knots, and active NOTAM / SIGMET airspace corridor alerts.
+- **Volcanic Ash Dispersal Distance Calculator:** Built-in geodesic proximity engine calculating live safety radius and direct distance to active plumes using device GPS or an instant searchable database of 50+ Indonesian regencies and cities.
 - **NASA FIRMS Wildfire Integration:** Active thermal hotspots from VIIRS/MODIS satellites displaying Fire Radiative Power (MW) and regional island categorization (Sumatra, Kalimantan, Sulawesi, Papua, Java).
-- **Hazard Mode Toggle:** Switch seamlessly between **Dual Hazard**, **Seismic Only**, or **Wildfire Only** visualization modes.
-- **Atmospheric Dispersion Context:** Integrated regional wind speed and vector direction powered by Open-Meteo.
+- **Multi-Mode Controller Dock:** Switch seamlessly between **Dual Hazard**, **Seismic Only**, **Wildfire Only**, or **Volcano Only** (`Mountain` icon) visualization modes.
 
 ### 🇮🇩 3. BMKG AutoGempa & Shakemap Visualizer
 - Direct integration with Indonesia's Meteorology, Climatological, and Geophysical Agency (BMKG).
-- Detailed **BMKG Shakemap Modal** rendering official shakemaps, Modified Mercalli Intensity (MMI) felt scales, hypocenter depth, coordinates, and tsunami potential warnings.
+- **Dynamic Island Style Mobile Capsule:** Compact, beautifully rounded mobile capsule displaying current epicenter telemetry, magnitude badge, and rapid detail expander.
+- **BMKG Shakemap Modal:** Official shakemaps, Modified Mercalli Intensity (MMI) felt scales, hypocenter depth, coordinates, and tsunami potential warnings.
+- **20-20-20 Coastal Evacuation Protocol:** Integrated public education guideline (20 seconds of strong shaking -> 20 minutes to evacuate -> 20 meters above sea level).
 
-### 📜 4. Scrollytelling & Dynamic Narrative Rail
+### 🔍 4. Disaster Misinformation & Fact-Check Verification
+- Dedicated fact-checking panel integrated directly into seismic and volcanic detail readouts.
+- Connects to the **Google Fact Check Tools API** and **TurnBackHoax (Mafindo)** to cross-examine viral disaster hoaxes, doctored eruption videos, and fake tsunami warnings.
+
+### 📜 5. Scrollytelling & Dynamic Narrative Rail
 - **Lenis Smooth Scroll:** Hardware-accelerated smooth scrolling transitioning seamlessly from the Hero display into in-depth data journalism chapters.
 - **Algorithmic Chapter Analytics:** Dynamic clustering engine (`storyAnalytics.ts`) automatically detecting high-magnitude swarms, megathrust strain, and deep mantle subduction events.
 - **Story Progress Rail:** Visual chapter indicator tracking reading progress and synchronizing map view coordinates with each region under investigation.
 
-### ⏱️ 5. 4D Time-Lapse Seismic Chrono-Scrubber
+### ⏱️ 6. 4D Time-Lapse Seismic Chrono-Scrubber
 - 7-day chronological playback simulator with scrub bar and interactive play/pause controls.
 - Dynamic speed multipliers (**1x**, **5x**, **15x**, **45x**) allowing researchers to observe foreshock and aftershock sequences over time.
 
-### 📈 6. Virtual Seismogram Oscilloscope
+### 📈 7. Virtual Seismogram Oscilloscope
 - Interactive synthetic waveform generator simulating real-time seismometer recording.
 - Models **P-waves** (primary compressional), **S-waves** (secondary shear), and large-amplitude **Surface waves** based on calculated distance, focal depth, and Richter magnitude.
 
-### 🚨 7. Audio Beacon Alerts & Social Emergency Infographics
+### 🚨 8. Audio Beacon Alerts & Social Emergency Infographics
 - **Synthesized Audio Beacon:** Web Audio API oscillator triggering frequency-tuned sonic pings on critical seismic events (M ≥ 5.5).
 - **Toast Notifications:** Live alert toasts alerting users to incoming events with epicenter coordinates and magnitude badges.
 - **Disaster Infographic Generator:** One-click modal generating formatted emergency broadcast visual cards with QR codes and vital parameters for public safety broadcasting.
+- **WhatsApp Emergency Broadcast Sharing:** One-click direct link generating pre-formatted disaster bulletins for instant group safety broadcasts.
 
-### 📑 8. Research Bookmarks & Field Notes
+### 📑 9. Research Bookmarks & Field Notes
 - Save significant seismic occurrences with custom observation notes.
 - Persistent local storage (`localStorage`) cache with full slide-over drawer management.
 - One-click outbound links to official USGS Executive Event Portals and BMKG bulletins.
@@ -82,8 +94,11 @@ graph TD
   subgraph Data Ingestion
     USGS[USGS Earthquake API] -->|Node.js ETL Sync| FetchScript[scripts/fetch-usgs.js]
     BMKG[BMKG Open Data API] -->|Client REST Fetch| BMKGUtil[src/utils/supabase.ts]
+    PVMBG[PVMBG / MAGMA Indonesia] -->|Volcano Telemetry| VolcanoUtil[src/components/ui/VolcanoDetailModal.tsx]
+    VAAC[VAAC Darwin BoM] -->|Aviation Ash Advisories| VolcanoUtil
     FIRMS[NASA FIRMS / Edge Function] -->|Hotspot Telemetry| HotspotDB[(Supabase PostgreSQL)]
     Meteo[Open-Meteo Weather API] -->|Atmospheric Vectors| WeatherSvc[src/utils/weatherService.ts]
+    FactCheck[Google Fact Check / TurnBackHoax] -->|Disaster Verification| NewsSvc[src/components/ui/DisasterNewsVerification.tsx]
   end
 
   subgraph Database Layer
@@ -104,6 +119,7 @@ graph TD
     App --> Scrolly[Lenis Scrollytelling Narrative]
     App --> Seismogram[Virtual Seismogram Oscilloscope]
     App --> TimeLapse[4D Time-Lapse Scrubber]
+    App --> VolcanoModal[Volcano & Ash Calculator Modal]
     App --> Audio[Web Audio API Alert Beacon]
   end
 ```
@@ -117,7 +133,8 @@ graph TD
 | **Styling** | Tailwind CSS v4 | Cutting-edge utility-first styling and frosted liquid-glass aesthetics |
 | **Icons** | Lucide React | Minimalist scientific iconography |
 | **Backend & Database** | Supabase (PostgreSQL 15+) | Managed database storing deduplicated seismic and wildfire records |
-| **External APIs** | USGS, BMKG, NASA FIRMS, Open-Meteo | Multi-hazard scientific telemetry sources |
+| **Geodesic Calculations** | Great-Circle Haversine Formula | Mathematical distance to active ash clouds and hypocenters |
+| **External APIs** | USGS, BMKG, PVMBG, VAAC Darwin, NASA FIRMS, Open-Meteo | Multi-hazard scientific telemetry sources |
 
 ---
 
@@ -243,7 +260,7 @@ npm run verify
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) (or the port specified in terminal) in your browser.
 
 ---
 
@@ -265,6 +282,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ```
 Global-Seismic-Tracker/
 ├── public/                     # Static assets
+│   ├── favicon.svg             # Planetary seismic telemetry SVG favicon
+│   ├── data/                   # GeoJSON cartography and plate boundary datasets
+│   └── textures/               # Elevation and terrain textures
 ├── scripts/                    # Node.js ETL pipelines & maintenance
 │   ├── fetch-usgs.js           # Live USGS API ingestion to Supabase
 │   ├── verify-db.js            # DB connection and telemetry healthcheck
@@ -282,27 +302,30 @@ Global-Seismic-Tracker/
 │   │   │   ├── StoryChapterCard.tsx
 │   │   │   └── StoryProgressRail.tsx
 │   │   └── ui/                 # Observatory HUD & tactical control widgets
-│   │       ├── BMKGShakemapModal.tsx      # BMKG official shakemap viewer
-│   │       ├── BookmarkDrawer.tsx         # Saved bookmarks slide-over drawer
-│   │       ├── CurtainLoader.tsx          # Cinematic opening curtain transition
-│   │       ├── EpicenterMapCard.tsx       # Detail map card with regional view
-│   │       ├── EventModal.tsx             # Detail inspection modal
-│   │       ├── EventsListDrawer.tsx       # Live seismic events telemetry feed
-│   │       ├── FloatingControllerDock.tsx # Floating bottom navigation dock
-│   │       ├── liquid-glass.tsx           # Frosted glassmorphism card component
-│   │       ├── SeismicAlertToast.tsx      # Live earthquake alert toast banner
-│   │       ├── SocialInfographicModal.tsx # Emergency disaster broadcast infographic
-│   │       ├── TimeLapseScrubber.tsx      # 4D 7-day chronological replay scrubber
-│   │       ├── VectorGlobe.tsx            # Main interactive vector map with pinch/zoom/pan
-│   │       ├── ViewportTechnicalFrame.tsx # Observatory viewport HUD frame
-│   │       └── VirtualSeismogram.tsx      # Synthetic P/S/Surface wave oscilloscope
+│   │       ├── BMKGShakemapModal.tsx        # BMKG official shakemap viewer
+│   │       ├── BookmarkDrawer.tsx           # Saved bookmarks slide-over drawer
+│   │       ├── CurtainLoader.tsx            # Cinematic opening curtain transition
+│   │       ├── DisasterNewsVerification.tsx # Hoax counter & fact-check engine
+│   │       ├── EpicenterMapCard.tsx         # Dynamic Island BMKG card & evacuation guide
+│   │       ├── EventModal.tsx               # Detail seismic inspection modal
+│   │       ├── EventsListDrawer.tsx         # Live seismic events telemetry feed
+│   │       ├── FloatingControllerDock.tsx   # 4-hazard mode floating navigation dock
+│   │       ├── liquid-glass.tsx             # Frosted glassmorphism card component
+│   │       ├── SeismicAlertToast.tsx        # Live earthquake alert toast banner
+│   │       ├── SocialInfographicModal.tsx   # Emergency disaster broadcast infographic
+│   │       ├── TimeLapseScrubber.tsx        # 4D 7-day chronological replay scrubber
+│   │       ├── VectorGlobe.tsx              # Main interactive vector map with pinch/zoom/pan
+│   │       ├── ViewportTechnicalFrame.tsx   # Observatory viewport HUD frame
+│   │       ├── VirtualSeismogram.tsx        # Synthetic P/S/Surface wave oscilloscope
+│   │       └── VolcanoDetailModal.tsx       # PVMBG volcano status & ash distance calculator
 │   ├── hooks/
 │   │   └── useLenis.ts         # Smooth scroll lifecycle hook
 │   ├── types/
-│   │   └── seismic.ts          # TypeScript models (SeismicEvent, WildfireHotspot, etc.)
+│   │   └── seismic.ts          # TypeScript models (SeismicEvent, WildfireHotspot, Volcano, etc.)
 │   ├── utils/
 │   │   ├── audioAlert.ts       # Web Audio API synthesized alert sound
 │   │   ├── firmsService.ts     # NASA FIRMS hotspot data fetcher
+│   │   ├── geoProximity.ts     # Geodesic Haversine math & 50+ Indonesian city coordinates
 │   │   ├── storyAnalytics.ts   # Algorithmic clustering & chapter generation
 │   │   ├── supabase.ts         # Supabase client, BMKG loader & bookmarks
 │   │   └── weatherService.ts   # Open-Meteo wind & atmospheric data provider
@@ -339,9 +362,12 @@ vercel
 ## 🤝 Data Attribution & References
 
 - **[USGS Earthquake Hazards Program](https://earthquake.usgs.gov/)** for real-time global seismic feeds.
-- **[BMKG Indonesia (Badan Meteorologi, Klimatologi, dan Geofisika)](https://data.bmkg.go.id/)** for real-time Indonesian AutoGempa bulletins and official shakemaps.
+- **[BMKG Indonesia (Badan Meteorologi, Klimatologi, dan Geofisika)](https://data.bmkg.go.id/)** for real-time Indonesian AutoGempa bulletins, tsunami warnings, and official shakemaps.
+- **[PVMBG - MAGMA Indonesia](https://magma.esdm.go.id/)** for Indonesian volcanic activity, eruption notices, and visual/seismic status reports.
+- **[VAAC Darwin (Bureau of Meteorology Australia)](http://www.bom.gov.au/info/vaac/)** for Volcanic Ash Advisories (VAA), flight levels, and airspace dispersion corridors.
 - **[NASA FIRMS (Fire Information for Resource Management System)](https://firms.modaps.eosdis.nasa.gov/)** for active VIIRS/MODIS thermal and wildfire hotspots.
 - **[Open-Meteo API](https://open-meteo.com/)** for high-resolution regional wind and atmospheric dispersion metrics.
+- **[TurnBackHoax (Mafindo)](https://turnbackhoax.id/) & [Google Fact Check Tools API](https://toolbox.google.com/factcheck/apis)** for disaster misinformation counteraction.
 - **Typography:** [Cabinet Grotesk](https://www.fontshare.com/) & [JetBrains Mono](https://www.jetbrains.com/lp/mono/).
 
 ---
