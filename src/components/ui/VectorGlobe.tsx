@@ -9,7 +9,8 @@ import {
   formatWildfireWAMessage,
   openWhatsAppShare,
 } from '../../utils/geoProximity';
-import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2 } from 'lucide-react';
+import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2, Activity, Newspaper } from 'lucide-react';
+import { DisasterNewsVerification } from './DisasterNewsVerification';
 
 export interface CameraCoordinates {
   lat: number;
@@ -172,7 +173,9 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const [windTelemetry, setWindTelemetry] = useState<RegionalWindData[]>([]);
   const [internalSelectedHotspot, setInternalSelectedHotspot] = useState<WildfireHotspot | null>(null);
   const selectedHotspot = externalSelectedHotspot !== undefined ? externalSelectedHotspot : internalSelectedHotspot;
+  const [hotspotModalTab, setHotspotModalTab] = useState<'telemetry' | 'news'>('telemetry');
   const setSelectedHotspot = (h: WildfireHotspot | null) => {
+    setHotspotModalTab('telemetry');
     if (onSelectHotspot) onSelectHotspot(h);
     else setInternalSelectedHotspot(h);
   };
@@ -1423,7 +1426,40 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                     </button>
                   </div>
 
-                  {/* 2. SCIENTIFIC VISUALIZATION MATRIX */}
+                  {/* TAB SWITCHER: TELEMETRI TERMAL vs VERIFIKASI BERITA */}
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3">
+                    <button
+                      type="button"
+                      onClick={() => setHotspotModalTab('telemetry')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        hotspotModalTab === 'telemetry'
+                          ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      <Activity className="w-3.5 h-3.5 text-slate-600" />
+                      <span>{lang === 'id' ? 'TELEMETRI TERMAL' : 'THERMAL TELEMETRY'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHotspotModalTab('news')}
+                      className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        hotspotModalTab === 'news'
+                          ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      <Newspaper className="w-3.5 h-3.5 text-orange-500" />
+                      <span>{lang === 'id' ? 'VERIFIKASI BERITA' : 'NEWS VERIFICATION'}</span>
+                      {selectedHotspot.frp >= 50 && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {hotspotModalTab === 'telemetry' ? (
+                    <div>
+                      {/* 2. SCIENTIFIC VISUALIZATION MATRIX */}
                   <div className="py-3.5 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
                     {/* Left Col: Numeric FRP + Segmented Meter + Plume Box */}
                     <div className="sm:col-span-7 flex flex-col justify-between">
@@ -1672,6 +1708,19 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
+              ) : (
+                <div className="py-3">
+                  <DisasterNewsVerification
+                    event={{
+                      id: selectedHotspot.id,
+                      place: selectedHotspot.island,
+                      disasterType: 'wildfire',
+                    }}
+                    lang={lang}
+                  />
+                </div>
+              )}
 
                   {/* 4. ACTION CONTROLS DOCK */}
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">

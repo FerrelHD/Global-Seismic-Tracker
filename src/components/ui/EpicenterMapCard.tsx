@@ -12,8 +12,8 @@ interface EpicenterMapCardProps {
   lang?: 'id' | 'en';
   onFocusEpicenter?: () => void;
   onOpenShakemap?: () => void;
-  onOpenSeismogram?: () => void;
   onOpenInfographic?: () => void;
+  onOpenNews?: () => void;
   className?: string;
 }
 
@@ -28,8 +28,8 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
   lang = 'id',
   onFocusEpicenter,
   onOpenShakemap,
-  onOpenSeismogram,
   onOpenInfographic,
+  onOpenNews,
   className = '',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -459,20 +459,6 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                           </button>
                         )}
 
-                        {onOpenSeismogram && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenSeismogram();
-                            }}
-                            className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-slate-900 text-slate-700 hover:text-white border border-slate-300/80 font-mono text-[9.5px] tracking-wider transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 uppercase font-semibold"
-                            title={lang === 'id' ? 'Monitor Seismograf Real-Time' : 'Monitor Real-Time Seismograph'}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#0f2f63]" />
-                            <span>WAVEFORM</span>
-                          </button>
-                        )}
-
                         {onOpenInfographic && (
                           <button
                             onClick={(e) => {
@@ -483,6 +469,20 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                             title={lang === 'id' ? 'Bagikan Kartu Infografis Bencana' : 'Generate Disaster Infographic'}
                           >
                             <span>{lang === 'id' ? 'BAGIKAN' : 'SHARE'}</span>
+                          </button>
+                        )}
+
+                        {onOpenNews && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenNews();
+                            }}
+                            className="pointer-events-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white hover:bg-slate-900 text-slate-700 hover:text-white border border-slate-300/80 font-mono text-[9.5px] tracking-wider transition-all duration-150 cursor-pointer shadow-2xs active:scale-95 uppercase font-semibold"
+                            title={lang === 'id' ? 'Verifikasi Berita Terkini' : 'Verify Live News'}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                            <span>{lang === 'id' ? 'BERITA' : 'NEWS'}</span>
                           </button>
                         )}
                       </div>

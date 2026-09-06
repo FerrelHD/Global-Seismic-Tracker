@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SeismicEvent } from '../../types/seismic';
 import { LiquidCard } from './liquid-glass';
 import { useUserLocation } from '../../hooks/useUserLocation';
@@ -9,6 +9,7 @@ import {
   formatSeismicWAMessage,
   openWhatsAppShare,
 } from '../../utils/geoProximity';
+import { DisasterNewsVerification } from './DisasterNewsVerification';
 import {
   X,
   Bookmark as BookmarkIcon,
@@ -22,6 +23,8 @@ import {
   MapPin,
   Navigation,
   Loader2,
+  Newspaper,
+  Link2,
 } from 'lucide-react';
 
 interface EventModalProps {
@@ -30,8 +33,8 @@ interface EventModalProps {
   isBookmarked: boolean;
   onToggleBookmark: (event: SeismicEvent, note?: string) => void;
   onFocusGlobe?: (event: SeismicEvent) => void;
-  onOpenSeismogram?: (event: SeismicEvent) => void;
   onOpenInfographic?: (event: SeismicEvent) => void;
+  initialTab?: 'telemetry' | 'news';
 }
 
 function formatRelativeTime(dateString: string, lang: 'id' | 'en' = 'id'): string {
@@ -119,15 +122,40 @@ export const EventModal: React.FC<EventModalProps> = ({
   isBookmarked,
   onToggleBookmark,
   onFocusGlobe,
-  onOpenSeismogram,
   onOpenInfographic,
+  initialTab = 'telemetry',
 }) => {
   const { t, lang } = useLanguage();
+  const magVal = event?.magnitude ?? 0;
+  const isSignificantForNews = magVal >= 4.0 || event?.usgs_id === 'bmkg-autogempa';
+  const [activeTab, setActiveTab] = useState<'telemetry' | 'news'>(
+    isSignificantForNews && initialTab === 'news' ? 'news' : 'telemetry'
+  );
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [showTsunamiGuide, setShowTsunamiGuide] = useState(false);
   const { coords, status: geoStatus, errorMessage: geoError, requestLocation } = useUserLocation();
 
-  const magVal = event?.magnitude ?? 0;
+  useEffect(() => {
+    if (initialTab && (initialTab !== 'news' || isSignificantForNews)) {
+      setActiveTab(initialTab);
+    } else if (!isSignificantForNews) {
+      setActiveTab('telemetry');
+    }
+  }, [initialTab, isSignificantForNews, event?.id, event?.usgs_id]);
+
+  const handleCopyLink = () => {
+    if (!event) return;
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'https://global-seismic-tracker.vercel.app';
+    const link = `${origin}/?event=${encodeURIComponent(event.usgs_id || event.id || '')}`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   const energyStr = useMemo(() => calculateEnergyEquivalent(magVal), [magVal]);
   const waveformPath = useMemo(() => generateSeismicWaveform(magVal, 150, 42), [magVal]);
 
@@ -253,8 +281,41 @@ export const EventModal: React.FC<EventModalProps> = ({
             </button>
           </div>
 
-          {/* 2. SCIENTIFIC VISUALIZATION MATRIX (MAGNITUDE + WAVEFORM + DEPTH GAUGE) */}
-          <div className="py-3.5 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
+          {/* TAB SWITCHER: TELEMETRY & SENSORS vs LIVE NEWS VERIFICATION (Gated to Major M >= 4.0 or BMKG) */}
+          {isSignificantForNews && (
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('telemetry')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'telemetry'
+                    ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5 text-slate-600" />
+                <span>{lang === 'id' ? 'TELEMETRI & INSTRUMEN' : 'TELEMETRY & SENSORS'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('news')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === 'news'
+                    ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Newspaper className="w-3.5 h-3.5 text-rose-500" />
+                <span>{lang === 'id' ? 'VERIFIKASI BERITA' : 'NEWS VERIFICATION'}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse ml-0.5" />
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'telemetry' ? (
+            <div>
+              {/* 2. SCIENTIFIC VISUALIZATION MATRIX (MAGNITUDE + WAVEFORM + DEPTH GAUGE) */}
+              <div className="py-3.5 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
             {/* Left Col: Magnitude + Richter Segment Meter + Seismograph Waveform */}
             <div className="sm:col-span-7 flex flex-col justify-between">
               <div>
@@ -531,6 +592,31 @@ export const EventModal: React.FC<EventModalProps> = ({
             )}
           </div>
 
+          {/* Quick News Banner Trigger in Telemetry view */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('news')}
+            className="w-full mt-3 p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/90 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-between gap-2 text-left shadow-2xs"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+              <span className="text-[10.5px] font-mono text-slate-700 font-medium">
+                {lang === 'id'
+                  ? 'Periksa liputan berita terkini & konfirmasi media untuk titik ini'
+                  : 'Check live news & media verification reports for this event'}
+              </span>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-slate-900 shrink-0 uppercase tracking-wider">
+              {lang === 'id' ? 'BUKA BERITA →' : 'VIEW NEWS →'}
+            </span>
+          </button>
+        </div>
+      ) : (
+        <div className="py-1">
+          <DisasterNewsVerification event={event} lang={lang} />
+        </div>
+      )}
+
           {/* 3. TECHNICAL METRICS FOOTER */}
           <div className="py-2.5 space-y-1.5 font-mono text-xs">
             <div className="flex items-center justify-between">
@@ -567,16 +653,20 @@ export const EventModal: React.FC<EventModalProps> = ({
                 <span>GLOBE</span>
               </button>
 
-              {onOpenSeismogram && (
-                <button
-                  onClick={() => onOpenSeismogram(event)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-neutral-200"
-                  title={lang === 'id' ? 'Buka Seismogram Gelombang P & S' : 'Open P & S Wave Seismogram'}
-                >
-                  <Activity className="w-3.5 h-3.5 text-[#0f2f63]" />
-                  <span>WAVEFORM</span>
-                </button>
-              )}
+              {/* Copy Direct Event Link */}
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                title={lang === 'id' ? 'Salin tautan langsung titik ini' : 'Copy direct link to this disaster event'}
+              >
+                {copiedLink ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <Link2 className="w-3.5 h-3.5 text-slate-600" />
+                )}
+                <span>{copiedLink ? (lang === 'id' ? 'TERSALIN' : 'COPIED') : 'LINK'}</span>
+              </button>
 
               {/* WhatsApp One-Click Broadcast */}
               <button

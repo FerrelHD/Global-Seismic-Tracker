@@ -1,19 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { VolcanoActivity } from '../../types/seismic';
-import { X, Flame, Wind, Mountain, Compass, ShieldAlert, Share2, AlertTriangle } from 'lucide-react';
+import { X, Flame, Wind, Mountain, Compass, ShieldAlert, Share2, AlertTriangle, Activity, Newspaper } from 'lucide-react';
 import { Language } from '../../utils/i18n';
+import { DisasterNewsVerification } from './DisasterNewsVerification';
 
 interface VolcanoDetailModalProps {
   volcano: VolcanoActivity | null;
   onClose: () => void;
   lang: Language;
+  initialTab?: 'telemetry' | 'news';
 }
 
 export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
   volcano,
   onClose,
   lang,
+  initialTab = 'telemetry',
 }) => {
+  const [activeTab, setActiveTab] = useState<'telemetry' | 'news'>(initialTab);
   if (!volcano) return null;
 
   const isCritical = volcano.alert_level === 'Level IV';
@@ -109,90 +113,136 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
             </button>
           </div>
 
-          {/* 2. GEODETIC & VONA METRICS */}
-          <div className="py-3.5 grid grid-cols-3 gap-2.5 border-b border-slate-100 font-mono">
-            <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-between">
-              <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase tracking-wider">
-                <Mountain className="w-3 h-3 text-slate-400" />
-                <span>ELEVASI</span>
-              </div>
-              <span className="text-sm font-bold text-slate-900 mt-1">{volcano.elevation_m.toLocaleString()} M</span>
-            </div>
-
-            <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-between">
-              <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase tracking-wider">
-                <Compass className="w-3 h-3 text-slate-400" />
-                <span>KOORDINAT</span>
-              </div>
-              <span className="text-xs font-bold text-slate-900 mt-1 truncate">{formattedCoords}</span>
-            </div>
-
-            <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-between">
-              <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase tracking-wider">
-                <ShieldAlert className="w-3 h-3 text-slate-400" />
-                <span>VONA CODE</span>
-              </div>
-              <span className={`text-xs font-bold mt-1 ${
-                volcano.ash_plume?.aviation_color_code === 'RED'
-                  ? 'text-rose-600'
-                  : volcano.ash_plume?.aviation_color_code === 'ORANGE'
-                  ? 'text-amber-600'
-                  : 'text-slate-800'
-              }`}>
-                {volcano.ash_plume?.aviation_color_code || 'YELLOW'}
-              </span>
-            </div>
+          {/* TAB SWITCHER: STATUS VULKANIK vs VERIFIKASI BERITA */}
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('telemetry')}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'telemetry'
+                  ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 text-slate-600" />
+              <span>{lang === 'id' ? 'STATUS VULKANIK' : 'VOLCANIC STATUS'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('news')}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                activeTab === 'news'
+                  ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <Newspaper className="w-3.5 h-3.5 text-rose-500" />
+              <span>{lang === 'id' ? 'VERIFIKASI BERITA' : 'NEWS VERIFICATION'}</span>
+              {(isCritical || isWarning) && (
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse ml-0.5" />
+              )}
+            </button>
           </div>
 
-          {/* 3. ASH PLUME & AVIATION HAZARD TELEMETRY */}
-          {volcano.ash_plume && (
-            <div className="py-3 border-b border-slate-100">
-              <div className="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3 flex flex-col gap-2 font-mono text-xs">
-                <div className="flex items-center justify-between text-rose-800 font-bold">
-                  <span className="flex items-center gap-1.5 text-[11px] tracking-wide">
-                    <Wind className="w-3.5 h-3.5 text-rose-600" />
-                    <span>SEBARAN ABU VULKANIK (VAAC DARWIN)</span>
-                  </span>
-                  <span className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold">
-                    FL{volcano.ash_plume.cloud_top_fl} (~{(volcano.ash_plume.cloud_top_fl * 100 * 0.3048).toFixed(0)}m)
-                  </span>
+          {activeTab === 'telemetry' ? (
+            <div>
+              {/* 2. GEODETIC & VONA METRICS */}
+              <div className="py-3.5 grid grid-cols-3 gap-2.5 border-b border-slate-100 font-mono">
+                <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-between">
+                  <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase tracking-wider">
+                    <Mountain className="w-3 h-3 text-slate-400" />
+                    <span>ELEVASI</span>
+                  </div>
+                  <span className="text-sm font-bold text-slate-900 mt-1">{volcano.elevation_m.toLocaleString()} M</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-700 pt-1 border-t border-rose-200/60">
-                  <div>
-                    <span className="text-slate-400 block">ARAH ANGIN:</span>
-                    <span className="font-bold text-rose-900">{volcano.ash_plume.direction} ({volcano.ash_plume.speed_knots} KNOTS)</span>
+                <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-between">
+                  <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase tracking-wider">
+                    <Compass className="w-3 h-3 text-slate-400" />
+                    <span>KOORDINAT</span>
                   </div>
-                  <div>
-                    <span className="text-slate-400 block">STATUS KORIDOR UDARA:</span>
-                    <span className="font-bold text-rose-900">NOTAM / SIGMET ACTIVE</span>
-                  </div>
+                  <span className="text-xs font-bold text-slate-900 mt-1 truncate">{formattedCoords}</span>
                 </div>
 
-                {volcano.ash_plume.advisory_summary && (
-                  <p className="text-[10px] text-slate-600 font-sans leading-relaxed bg-white/70 p-2 rounded border border-rose-100">
-                    {volcano.ash_plume.advisory_summary}
-                  </p>
+                <div className="bg-slate-50/80 rounded-xl p-2.5 border border-slate-100 flex flex-col justify-between">
+                  <div className="flex items-center gap-1 text-[9px] text-slate-400 uppercase tracking-wider">
+                    <ShieldAlert className="w-3 h-3 text-slate-400" />
+                    <span>VONA CODE</span>
+                  </div>
+                  <span className={`text-xs font-bold mt-1 ${
+                    volcano.ash_plume?.aviation_color_code === 'RED'
+                      ? 'text-rose-600'
+                      : volcano.ash_plume?.aviation_color_code === 'ORANGE'
+                      ? 'text-amber-600'
+                      : 'text-slate-800'
+                  }`}>
+                    {volcano.ash_plume?.aviation_color_code || 'YELLOW'}
+                  </span>
+                </div>
+              </div>
+
+              {/* 3. ASH PLUME & AVIATION HAZARD TELEMETRY */}
+              {volcano.ash_plume && (
+                <div className="py-3 border-b border-slate-100">
+                  <div className="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3 flex flex-col gap-2 font-mono text-xs">
+                    <div className="flex items-center justify-between text-rose-800 font-bold">
+                      <span className="flex items-center gap-1.5 text-[11px] tracking-wide">
+                        <Wind className="w-3.5 h-3.5 text-rose-600" />
+                        <span>SEBARAN ABU VULKANIK (VAAC DARWIN)</span>
+                      </span>
+                      <span className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded font-bold">
+                        FL{volcano.ash_plume.cloud_top_fl} (~{(volcano.ash_plume.cloud_top_fl * 100 * 0.3048).toFixed(0)}m)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-700 pt-1 border-t border-rose-200/60">
+                      <div>
+                        <span className="text-slate-400 block">ARAH ANGIN:</span>
+                        <span className="font-bold text-rose-900">{volcano.ash_plume.direction} ({volcano.ash_plume.speed_knots} KNOTS)</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">STATUS KORIDOR UDARA:</span>
+                        <span className="font-bold text-rose-900">NOTAM / SIGMET ACTIVE</span>
+                      </div>
+                    </div>
+
+                    {volcano.ash_plume.advisory_summary && (
+                      <p className="text-[10px] text-slate-600 font-sans leading-relaxed bg-white/70 p-2 rounded border border-rose-100">
+                        {volcano.ash_plume.advisory_summary}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 4. ACTIVITY NARRATIVE & CRATER REPORT */}
+              <div className="py-3 flex flex-col gap-2 font-sans text-xs">
+                <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
+                  CATATAN AKTIVITAS VISUAL & KEGEMPAAN (PVMBG)
+                </span>
+                <p className="text-slate-700 leading-relaxed bg-slate-50/90 p-3 rounded-xl border border-slate-100">
+                  {volcano.status_description}
+                </p>
+                {volcano.crater_status && (
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono px-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    <span>KAWAH: {volcano.crater_status}</span>
+                  </div>
                 )}
               </div>
             </div>
+          ) : (
+            <div className="py-3">
+              <DisasterNewsVerification
+                event={{
+                  id: volcano.id,
+                  place: volcano.name,
+                  disasterType: 'volcano',
+                }}
+                lang={lang}
+              />
+            </div>
           )}
-
-          {/* 4. ACTIVITY NARRATIVE & CRATER REPORT */}
-          <div className="py-3 flex flex-col gap-2 font-sans text-xs">
-            <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
-              CATATAN AKTIVITAS VISUAL & KEGEMPAAN (PVMBG)
-            </span>
-            <p className="text-slate-700 leading-relaxed bg-slate-50/90 p-3 rounded-xl border border-slate-100">
-              {volcano.status_description}
-            </p>
-            {volcano.crater_status && (
-              <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono px-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                <span>KAWAH: {volcano.crater_status}</span>
-              </div>
-            )}
-          </div>
 
           {/* 5. FOOTER ACTIONS */}
           <div className="pt-3 flex items-center justify-between gap-3 border-t border-slate-100">

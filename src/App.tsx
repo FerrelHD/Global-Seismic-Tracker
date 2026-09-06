@@ -13,7 +13,6 @@ import { StoryProgressRail } from './components/story/StoryProgressRail';
 import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
 import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
 import { BMKGShakemapModal } from './components/ui/BMKGShakemapModal';
-import { VirtualSeismogram } from './components/ui/VirtualSeismogram';
 import { SocialInfographicModal } from './components/ui/SocialInfographicModal';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode, VolcanoActivity } from './types/seismic';
@@ -72,6 +71,7 @@ export const App: React.FC = () => {
 
   // Selected event and hotspot modals
   const [selectedEvent, setSelectedEvent] = useState<SeismicEvent | null>(null);
+  const [eventModalTab, setEventModalTab] = useState<'telemetry' | 'news'>('telemetry');
   const [selectedHotspot, setSelectedHotspot] = useState<WildfireHotspot | null>(null);
 
   // Scrollytelling & Navigation State
@@ -105,9 +105,6 @@ export const App: React.FC = () => {
 
   // BMKG Official Shakemap Modal State
   const [isShakemapModalOpen, setIsShakemapModalOpen] = useState(false);
-
-  // Virtual Seismogram Oscilloscope Monitor State
-  const [isSeismogramOpen, setIsSeismogramOpen] = useState(false);
 
   // Disaster Infographic Social Card State
   const [isInfographicOpen, setIsInfographicOpen] = useState(false);
@@ -154,6 +151,21 @@ export const App: React.FC = () => {
     try {
       const data = await fetchSeismicEvents();
       setEvents(data);
+
+      // Deep linking support: ?event=<id> or ?id=<id> with optional &tab=news
+      if (typeof window !== 'undefined' && window.location.search) {
+        const params = new URLSearchParams(window.location.search);
+        const targetId = params.get('event') || params.get('id');
+        const targetTab = params.get('tab') === 'news' ? 'news' : 'telemetry';
+        if (targetId && data && data.length > 0) {
+          const match = data.find((e) => e.usgs_id === targetId || e.id === targetId);
+          if (match) {
+            setSelectedEvent(match);
+            setEventModalTab(targetTab);
+            setTargetFocus([match.latitude, match.longitude]);
+          }
+        }
+      }
     } catch (err) {
       console.error('Failed to load events:', err);
     } finally {
@@ -369,8 +381,7 @@ export const App: React.FC = () => {
     isDrawerOpen ||
     isFeedOpen ||
     isShakemapModalOpen ||
-    isInfographicOpen ||
-    isSeismogramOpen
+    isInfographicOpen
   );
 
   useEffect(() => {
@@ -686,16 +697,59 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
       data: any;
     }> = [];
 
-    // Significant Earthquakes: M >= 6.0, or top 1 if >= 5.0
+    // 1. Primary Live BMKG Event (e.g. Banggai, Sulawesi M 4.9 today)
     const showSeismic = hazardMode === 'dual' || hazardMode === 'all' || hazardMode === 'seismic';
+    if (showSeismic && bmkgAlert) {
+      const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
+      const lat = coordsMatch
+        ? parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1)
+        : -0.38;
+      const lon = coordsMatch ? parseFloat(coordsMatch[2]) : 123.13;
+      const mag = parseFloat(bmkgAlert.magnitude) || 4.9;
+
+      let bmkgLoc = 'SULAWESI';
+      if (bmkgAlert.wilayah) {
+        const m = bmkgAlert.wilayah.match(/(?:laut|darat)\s*\d*\s*km\s*[A-Za-z\s]*\s+([A-Za-z\s]+)/i);
+        bmkgLoc = m ? m[1].trim().toUpperCase() : 'SULAWESI';
+      }
+
+      const syntheticBMKG: SeismicEvent = {
+        id: 'bmkg-autogempa',
+        usgs_id: 'bmkg-autogempa',
+        magnitude: mag,
+        depth: parseFloat(bmkgAlert.kedalaman) || 10,
+        latitude: lat,
+        longitude: lon,
+        place: bmkgAlert.wilayah || formattedBMKG?.location || 'Banggai, Sulawesi',
+        occurred_at: bmkgAlert.datetime || new Date().toISOString(),
+      };
+
+      items.push({
+        id: 'hl-bmkg-active',
+        type: 'event',
+        badge: `M ${mag.toFixed(1)}`,
+        place: `${bmkgLoc}, SULAWESI`,
+        lat,
+        lon,
+        data: syntheticBMKG,
+      });
+    }
+
+    // 2. Recent USGS Earthquakes (Filter to last 7 days only to avoid stale data from August)
     if (showSeismic && filteredEvents.length > 0) {
-      const valid = filteredEvents.filter((e) => e.magnitude != null);
-      const major = valid.filter((e) => (e.magnitude ?? 0) >= 6.0);
+      const oneWeekAgo = Date.now() - 7 * 86400000;
+      const recentValid = filteredEvents.filter((e) => {
+        if (e.magnitude == null) return false;
+        const time = new Date(e.occurred_at).getTime();
+        return !isNaN(time) && time >= oneWeekAgo;
+      });
+
+      const major = recentValid.filter((e) => (e.magnitude ?? 0) >= 5.5);
       const selected =
         major.length > 0
-          ? [...major].sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0)).slice(0, 2)
-          : valid
-              .filter((e) => (e.magnitude ?? 0) >= 5.0)
+          ? [...major].sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0)).slice(0, 1)
+          : recentValid
+              .filter((e) => (e.magnitude ?? 0) >= 4.5)
               .sort((a, b) => (b.magnitude ?? 0) - (a.magnitude ?? 0))
               .slice(0, 1);
 
@@ -983,23 +1037,24 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         }}
         className="fixed top-3.5 sm:top-4 left-1/2 z-40 w-full max-w-6xl px-3 sm:px-4 pointer-events-none select-none"
       >
-        <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/70 backdrop-blur-md pointer-events-auto">
-          <div className="flex items-center justify-between gap-1.5 sm:gap-3 px-3 py-1.5 sm:px-4 sm:py-2">
-            {/* Logo + Branding: Sharp, Crisp Typography */}
+        <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/75 backdrop-blur-md pointer-events-auto">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 py-1.5 sm:px-4 sm:py-2">
+            {/* Logo + Branding: Sharp, Crisp Typography & Return to Hero Trigger */}
             <div
               onClick={scrollToHero}
-              className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink-0 cursor-pointer group"
+              title={lang === 'id' ? 'Klik untuk kembali ke Bab Cerita / Beranda' : 'Click to return to Stories / Hero'}
+              className="flex items-center gap-2 sm:gap-2.5 min-w-0 shrink cursor-pointer group"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                 <GlobeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:text-sm">
+                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1.5 text-xs sm:text-sm">
                   <span className="whitespace-nowrap font-extrabold tracking-tight">
                     {lang === 'id' ? 'OBSERVATORIUM' : 'SEISMIC'}
                   </span>
-                  <span className="text-neutral-400 font-normal">//</span>
-                  <span className="hidden xl:inline text-neutral-500 font-mono font-medium text-xs">
+                  <span className="text-neutral-400 font-normal hidden sm:inline">//</span>
+                  <span className="hidden md:inline text-neutral-500 font-mono font-medium text-xs truncate max-w-[140px] lg:max-w-none">
                     {t.observatorySubtitle}
                   </span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/90 font-mono tracking-wider font-semibold whitespace-nowrap">
@@ -1009,93 +1064,80 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
               </div>
             </div>
 
-            {/* Header Right Actions: Clean & Minimalist */}
+            {/* Header Right Actions: Clean, Minimalist & Responsive Dock */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 font-mono text-xs">
+              {/* Go to Map / Observatory button when at Hero level */}
+              {!isObservatoryActive && (
+                <button
+                  type="button"
+                  onClick={scrollToObservatory}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
+                >
+                  <span>{lang === 'id' ? 'PETA' : 'MAP'}</span>
+                  <ArrowDown className="w-3 h-3 text-slate-300" />
+                </button>
+              )}
+
               {/* Language Switcher: ID / EN */}
               <button
                 type="button"
                 onClick={toggleLanguage}
                 title={lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs"
+                className="flex items-center gap-0.5 px-2 py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
               >
                 <span className={lang === 'id' ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}>ID</span>
                 <span className="text-slate-300 font-light">/</span>
                 <span className={lang === 'en' ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}>EN</span>
               </button>
 
-              {/* Realtime Live Seismic Alert Notification Toggle */}
+              {/* Realtime Live Seismic Alert Notification Toggle (Icon Only) */}
               <button
+                type="button"
                 onClick={handleToggleAlerts}
-                title={alertsEnabled ? 'Live Seismic Alerts Active (Click to trigger demo alert)' : 'Enable Live Alerts'}
-                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border text-xs font-mono font-medium tracking-wider transition-all cursor-pointer whitespace-nowrap active:scale-95 ${
+                title={
                   alertsEnabled
-                    ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 shadow-2xs'
-                    : 'bg-neutral-100/90 text-neutral-600 border-neutral-200/80 hover:bg-neutral-200/90'
+                    ? lang === 'id'
+                      ? 'Alarm Akustik Seismik Aktif (Klik untuk simulasi suara)'
+                      : 'Seismic Acoustic Alarm Active (Click to simulate sound)'
+                    : lang === 'id'
+                    ? 'Aktifkan Alarm Akustik Seismik'
+                    : 'Enable Seismic Acoustic Alarm'
+                }
+                className={`p-2 rounded-full border transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center ${
+                  alertsEnabled
+                    ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                    : 'bg-neutral-100/80 text-neutral-500 border-neutral-200/80 hover:bg-neutral-200/90'
                 }`}
               >
-                <Bell className={`w-3.5 h-3.5 ${alertsEnabled ? 'text-rose-600 animate-pulse' : 'text-neutral-400'}`} />
-                <span className="hidden sm:inline">{alertsEnabled ? t.alertsOn : t.alertsOff}</span>
+                <Bell className={`w-3.5 h-3.5 ${alertsEnabled ? 'text-rose-600 animate-pulse' : 'text-neutral-500'}`} />
               </button>
 
-              {!isObservatoryActive ? (
-                <button
-                  onClick={scrollToObservatory}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 text-neutral-800 border border-neutral-200/80 text-xs font-mono font-medium tracking-wider transition-all cursor-pointer whitespace-nowrap active:scale-95"
-                >
-                  <span>{lang === 'id' ? 'OBSERVATORIUM' : 'OBSERVATORY'}</span>
-                  <ArrowDown className="w-3.5 h-3.5 text-neutral-500" />
-                </button>
-              ) : (
-                <>
-                  <div className="hidden xl:flex items-center gap-2.5 px-2.5 py-1 rounded-full bg-neutral-100/60 border border-neutral-200/80 text-[10.5px] font-mono tracking-wider">
-                    <div>
-                      <span className="text-[9px] text-neutral-400 block font-medium uppercase">{t.totalEq}</span>
-                      <span className="font-bold text-neutral-900 tabular-nums">{loading ? '—' : stats.count}</span>
-                    </div>
-                    <div className="w-px h-3.5 bg-neutral-200" />
-                    <div>
-                      <span className="text-[9px] text-neutral-400 block font-medium uppercase">{t.activityStatus}</span>
-                      <span className="font-bold text-emerald-700 tabular-nums">{t.statusNormal}</span>
-                    </div>
-                  </div>
+              {/* Bookmarks (Icon Only with counter badge) */}
+              <button
+                type="button"
+                id="bookmarks-btn"
+                onClick={() => setIsDrawerOpen(true)}
+                title={t.saved}
+                className="relative p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center"
+              >
+                <BookmarkIcon className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
+                {bookmarks.length > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#0f2f63] text-white text-[8.5px] font-mono font-bold leading-none shadow-xs">
+                    {bookmarks.length}
+                  </span>
+                )}
+              </button>
 
-                  {/* Return to Hero / Stories */}
-                  <button
-                    onClick={scrollToHero}
-                    title={lang === 'id' ? 'Kembali ke Bab Cerita' : 'Return to Stories / Hero'}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-all text-[11px] font-mono font-semibold cursor-pointer whitespace-nowrap active:scale-95 shadow-xs shrink-0"
-                  >
-                    <ArrowUp className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{t.stories}</span>
-                  </button>
-
-                  {/* Bookmarks */}
-                  <button
-                    id="bookmarks-btn"
-                    onClick={() => setIsDrawerOpen(true)}
-                    title={t.saved}
-                    className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-900 transition-all text-xs font-semibold cursor-pointer whitespace-nowrap active:scale-95 shrink-0"
-                  >
-                    <BookmarkIcon className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
-                    <span className="hidden md:inline">{t.saved}</span>
-                    {bookmarks.length > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-[#0f2f63] text-white text-[9px] font-mono leading-none">
-                        {bookmarks.length}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Refresh */}
-                  <button
-                    id="refresh-btn"
-                    onClick={loadData}
-                    title={lang === 'id' ? 'Muat Ulang Telemetri' : 'Reload Telemetry'}
-                    className="p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer shrink-0 active:scale-95"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  </button>
-                </>
-              )}
+              {/* Refresh (Icon Only) */}
+              <button
+                type="button"
+                id="refresh-btn"
+                onClick={loadData}
+                title={lang === 'id' ? 'Muat Ulang Telemetri' : 'Reload Telemetry'}
+                className="p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs flex items-center justify-center"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
         </LiquidCard>
@@ -1160,6 +1202,25 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                           potensi={formattedBMKG.potensi}
                           lang={lang}
                           onOpenShakemap={() => setIsShakemapModalOpen(true)}
+                          onOpenNews={() => {
+                            const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
+                            const lat = coordsMatch
+                              ? parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1)
+                              : -6.2;
+                            const lon = coordsMatch ? parseFloat(coordsMatch[2]) : 106.8;
+                            const syntheticBMKGEvent: SeismicEvent = {
+                              id: 'bmkg-autogempa',
+                              usgs_id: 'bmkg-autogempa',
+                              magnitude: parseFloat(bmkgAlert.magnitude) || 5.0,
+                              depth: parseFloat(bmkgAlert.kedalaman) || 10,
+                              latitude: lat,
+                              longitude: lon,
+                              place: bmkgAlert.wilayah || formattedBMKG.location,
+                              occurred_at: bmkgAlert.datetime || new Date().toISOString(),
+                            };
+                            setSelectedEvent(syntheticBMKGEvent);
+                            setEventModalTab('news');
+                          }}
                           onFocusEpicenter={() => {
                             const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
                             if (coordsMatch) {
@@ -1173,8 +1234,8 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
 
                       {/* Option 1: Quick Focus Major Hazards HUD Strip */}
                       {majorHighlights.length > 0 && (
-                        <div className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto no-scrollbar max-w-[calc(100vw-2.5rem)] sm:max-w-md py-0.5">
-                          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1 px-1">
+                        <div className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2.5rem)] sm:max-w-md py-2 px-1">
+                          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1 px-1 shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                             <span>{lang === 'id' ? 'SOROTAN:' : 'MAJOR:'}</span>
                           </span>
@@ -1192,7 +1253,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                                   setSelectedVolcano(item.data);
                                 }
                               }}
-                              className={`group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 font-mono text-[10px] tracking-wide shadow-xs border transition-all cursor-pointer active:scale-95 backdrop-blur-md hover:scale-105 hover:shadow-md ${
+                              className={`group relative hover:z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 font-mono text-[10px] tracking-wide shadow-xs border transition-all cursor-pointer active:scale-95 backdrop-blur-md hover:scale-105 hover:shadow-md shrink-0 sm:shrink ${
                                 item.type === 'event'
                                   ? 'border-rose-200/90 hover:border-rose-400 text-slate-900'
                                   : item.type === 'volcano'
@@ -1323,26 +1384,16 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
 
       {/* FLOATING TELEMETRY CONTROLLER DOCK (Fixed Root Viewport Level) */}
       <FloatingControllerDock
-        searchQuery={searchQuery}
-        onSearchChange={handleRegionChange}
         timeFilter={timeFilter}
         onTimeFilterChange={setTimeFilter}
-        depthFilter={depthFilter}
-        onDepthFilterChange={setDepthFilter}
-        isRotating={isRotating}
-        onToggleRotation={() => setIsRotating((prev) => !prev)}
+        hazardMode={hazardMode}
+        onHazardModeChange={setHazardMode}
         onResetView={() => {
           setTargetFocus([-0.78, 118.0]);
           setResetSignal((prev) => prev + 1);
         }}
         onOpenFeed={() => setIsFeedOpen(true)}
         onOpenTimeLapse={handleOpenTimeLapse}
-        onOpenSeismogram={() => setIsSeismogramOpen((prev) => !prev)}
-        isSeismogramOpen={isSeismogramOpen}
-        colorMode={colorMode}
-        onColorModeChange={setColorMode}
-        hazardMode={hazardMode}
-        onHazardModeChange={setHazardMode}
         eventCount={filteredEvents.length}
         visible={isObservatoryActive && !isTimeLapseOpen}
         progress={isTimeLapseOpen ? 0 : observatoryProgress}
@@ -1356,18 +1407,18 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
       {/* 7. EVENT DETAIL & BOOKMARK MODAL */}
       <EventModal
         event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
+        onClose={() => {
+          setSelectedEvent(null);
+          setEventModalTab('telemetry');
+        }}
         isBookmarked={isEventBookmarked(selectedEvent)}
         onToggleBookmark={handleToggleBookmark}
         onFocusGlobe={(evt) => setTargetFocus([evt.latitude, evt.longitude])}
-        onOpenSeismogram={(evt) => {
-          setSelectedEvent(evt);
-          setIsSeismogramOpen(true);
-        }}
         onOpenInfographic={(evt) => {
           setInfographicEvent(evt);
           setIsInfographicOpen(true);
         }}
+        initialTab={eventModalTab}
       />
 
       {/* 8. ACTIVE SEISMIC FEED DRAWER */}
@@ -1435,14 +1486,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         coordinates={bmkgAlert?.coordinates}
       />
 
-      {/* 12. VIRTUAL SEISMOGRAM OSCILLOSCOPE MONITOR (P & S WAVE RECORDER) */}
-      <VirtualSeismogram
-        isOpen={isSeismogramOpen}
-        onClose={() => setIsSeismogramOpen(false)}
-        activeEvent={selectedEvent || (filteredEvents.length > 0 ? filteredEvents[0] : null)}
-      />
-
-      {/* 13. DISASTER INFOGRAPHIC SOCIAL CARD GENERATOR */}
+      {/* 12. DISASTER INFOGRAPHIC SOCIAL CARD GENERATOR */}
       <SocialInfographicModal
         isOpen={isInfographicOpen}
         onClose={() => setIsInfographicOpen(false)}

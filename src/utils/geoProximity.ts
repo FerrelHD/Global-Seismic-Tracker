@@ -167,12 +167,17 @@ export function formatSeismicWAMessage(
     }
   }
 
+  const baseUrl = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'https://global-seismic-tracker.vercel.app';
+  const eventLink = `${baseUrl}/?event=${encodeURIComponent(event.usgs_id || event.id || '')}`;
+
   lines.push(
     ``,
     isEn
-      ? `🌐 *Monitor Live Seismogram & 3D Interactive Map:*`
-      : `🌐 *Pantau Seismogram & Peta Interaktif Langsung:*`,
-    `https://global-seismic-tracker.vercel.app`
+      ? `🌐 *Live Map & News Verification:*`
+      : `🌐 *Pantau Peta & Verifikasi Berita Langsung:*`,
+    eventLink
   );
 
   return lines.join('\n');
