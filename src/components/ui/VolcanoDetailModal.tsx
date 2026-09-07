@@ -27,7 +27,6 @@ import { useUserLocation } from '../../hooks/useUserLocation';
 import {
   INDONESIAN_REFERENCE_CITIES,
   calculateDistanceKm,
-  calculateDistanceToPolygonKm,
   getAshPlumeSafetyStatus,
   IndonesianCity,
 } from '../../utils/geoProximity';
@@ -119,22 +118,12 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
     if (!volcano) return null;
     const { lat, lon } = activeCoordinates;
 
-    // 1. Distance to Volcano Crater
-    const craterDist = calculateDistanceKm(lat, lon, volcano.latitude, volcano.longitude);
-
-    // 2. Distance to nearest Ash Plume Polygon boundary (if available)
-    let plumeDist = craterDist;
-    const hasPolygon = Boolean(volcano.ash_plume?.dispersion_polygon && volcano.ash_plume.dispersion_polygon.length >= 3);
-    if (hasPolygon && volcano.ash_plume?.dispersion_polygon) {
-      plumeDist = calculateDistanceToPolygonKm(lat, lon, volcano.ash_plume.dispersion_polygon);
-    }
-
-    const safety = getAshPlumeSafetyStatus(plumeDist);
+    // Direct Geographic Distance to Volcano Crater
+    const craterDist = Math.round(calculateDistanceKm(lat, lon, volcano.latitude, volcano.longitude));
+    const safety = getAshPlumeSafetyStatus(craterDist);
 
     return {
       craterDist,
-      plumeDist,
-      hasPolygon,
       safety,
     };
   }, [volcano, activeCoordinates]);
@@ -174,7 +163,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       text += `🧭 Arah Sebaran: ${volcano.ash_plume.direction || 'N/A'} (${volcano.ash_plume.speed_knots || 0} Knots)\n`;
     }
     if (proximityData) {
-      text += `📍 *Jarak ke Awan Abu (${activeCoordinates.label}):* ~${proximityData.plumeDist.toLocaleString('id-ID')} km\n`;
+      text += `📍 *Jarak ke Kawah (${activeCoordinates.label}):* ~${proximityData.craterDist.toLocaleString('id-ID')} km\n`;
       text += `🛡️ *Status:* ${proximityData.safety.badge} - ${proximityData.safety.statusText}\n`;
     }
     text += `\n🌐 *Pantau Peta & Abu Vulkanik:* https://global-seismic-tracker.vercel.app/`;
@@ -496,15 +485,15 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                           </div>
                           <div className="flex items-baseline gap-1 mt-0.5">
                             <span className="text-2xl font-black text-slate-950 tracking-tight">
-                              {proximityData.plumeDist === 0 ? '0' : `~${proximityData.plumeDist.toLocaleString('id-ID')}`}
+                              ~{proximityData.craterDist.toLocaleString('id-ID')}
                             </span>
                             <span className="text-xs font-bold text-slate-600">KM</span>
                             <span className="text-[10px] text-slate-500 ml-1">
-                              ke lintasan abu terdekat
+                              dari kawah aktif
                             </span>
                           </div>
                           <div className="text-[10px] text-slate-400 mt-0.5">
-                            Jarak ke kawah aktif: ~{proximityData.craterDist.toLocaleString('id-ID')} km
+                            Elevasi: {volcano.elevation_m} mdpl · {volcano.island}
                           </div>
                         </div>
 
@@ -517,7 +506,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                             {proximityData.safety.badge}
                           </span>
                           <span className="block text-[8.5px] text-slate-400 mt-1 uppercase">
-                            {proximityData.plumeDist < 50 ? '< 50 KM RADIUS' : proximityData.plumeDist <= 250 ? '50 - 250 KM RADIUS' : '> 250 KM RADIUS'}
+                            {proximityData.craterDist < 50 ? '< 50 KM RADIUS' : proximityData.craterDist <= 250 ? '50 - 250 KM RADIUS' : '> 250 KM RADIUS'}
                           </span>
                         </div>
                       </div>

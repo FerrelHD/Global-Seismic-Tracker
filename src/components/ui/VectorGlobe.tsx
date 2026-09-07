@@ -1094,28 +1094,7 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               ? '#eab308'
               : '#10b981';
 
-            // Ash Plume Dispersion Polygon (for Level IV Awas or active Level III Siaga with advisory plume)
-            if ((isCritical || isWarning) && v.ash_plume?.dispersion_polygon) {
-              const poly = v.ash_plume.dispersion_polygon;
-              if (poly.length >= 3) {
-                ctx.save();
-                ctx.beginPath();
-                const [startPx, startPy] = project(poly[0][0], poly[0][1]);
-                ctx.moveTo(startPx, startPy);
-                for (let p = 1; p < poly.length; p++) {
-                  const [px, py] = project(poly[p][0], poly[p][1]);
-                  ctx.lineTo(px, py);
-                }
-                ctx.closePath();
-                ctx.fillStyle = isCritical ? 'rgba(225, 29, 72, 0.12)' : 'rgba(249, 115, 22, 0.10)';
-                ctx.fill();
-                ctx.setLineDash([3, 3]);
-                ctx.strokeStyle = isCritical ? 'rgba(225, 29, 72, 0.45)' : 'rgba(249, 115, 22, 0.40)';
-                ctx.lineWidth = 0.8;
-                ctx.stroke();
-                ctx.restore();
-              }
-            }
+
 
             ctx.save();
 

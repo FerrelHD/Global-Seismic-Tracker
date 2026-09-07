@@ -1,12 +1,12 @@
 import { WildfireHotspot } from '../types/seismic';
-import { supabase, FALLBACK_WILDFIRE_HOTSPOTS } from './supabase';
+import { supabase } from './supabase';
 
 const FIRMS_STORAGE_KEY = 'firms_live_hotspots_v1';
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export interface FIRMSResult {
   hotspots: WildfireHotspot[];
-  source: 'live_firms' | 'supabase_db' | 'curated_snapshot';
+  source: 'live_firms' | 'supabase_db' | 'offline';
   lastUpdated: string;
 }
 
@@ -174,11 +174,11 @@ export async function fetchLiveWildfireHotspots(force = false): Promise<FIRMSRes
     console.warn('Supabase DB table wildfire_hotspots fallback:', err);
   }
 
-  // Tier 4: Curated high-precision peatland snapshot
+  // Tier 4: Zero fictitious data - return empty array if offline or upstream unavailable
   return {
-    hotspots: FALLBACK_WILDFIRE_HOTSPOTS,
-    source: 'curated_snapshot',
-    lastUpdated: 'Snapshot Curated',
+    hotspots: [],
+    source: 'offline',
+    lastUpdated: 'Offline',
   };
 }
 

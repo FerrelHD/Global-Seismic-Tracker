@@ -43,7 +43,7 @@ export interface AshPlume {
   cloud_top_fl: number; // Flight level (e.g. FL200 = 20,000 ft)
   direction: string; // e.g. 'W', 'SW', 'NW'
   speed_knots: number;
-  dispersion_polygon: [number, number][]; // Array of [lon, lat] coordinates
+  dispersion_polygon?: [number, number][]; // Optional array of [lon, lat] coordinates
   advisory_summary?: string;
   issued_at: string;
 }

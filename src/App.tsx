@@ -1445,7 +1445,13 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         }}
         onOpenFeed={() => setIsFeedOpen(true)}
         onOpenTimeLapse={handleOpenTimeLapse}
-        eventCount={filteredEvents.length}
+        eventCount={
+          hazardMode === 'wildfire'
+            ? hotspots.length
+            : hazardMode === 'volcano'
+            ? volcanoes.length
+            : filteredEvents.length
+        }
         visible={isObservatoryActive && !isTimeLapseOpen}
         progress={isTimeLapseOpen ? 0 : observatoryProgress}
         lang={lang}
@@ -1472,15 +1478,26 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         initialTab={eventModalTab}
       />
 
-      {/* 8. ACTIVE SEISMIC FEED DRAWER */}
+      {/* 8. ACTIVE MULTI-HAZARD FEED DRAWER */}
       <EventsListDrawer
         isOpen={isFeedOpen}
         onClose={() => setIsFeedOpen(false)}
         events={filteredEvents}
+        hotspots={hotspots}
+        volcanoes={volcanoes}
+        activeHazardMode={hazardMode}
         selectedRegion={searchQuery}
         onSelectEvent={(evt) => {
           setSelectedEvent(evt);
           setTargetFocus([evt.latitude, evt.longitude]);
+        }}
+        onSelectHotspot={(h) => {
+          setSelectedHotspot(h);
+          setTargetFocus([h.latitude, h.longitude]);
+        }}
+        onSelectVolcano={(v) => {
+          setSelectedVolcano(v);
+          setTargetFocus([v.latitude, v.longitude]);
         }}
         isBookmarked={isEventBookmarked}
         onToggleBookmark={handleToggleBookmark}
