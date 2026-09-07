@@ -1201,7 +1201,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         onExploreClick={scrollToStories}
         onDirectClick={scrollToObservatory}
         exitProgress={heroExitProgress}
-        totalEvents={events.length || 2200}
+        totalEvents={events.length}
         isReady={isCurtainComplete}
         onIntroComplete={handleCurtainComplete}
       />

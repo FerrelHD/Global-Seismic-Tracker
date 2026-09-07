@@ -9,17 +9,17 @@ export const INDONESIA_ACTIVE_VOLCANOES: VolcanoActivity[] = [
     latitude: -8.538,
     longitude: 122.768,
     elevation_m: 1584,
-    alert_level: 'Level IV', // AWAS
-    status_description: 'Erupsi eksplosif kolom abu tebal kelabu-hitam mencapai 9.000 meter (FL300). Guguran lava pijar mengarah ke sektor barat-barat daya sejauh 4 km.',
-    crater_status: 'Erupsi menerus, kawah utama tertutup asap pekat',
+    alert_level: 'Level III', // SIAGA (Resmi PVMBG)
+    status_description: 'Aktivitas vulkanik fluktuatif dengan embusan asap kawah putih-kelabu setinggi 50-100 meter. PVMBG merekomendasikan batas aman radius 5 km dari pusat erupsi.',
+    crater_status: 'Asap kawah putih kelabu tipis hingga sedang 50-100 m',
     updated_at: new Date(Date.now() - 3600000 * 1).toISOString(),
     ash_plume: {
       id: 'plume-lewotobi-01',
       volcano_code: 'LEWOTOBI_LAKI',
-      aviation_color_code: 'RED',
-      cloud_top_fl: 300, // 30,000 ft
+      aviation_color_code: 'ORANGE',
+      cloud_top_fl: 90, // FL090 (~2,700m)
       direction: 'SW',
-      speed_knots: 20,
+      speed_knots: 15,
       // GeoJSON [lon, lat] polygon tracing wind dispersion towards Flores Sea / Ende airspace
       dispersion_polygon: [
         [122.768, -8.538],
@@ -31,7 +31,7 @@ export const INDONESIA_ACTIVE_VOLCANOES: VolcanoActivity[] = [
         [122.68, -8.72],
         [122.768, -8.538],
       ],
-      advisory_summary: 'VAAC DARWIN ADVISORY: VA OBS TO FL300 MOV SW 20KT. AIRSPACE HAZARD OVER FLORES BASIN.',
+      advisory_summary: 'VONA PVMBG: EMISI ASAP KELABU KE ARAH BARAT DAYA. ZONA BAHAYA RADIUS 5 KM DARI KAWAH AKTIF.',
       issued_at: new Date(Date.now() - 3600000 * 1).toISOString(),
     },
   },
@@ -107,17 +107,17 @@ export const INDONESIA_ACTIVE_VOLCANOES: VolcanoActivity[] = [
     latitude: -0.381,
     longitude: 100.473,
     elevation_m: 2891,
-    alert_level: 'Level III', // SIAGA
-    status_description: 'Erupsi freatik dan magmatik beruntun. Teramati kolom abu erupsi setinggi 1.500 m di atas puncak condong ke arah barat laut.',
-    crater_status: 'Kawah Verbeek aktif mengeluarkan letusan abu berkala',
+    alert_level: 'Level II', // WASPADA (Resmi PVMBG sejak Desember 2024)
+    status_description: 'Aktivitas vulkanik berangsur melandai pada Level II (Waspada). PVMBG merekomendasikan batas aman radius 3 km dari Kawah Verbeek.',
+    crater_status: 'Emisi uap solfatara putih tipis dari Kawah Verbeek',
     updated_at: new Date(Date.now() - 3600000 * 5).toISOString(),
     ash_plume: {
       id: 'plume-marapi-01',
       volcano_code: 'MARAPI',
-      aviation_color_code: 'ORANGE',
-      cloud_top_fl: 160,
+      aviation_color_code: 'YELLOW',
+      cloud_top_fl: 90,
       direction: 'NW',
-      speed_knots: 14,
+      speed_knots: 10,
       dispersion_polygon: [
         [100.473, -0.381],
         [100.32, -0.31],
@@ -126,7 +126,7 @@ export const INDONESIA_ACTIVE_VOLCANOES: VolcanoActivity[] = [
         [100.38, -0.24],
         [100.473, -0.381],
       ],
-      advisory_summary: 'VONA MARAPI: ASH DRIFT TOWARDS BUKITTINGGI AIRSPACE. AIR QUALITY MONITORING ACTIVE.',
+      advisory_summary: 'VONA MARAPI: EMISI UAP SOLFATARA RINGAN KE ARAH BARAT LAUT. RADIUS BAHAYA 3 KM.',
       issued_at: new Date(Date.now() - 3600000 * 5).toISOString(),
     },
   },

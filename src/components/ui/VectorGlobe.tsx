@@ -1094,8 +1094,8 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
               ? '#eab308'
               : '#10b981';
 
-            // Ash Plume Dispersion Polygon (ONLY for Level IV Awas)
-            if (isCritical && v.ash_plume?.dispersion_polygon) {
+            // Ash Plume Dispersion Polygon (for Level IV Awas or active Level III Siaga with advisory plume)
+            if ((isCritical || isWarning) && v.ash_plume?.dispersion_polygon) {
               const poly = v.ash_plume.dispersion_polygon;
               if (poly.length >= 3) {
                 ctx.save();
@@ -1107,10 +1107,10 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
                   ctx.lineTo(px, py);
                 }
                 ctx.closePath();
-                ctx.fillStyle = 'rgba(225, 29, 72, 0.12)';
+                ctx.fillStyle = isCritical ? 'rgba(225, 29, 72, 0.12)' : 'rgba(249, 115, 22, 0.10)';
                 ctx.fill();
                 ctx.setLineDash([3, 3]);
-                ctx.strokeStyle = 'rgba(225, 29, 72, 0.45)';
+                ctx.strokeStyle = isCritical ? 'rgba(225, 29, 72, 0.45)' : 'rgba(249, 115, 22, 0.40)';
                 ctx.lineWidth = 0.8;
                 ctx.stroke();
                 ctx.restore();
@@ -1119,13 +1119,20 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
 
             ctx.save();
 
-            // Warning Halo Pulse ONLY for Level IV (Awas)
+            // Warning Halo Pulse for Level IV (Awas) or top active Level III (Siaga)
             if (isCritical) {
               const pulse = (Math.sin(now * 0.004 + i * 1.5) + 1) * 0.5;
               const haloR = 14 + pulse * 8;
               ctx.beginPath();
               ctx.arc(vx, vy, haloR, 0, Math.PI * 2);
               ctx.fillStyle = 'rgba(225, 29, 72, 0.18)';
+              ctx.fill();
+            } else if (isWarning && (v.code === 'LEWOTOBI_LAKI' || v.code === 'MERAPI')) {
+              const pulse = (Math.sin(now * 0.003 + i * 1.2) + 1) * 0.5;
+              const haloR = 11 + pulse * 5;
+              ctx.beginPath();
+              ctx.arc(vx, vy, haloR, 0, Math.PI * 2);
+              ctx.fillStyle = 'rgba(249, 115, 22, 0.14)';
               ctx.fill();
             }
 
@@ -1148,12 +1155,12 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
             ctx.fillStyle = '#ffffff';
             ctx.fill();
 
-            // Permanent label ONLY for Level IV (Awas, e.g. Lewotobi)
+            // Permanent label for Level IV or top priority Level III (e.g. Lewotobi & Merapi)
             // Other levels show label in tooltip on hover or detail modal on click
-            if (isCritical) {
+            if (isCritical || (isWarning && (v.code === 'LEWOTOBI_LAKI' || v.code === 'MERAPI'))) {
               const vShortName = v.name.replace('Gunung ', '').toUpperCase();
               ctx.font = '600 8.5px "JetBrains Mono", monospace';
-              const labelText = `${vShortName} ▲ FL${v.ash_plume?.cloud_top_fl ?? '300'}`;
+              const labelText = `${vShortName} ▲ ${v.alert_level === 'Level IV' ? 'AWAS' : 'SIAGA'}`;
               const textMetrics = ctx.measureText(labelText);
               const textW = textMetrics.width;
               const textX = vx - textW / 2;

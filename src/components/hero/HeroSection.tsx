@@ -13,7 +13,7 @@ const TELEMETRY_PHASES = [
   'CALIBRATING NUSANTARA CRUSTAL ARRAY',
   'INGESTING REALTIME USGS & BMKG TELEMETRY',
   'MAPPING SUBDUCTION: SUNDA & BANDA SLABS',
-  '2,200 CRUSTAL STATIONS SYNCHRONIZED',
+  'REALTIME SENSOR FEEDS SYNCHRONIZED',
 ];
 
 const SCRAMBLE_COORDS = [
@@ -28,7 +28,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   onExploreClick,
   onDirectClick,
   exitProgress = 0,
-  totalEvents = 2200,
+  totalEvents = 0,
   isReady = false,
   onIntroComplete,
 }) => {
