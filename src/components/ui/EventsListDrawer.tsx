@@ -164,10 +164,10 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
       <aside
         data-lenis-prevent="true"
         onWheel={(e) => e.stopPropagation()}
-        className="fixed top-0 left-0 bottom-0 h-full w-full max-w-md z-50 shadow-2xl bg-white/95 backdrop-blur-2xl border-r border-slate-200/80 rounded-r-3xl flex flex-col justify-between animate-in slide-in-from-left duration-300 ease-out font-sans overflow-hidden"
+        className="fixed top-0 left-0 bottom-0 h-full w-full sm:max-w-md z-50 shadow-2xl bg-white/95 backdrop-blur-2xl border-r border-slate-200/80 rounded-none sm:rounded-r-3xl flex flex-col justify-between animate-in slide-in-from-left duration-300 ease-out font-sans overflow-hidden"
       >
         {/* 1. Header: Clean Category Tabs & Live Status */}
-        <div className="shrink-0 px-5 pt-5 pb-3 border-b border-slate-200/70 bg-white/70">
+        <div className="shrink-0 px-4 sm:px-5 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-5 pb-3 border-b border-slate-200/70 bg-white/70">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#0f2f63] shrink-0 animate-pulse" />
@@ -179,28 +179,28 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
             <button
               onClick={onClose}
               title="Close drawer"
-              className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+              className="p-2 sm:p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Primary Category Switcher (Gempa / Karhutla / Gunung) */}
-          <div className="grid grid-cols-3 gap-1.5 mt-3.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 font-mono text-xs">
+          <div className="grid grid-cols-3 gap-1 sm:gap-1.5 mt-3.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/60 font-mono text-[11px] sm:text-xs">
             <button
               onClick={() => {
                 setCategoryTab('earthquake');
                 setSearchQuery('');
               }}
-              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 categoryTab === 'earthquake'
                   ? 'bg-white text-slate-950 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Activity className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span>GEMPA</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700">
+              <span className="truncate">GEMPA</span>
+              <span className="text-[9.5px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700 font-mono">
                 {events.length}
               </span>
             </button>
@@ -210,15 +210,15 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                 setCategoryTab('wildfire');
                 setSearchQuery('');
               }}
-              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 categoryTab === 'wildfire'
                   ? 'bg-white text-slate-950 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Flame className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span>API</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700">
+              <span className="truncate">API</span>
+              <span className="text-[9.5px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700 font-mono">
                 {hotspots.length}
               </span>
             </button>
@@ -228,15 +228,15 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                 setCategoryTab('volcano');
                 setSearchQuery('');
               }}
-              className={`flex items-center justify-center gap-1.5 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+              className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                 categoryTab === 'volcano'
                   ? 'bg-white text-slate-950 shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Triangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span>GUNUNG</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700">
+              <span className="truncate">GUNUNG</span>
+              <span className="text-[9.5px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700 font-mono">
                 {volcanoes.length}
               </span>
             </button>
@@ -400,7 +400,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                   ? 'Cari pulau (Kalimantan, Sumatra, dll)...'
                   : 'Cari nama gunung atau provinsi...'
               }
-              className="w-full pl-8.5 pr-3 py-1.5 bg-slate-50 rounded-lg text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 focus:outline-hidden focus:border-slate-400 transition-colors"
+              className="w-full pl-8.5 pr-3 py-2 sm:py-1.5 bg-slate-50 rounded-lg text-base sm:text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 focus:outline-hidden focus:border-slate-400 transition-colors"
             />
           </div>
         </div>
@@ -647,10 +647,10 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
         </div>
 
         {/* 3. Footer Bar */}
-        <div className="shrink-0 px-5 py-3 border-t border-slate-200/70 bg-slate-50/80 flex items-center justify-between text-[11px] text-slate-500 font-sans">
+        <div className="shrink-0 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-200/70 bg-slate-50/80 flex items-center justify-between text-[11px] text-slate-500 font-sans">
           <span className="flex items-center gap-1.5 text-slate-600 font-medium">
             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            Klik baris untuk memfokuskan peta 3D
+            Klik baris untuk fokus peta 3D
           </span>
           <span className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
             <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 shadow-2xs text-slate-600 font-medium">
