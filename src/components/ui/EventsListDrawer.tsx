@@ -647,11 +647,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
         </div>
 
         {/* 3. Footer Bar */}
-        <div className="shrink-0 px-4 sm:px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-200/70 bg-slate-50/80 flex items-center justify-between text-[11px] text-slate-500 font-sans">
-          <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-            <MapPin className="w-3.5 h-3.5 text-slate-400" />
-            Klik baris untuk fokus peta 3D
-          </span>
+        <div className="shrink-0 px-4 sm:px-5 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-200/70 bg-slate-50/80 flex items-center justify-end text-[11px] text-slate-500 font-sans">
           <span className="flex items-center gap-1 font-mono text-[10px] text-slate-400">
             <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 shadow-2xs text-slate-600 font-medium">
               ESC
