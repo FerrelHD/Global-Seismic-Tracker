@@ -185,8 +185,12 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const [firmsStatus, setFirmsStatus] = useState<string>('NASA FIRMS LIVE');
 
   useEffect(() => {
-    if (hotspots && hotspots.length > 22) {
-      setFirmsStatus(`VIIRS LIVE (${hotspots.length})`);
+    if (hotspots) {
+      if (hotspots.length > 0) {
+        setFirmsStatus(`VIIRS LIVE (${hotspots.length})`);
+      } else {
+        setFirmsStatus('VIIRS (0 AKTIF)');
+      }
     }
   }, [hotspots]);
 
@@ -249,9 +253,13 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     setIsSyncingFIRMS(true);
     try {
       const res = await fetchLiveWildfireHotspots(true);
-      if (res.hotspots && res.hotspots.length > 0) {
+      if (res.hotspots) {
         onUpdateHotspots?.(res.hotspots);
-        setFirmsStatus(res.source === 'live_firms' ? 'LIVE FIRMS (VIIRS)' : 'CACHED SYNC');
+        if (res.source === 'offline' || res.hotspots.length === 0) {
+          setFirmsStatus('OFFLINE');
+        } else {
+          setFirmsStatus(`VIIRS LIVE (${res.hotspots.length})`);
+        }
       }
     } finally {
       setIsSyncingFIRMS(false);
