@@ -42,18 +42,27 @@ export default async function handler(req: Request): Promise<Response> {
       process.env.VITE_NASA_FIRMS_KEY ||
       '07f1b45f7415962d481155788cfd4bdc';
 
-    // VIIRS S-NPP Near-Real-Time sensor over Indonesian Archipelago Bounding Box
-    // Bounds: 95E, -11S to 141E, 6N. Day range: 1 (past 24 hours)
-    const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/95,-11,141,6/1`;
+    // VIIRS NOAA-20 Near-Real-Time sensor over Indonesian Archipelago Bounding Box
+    // Bounds: 95E, -11S to 141E, 6N. Day range: 2 (Sliding 48 hours to ensure zero-blank morning window)
+    const primaryUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_NOAA20_NRT/95,-11,141,6/2`;
+    const fallbackUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/95,-11,141,6/2`;
 
-    const upstream = await fetch(url, {
+    let upstream = await fetch(primaryUrl, {
       headers: {
         'User-Agent': 'Nusantara-Hazard-Observatory/1.0',
       },
-    });
+    }).catch(() => null);
 
-    if (!upstream.ok) {
-      throw new Error(`NASA upstream status: ${upstream.status}`);
+    if (!upstream || !upstream.ok) {
+      upstream = await fetch(fallbackUrl, {
+        headers: {
+          'User-Agent': 'Nusantara-Hazard-Observatory/1.0',
+        },
+      });
+    }
+
+    if (!upstream || !upstream.ok) {
+      throw new Error(`NASA upstream status: ${upstream?.status || 'network_error'}`);
     }
 
     const csvText = await upstream.text();
@@ -124,20 +133,26 @@ export default async function handler(req: Request): Promise<Response> {
         frp,
         confidence,
         island: resolveIsland(lat, lon),
-        satellite: sat === 'N' ? 'VIIRS_SNPP' : sat,
+        satellite: sat === 'N' ? 'VIIRS_SNPP' : sat === '1' || sat === 'J1' ? 'VIIRS_NOAA20' : sat || 'VIIRS',
         detected_at: detectedAt,
       });
     }
 
-    // Limit to top 400 highest-intensity or most significant hotspots
-    const sorted = hotspots.sort((a, b) => b.frp - a.frp).slice(0, 400);
+    // Sort: prioritize freshest acquisition passes (past 6-12h), then highest FRP
+    const sorted = hotspots
+      .sort((a, b) => {
+        const timeDiff = new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
+        if (Math.abs(timeDiff) > 3600000 * 6) return timeDiff;
+        return b.frp - a.frp;
+      })
+      .slice(0, 500);
 
     return new Response(JSON.stringify(sorted), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=1800',
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
       },
     });
   } catch (err: any) {

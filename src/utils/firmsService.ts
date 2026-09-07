@@ -66,12 +66,18 @@ function parseNASAcsv(csvText: string): WildfireHotspot[] {
       frp,
       confidence,
       island: resolveIsland(lat, lon),
-      satellite: sat === 'N' ? 'VIIRS_SNPP' : sat,
+      satellite: sat === 'N' ? 'VIIRS_SNPP' : sat === '1' || sat === 'J1' ? 'VIIRS_NOAA20' : sat || 'VIIRS',
       detected_at: detectedAt,
     });
   }
 
-  return hotspots.sort((a, b) => b.frp - a.frp).slice(0, 400);
+  return hotspots
+    .sort((a, b) => {
+      const timeDiff = new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
+      if (Math.abs(timeDiff) > 3600000 * 6) return timeDiff;
+      return b.frp - a.frp;
+    })
+    .slice(0, 500);
 }
 
 /**
@@ -123,7 +129,7 @@ export async function fetchLiveWildfireHotspots(force = false): Promise<FIRMSRes
   try {
     const mapKey = import.meta.env.VITE_NASA_FIRMS_KEY || '07f1b45f7415962d481155788cfd4bdc';
     if (mapKey) {
-      const directUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/95,-11,141,6/1`;
+      const directUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_NOAA20_NRT/95,-11,141,6/2`;
       const res = await fetch(directUrl);
       if (res.ok) {
         const csv = await res.text();

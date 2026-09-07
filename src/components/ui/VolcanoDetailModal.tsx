@@ -357,14 +357,14 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                       </div>
 
                       {/* Location Controls (GPS or City select) */}
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 w-full sm:w-auto relative" ref={cityDropdownRef}>
                         <button
                           type="button"
                           onClick={() => {
                             setLocationMode('gps');
                             requestGpsLocation();
                           }}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-lg font-mono text-[10px] font-semibold tracking-wider transition-all cursor-pointer ${
+                          className={`flex-1 sm:flex-initial flex items-center justify-center gap-1 px-2.5 py-1.5 sm:py-1 rounded-lg font-mono text-[10px] font-semibold tracking-wider transition-all cursor-pointer ${
                             locationMode === 'gps' && userGpsCoords
                               ? 'bg-slate-900 text-white shadow-2xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80'
@@ -372,7 +372,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                           title="Gunakan posisi GPS browser"
                         >
                           <Navigation className={`w-3 h-3 ${gpsStatus === 'requesting' ? 'animate-spin' : ''}`} />
-                          <span>
+                          <span className="truncate">
                             {gpsStatus === 'requesting'
                               ? 'MENCARI GPS...'
                               : locationMode === 'gps' && userGpsCoords
@@ -381,59 +381,60 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                           </span>
                         </button>
 
-                        {/* Custom Glassmorphism City Selector Dropdown */}
-                        <div className="relative" ref={cityDropdownRef}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsCityDropdownOpen((prev) => !prev);
-                              setLocationMode('city');
-                            }}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-mono text-[10px] font-semibold tracking-wider border transition-all cursor-pointer ${
-                              locationMode === 'city'
-                                ? 'bg-white text-slate-900 border-slate-300 shadow-2xs'
-                                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
-                            }`}
-                            title="Pilih kota acuan jarak abu"
-                          >
+                        {/* Custom Glassmorphism City Selector Dropdown Trigger */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCityDropdownOpen((prev) => !prev);
+                            setLocationMode('city');
+                          }}
+                          className={`flex-1 sm:flex-initial flex items-center justify-between sm:justify-start gap-1.5 px-2.5 py-1.5 sm:py-1 rounded-lg font-mono text-[10px] font-semibold tracking-wider border transition-all cursor-pointer ${
+                            locationMode === 'city'
+                              ? 'bg-white text-slate-900 border-slate-300 shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
+                          }`}
+                          title="Pilih kota acuan jarak abu"
+                        >
+                          <span className="flex items-center gap-1.5 min-w-0">
                             <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                             <span className="max-w-[110px] sm:max-w-[150px] truncate">
                               {selectedCity.name}
                             </span>
-                            <ChevronDown
-                              className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${
-                                isCityDropdownOpen ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </button>
+                          </span>
+                          <ChevronDown
+                            className={`w-3 h-3 text-slate-400 shrink-0 transition-transform duration-200 ${
+                              isCityDropdownOpen ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
 
-                          {/* Custom Dropdown Popover with Max Height & Search (Opens Upward to avoid any bottom modal clipping) */}
-                          {isCityDropdownOpen && (
-                            <div className="absolute bottom-full mb-2 right-0 w-64 sm:w-72 bg-white/98 backdrop-blur-xl border border-slate-200/90 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col ring-1 ring-black/5 animate-in fade-in slide-in-from-bottom-2 duration-150">
-                              {/* Mini Search Header */}
-                              <div className="p-2 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50/90">
-                                <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                <input
-                                  type="text"
-                                  value={citySearchQuery}
-                                  onChange={(e) => setCitySearchQuery(e.target.value)}
-                                  placeholder="Cari kota / provinsi..."
-                                  className="w-full bg-transparent text-[11px] font-sans text-slate-900 placeholder-slate-400 outline-none"
-                                  autoFocus
-                                />
-                                {citySearchQuery && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setCitySearchQuery('')}
-                                    className="p-0.5 text-slate-400 hover:text-slate-600 cursor-pointer"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
+                        {/* Custom Dropdown Popover with Max Height & Search (Responsive Full-Width on Mobile) */}
+                        {isCityDropdownOpen && (
+                          <div className="absolute bottom-full mb-2 left-0 right-0 sm:left-auto sm:right-0 sm:w-72 bg-white/98 backdrop-blur-xl border border-slate-200/90 rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col ring-1 ring-black/5 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                            {/* Mini Search Header */}
+                            <div className="p-2 border-b border-slate-100 flex items-center gap-1.5 bg-slate-50/90">
+                              <Search className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <input
+                                type="text"
+                                value={citySearchQuery}
+                                onChange={(e) => setCitySearchQuery(e.target.value)}
+                                placeholder="Cari kota / provinsi..."
+                                className="w-full bg-transparent text-xs sm:text-[11px] font-sans text-slate-900 placeholder-slate-400 outline-none"
+                                autoFocus
+                              />
+                              {citySearchQuery && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCitySearchQuery('')}
+                                  className="p-0.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
 
-                              {/* Scrollable City List with Max-Height */}
-                              <div className="max-h-44 overflow-y-auto py-1 divide-y divide-slate-100/80 no-scrollbar sm:custom-scrollbar">
+                            {/* Scrollable City List with Max-Height */}
+                            <div className="max-h-48 overflow-y-auto py-1 divide-y divide-slate-100/80 no-scrollbar sm:custom-scrollbar">
                                 {filteredCities.length === 0 ? (
                                   <div className="px-3 py-3 text-[11px] font-sans text-slate-400 text-center">
                                     Kota tidak ditemukan
@@ -483,7 +484,6 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                           )}
                         </div>
                       </div>
-                    </div>
 
                     {/* Proximity Readout Card */}
                     <div className="p-3 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100/70 border border-slate-200/90 font-mono flex flex-col gap-2.5">

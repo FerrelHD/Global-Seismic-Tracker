@@ -3,6 +3,20 @@ import { supabase } from './supabase';
 import { INDONESIA_ACTIVE_VOLCANOES } from '../data/volcanoes';
 
 export async function fetchVolcanoActivity(): Promise<VolcanoActivity[]> {
+  // Tier 1: Real-time Edge API / Dev Proxy with live MAGMA ESDM levels
+  try {
+    const res = await fetch('/api/volcanoes');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data as VolcanoActivity[];
+      }
+    }
+  } catch (err) {
+    // Continue to Supabase / baseline fallback
+  }
+
+  // Tier 2: Supabase Database Table
   try {
     if (supabase) {
       const { data, error } = await supabase

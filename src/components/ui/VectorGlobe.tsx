@@ -184,6 +184,12 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
   const [isSyncingFIRMS, setIsSyncingFIRMS] = useState<boolean>(false);
   const [firmsStatus, setFirmsStatus] = useState<string>('NASA FIRMS LIVE');
 
+  useEffect(() => {
+    if (hotspots && hotspots.length > 22) {
+      setFirmsStatus(`VIIRS LIVE (${hotspots.length})`);
+    }
+  }, [hotspots]);
+
   // User Geolocation for Proximity Matrix
   const {
     coords: userCoords,
