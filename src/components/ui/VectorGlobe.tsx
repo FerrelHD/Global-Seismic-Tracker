@@ -433,9 +433,18 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
       }
     };
 
+    const onPointerLeave = () => {
+      hoveredEventRef.current = null;
+      if (tooltipRef.current) {
+        tooltipRef.current.style.display = 'none';
+      }
+    };
+
     container.addEventListener('pointermove', onPointerMove, { passive: true });
+    container.addEventListener('pointerleave', onPointerLeave, { passive: true });
     return () => {
       container.removeEventListener('pointermove', onPointerMove);
+      container.removeEventListener('pointerleave', onPointerLeave);
     };
   }, [events, projectCoords]);
 
@@ -560,7 +569,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
     };
 
     const onPointerUp = (e: PointerEvent) => {
-      activePointers.delete(e.pointerId);
+      const wasTracked = activePointers.delete(e.pointerId);
 
       if (activePointers.size === 0) {
         isDraggingRef.current = false;
@@ -571,7 +580,15 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
         container.releasePointerCapture(e.pointerId);
       } catch { }
 
+      // Ignore pointers that did not originate within map container
+      if (!wasTracked) return;
+
       if (!hasDragged) {
+        const target = e.target as HTMLElement | null;
+        if (target && target.closest('button, [role="button"], input, select, a, [data-interactive="true"], .label-tag')) {
+          return;
+        }
+
         const isSeismicVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'seismic';
         const isWildfireVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'wildfire';
         const isVolcanoVisible = hazardModeRef.current === 'dual' || hazardModeRef.current === 'all' || hazardModeRef.current === 'volcano';
@@ -1467,11 +1484,15 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
           return (
             <div
               onClick={() => setSelectedHotspot(null)}
+              onPointerDown={(e) => e.stopPropagation()}
+              onPointerUp={(e) => e.stopPropagation()}
               onWheel={(e) => e.stopPropagation()}
               className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
             >
               <div
                 onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
                 onWheel={(e) => e.stopPropagation()}
                 data-lenis-prevent="true"
                 className="w-full max-w-[560px] max-h-[88vh] overflow-y-auto my-auto rounded-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"

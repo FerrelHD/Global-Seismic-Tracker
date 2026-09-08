@@ -200,11 +200,15 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       aria-modal="true"
       aria-label={`Detail status vulkanik ${volcano.name}`}
       onClick={onClose}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
         className="w-full max-w-[560px] max-h-[85vh] overflow-y-auto my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}

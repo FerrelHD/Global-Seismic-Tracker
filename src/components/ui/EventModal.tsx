@@ -249,11 +249,15 @@ export const EventModal: React.FC<EventModalProps> = ({
   return (
     <div
       onClick={onClose}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        onPointerUp={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
         className="w-full max-w-[560px] max-h-[88vh] overflow-y-auto my-auto rounded-3xl no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
