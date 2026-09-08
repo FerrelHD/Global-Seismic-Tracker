@@ -251,16 +251,32 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
             <div className={pillGroup} role="group" aria-label="Time Horizon Filter">
               <button
                 type="button"
-                onClick={() => onTimeFilterChange('24h')}
-                title={lang === 'id' ? 'Aktivitas 24 Jam Terakhir' : 'Last 24 Hours Activity'}
+                onClick={() => onTimeFilterChange(timeFilter === '24h' ? 'all' : '24h')}
+                title={
+                  lang === 'id'
+                    ? timeFilter === '24h'
+                      ? 'Klik untuk batal / tampilkan semua waktu'
+                      : 'Aktivitas 24 Jam Terakhir'
+                    : timeFilter === '24h'
+                      ? 'Click to deselect / show all time'
+                      : 'Last 24 Hours Activity'
+                }
                 className={`${pillBase} ${timeFilter === '24h' ? pillActive : pillInactive}`}
               >
                 <span>24H</span>
               </button>
               <button
                 type="button"
-                onClick={() => onTimeFilterChange('7d')}
-                title={lang === 'id' ? 'Aktivitas 7 Hari Terakhir' : 'Last 7 Days Activity'}
+                onClick={() => onTimeFilterChange(timeFilter === '7d' ? 'all' : '7d')}
+                title={
+                  lang === 'id'
+                    ? timeFilter === '7d'
+                      ? 'Klik untuk batal / tampilkan semua waktu'
+                      : 'Aktivitas 7 Hari Terakhir'
+                    : timeFilter === '7d'
+                      ? 'Click to deselect / show all time'
+                      : 'Last 7 Days Activity'
+                }
                 className={`${pillBase} ${timeFilter === '7d' ? pillActive : pillInactive}`}
               >
                 <span>7D</span>
