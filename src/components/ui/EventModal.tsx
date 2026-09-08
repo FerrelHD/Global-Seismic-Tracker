@@ -144,6 +144,26 @@ export const EventModal: React.FC<EventModalProps> = ({
     }
   }, [initialTab, isSignificantForNews, event?.id, event?.usgs_id]);
 
+  // Escape key listener & body scroll lock
+  useEffect(() => {
+    if (!event) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [event, onClose]);
+
   const handleCopyLink = () => {
     if (!event) return;
     const origin =

@@ -273,7 +273,7 @@ function volcanoesDevApiPlugin(): Plugin {
         }
 
         try {
-          const { INDONESIA_ACTIVE_VOLCANOES } = await import('./src/data/volcanoes');
+          const { INDONESIA_ACTIVE_VOLCANOES } = await import('./src/data/volcanoes.ts');
           const volcanoes = JSON.parse(JSON.stringify(INDONESIA_ACTIVE_VOLCANOES));
 
           // Try fetching MAGMA Indonesia with 5s timeout
@@ -361,5 +361,22 @@ export default defineConfig({
   server: {
     port: 3000,
     open: false,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/framer-motion') || id.includes('node_modules/gsap') || id.includes('node_modules/lenis')) {
+            return 'vendor-motion';
+          }
+          if (id.includes('node_modules/@supabase')) {
+            return 'vendor-supabase';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons';
+          }
+        },
+      },
+    },
   },
 });

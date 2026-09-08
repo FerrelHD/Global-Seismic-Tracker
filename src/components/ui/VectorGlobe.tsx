@@ -103,7 +103,7 @@ function getFRPSeverity(frp: number): { label: string; color: string; bg: string
   return { label: 'LOW', color: '#ca8a04', bg: '#fefce8', border: '#fef08a' };
 }
 
-export const VectorGlobe: React.FC<VectorGlobeProps> = ({
+const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
   events,
   hotspots = [],
   volcanoes = [],
@@ -1886,3 +1886,5 @@ export const VectorGlobe: React.FC<VectorGlobeProps> = ({
     </div>
   );
 };
+
+export const VectorGlobe = React.memo(VectorGlobeComponent);

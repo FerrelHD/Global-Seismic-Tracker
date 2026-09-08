@@ -15,11 +15,20 @@ interface EventsListDrawerProps {
   onSelectVolcano?: (volcano: VolcanoActivity) => void;
   isBookmarked: (event: SeismicEvent) => boolean;
   onToggleBookmark: (event: SeismicEvent) => void;
+  lang?: 'id' | 'en';
 }
 
-function formatRelativeTime(dateString: string): string {
+function formatRelativeTime(dateString: string, lang: 'id' | 'en' = 'id'): string {
   const diff = Date.now() - new Date(dateString).getTime();
   const mins = Math.floor(diff / 60000);
+  if (lang === 'id') {
+    if (mins < 1) return 'Baru saja';
+    if (mins < 60) return `${mins}m lalu`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}j lalu`;
+    const days = Math.floor(hours / 24);
+    return `${days}h lalu`;
+  }
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
@@ -47,6 +56,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
   onSelectVolcano,
   isBookmarked,
   onToggleBookmark,
+  lang = 'id',
 }) => {
   // Category tabs: 'earthquake' | 'wildfire' | 'volcano'
   const [categoryTab, setCategoryTab] = useState<'earthquake' | 'wildfire' | 'volcano'>('earthquake');
@@ -57,6 +67,26 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
   const [volcanoFilter, setVolcanoFilter] = useState<'all' | 'level3' | 'level2'>('all');
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Escape key listener & body scroll lock
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   // Auto-sync category tab with active dock hazard mode when drawer opens
   useEffect(() => {
@@ -172,13 +202,13 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#0f2f63] shrink-0 animate-pulse" />
               <h2 className="text-sm font-semibold text-slate-900 tracking-tight">
-                Live Hazard Ledger
+                {lang === 'en' ? 'Live Hazard Ledger' : 'Buku Catatan Bahaya'}
               </h2>
             </div>
 
             <button
               onClick={onClose}
-              title="Close drawer"
+              title={lang === 'en' ? 'Close drawer' : 'Tutup drawer'}
               className="p-2 sm:p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
@@ -199,7 +229,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
               }`}
             >
               <Activity className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span className="truncate">GEMPA</span>
+              <span className="truncate">{lang === 'en' ? 'QUAKE' : 'GEMPA'}</span>
               <span className="text-[9.5px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700 font-mono">
                 {events.length}
               </span>
@@ -217,7 +247,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
               }`}
             >
               <Flame className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-              <span className="truncate">API</span>
+              <span className="truncate">{lang === 'en' ? 'FIRE' : 'API'}</span>
               <span className="text-[9.5px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700 font-mono">
                 {hotspots.length}
               </span>
@@ -235,7 +265,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
               }`}
             >
               <Triangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              <span className="truncate">GUNUNG</span>
+              <span className="truncate">{lang === 'en' ? 'VOLCANO' : 'GUNUNG'}</span>
               <span className="text-[9.5px] sm:text-[10px] px-1.5 py-0.2 rounded-full bg-slate-200/80 text-slate-700 font-mono">
                 {volcanoes.length}
               </span>
@@ -253,7 +283,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
-                Semua
+                {lang === 'en' ? 'All' : 'Semua'}
               </button>
               <button
                 onClick={() => setSeismicFilter('m5')}
@@ -273,7 +303,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
-                M6.0+ Mayor
+                {lang === 'en' ? 'M6.0+ Major' : 'M6.0+ Mayor'}
               </button>
               <button
                 onClick={() => setSeismicFilter('saved')}
@@ -284,9 +314,15 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                 }`}
               >
                 <BookmarkIcon className="w-3 h-3" />
-                <span>Disimpan</span>
+                <span>{lang === 'en' ? 'Saved' : 'Disimpan'}</span>
                 {savedCount > 0 && (
-                  <span className="text-[10px] px-1.5 rounded-full bg-slate-200/80 text-slate-800">
+                  <span
+                    className={`text-[10px] px-1.5 rounded-full ${
+                      seismicFilter === 'saved'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-slate-200/80 text-slate-800'
+                    }`}
+                  >
                     {savedCount}
                   </span>
                 )}
@@ -305,7 +341,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
-                Semua Titik
+                {lang === 'en' ? 'All Hotspots' : 'Semua Titik'}
               </button>
               <button
                 onClick={() => setWildfireFilter('high_frp')}
@@ -325,7 +361,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
-                Ekstrem &ge; 120 MW
+                {lang === 'en' ? 'Extreme ≥ 120 MW' : 'Ekstrem ≥ 120 MW'}
               </button>
               <button
                 onClick={() => setWildfireFilter('kalimantan')}
@@ -361,7 +397,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-slate-100/90 text-slate-600 hover:bg-slate-200/80'
                 }`}
               >
-                Semua (7)
+                {lang === 'en' ? 'All (7)' : 'Semua (7)'}
               </button>
               <button
                 onClick={() => setVolcanoFilter('level3')}
@@ -371,7 +407,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
                 }`}
               >
-                Level III (Siaga)
+                {lang === 'en' ? 'Level III (Alert)' : 'Level III (Siaga)'}
               </button>
               <button
                 onClick={() => setVolcanoFilter('level2')}
@@ -381,7 +417,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                     : 'bg-yellow-50 text-yellow-800 hover:bg-yellow-100'
                 }`}
               >
-                Level II (Waspada)
+                {lang === 'en' ? 'Level II (Advisory)' : 'Level II (Waspada)'}
               </button>
             </div>
           )}
@@ -395,13 +431,22 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 categoryTab === 'earthquake'
-                  ? 'Cari wilayah atau magnitudo gempa...'
+                  ? (lang === 'en' ? 'Search region or magnitude...' : 'Cari wilayah atau magnitudo gempa...')
                   : categoryTab === 'wildfire'
-                  ? 'Cari pulau (Kalimantan, Sumatra, dll)...'
-                  : 'Cari nama gunung atau provinsi...'
+                  ? (lang === 'en' ? 'Search island (Kalimantan, Sumatra, etc)...' : 'Cari pulau (Kalimantan, Sumatra, dll)...')
+                  : (lang === 'en' ? 'Search volcano name or island...' : 'Cari nama gunung atau provinsi...')
               }
-              className="w-full pl-8.5 pr-3 py-2 sm:py-1.5 bg-slate-50 rounded-lg text-base sm:text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 focus:outline-hidden focus:border-slate-400 transition-colors"
+              className="w-full pl-8.5 pr-8 py-2 sm:py-1.5 bg-slate-50 rounded-lg text-base sm:text-xs text-slate-800 placeholder-slate-400 border border-slate-200/80 focus:outline-hidden focus:border-slate-400 transition-colors"
             />
+            {searchQuery.length > 0 && (
+              <button
+                onClick={() => setSearchQuery('')}
+                title={lang === 'en' ? 'Clear search' : 'Hapus pencarian'}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -420,15 +465,30 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
             filteredEvents.length === 0 ? (
               <div className="h-48 flex flex-col items-center justify-center text-center p-8 text-slate-400 font-sans text-xs">
                 <Radio className="w-6 h-6 text-slate-300 mb-2" />
-                <p className="font-medium text-slate-600">Tidak ada gempa yang cocok</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Ubah kata kunci pencarian atau filter</p>
+                <p className="font-medium text-slate-600">
+                  {lang === 'en' ? 'No matching earthquakes' : 'Tidak ada gempa yang cocok'}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {lang === 'en' ? 'Adjust search keywords or filters' : 'Ubah kata kunci pencarian atau filter'}
+                </p>
+                {(searchQuery.trim() !== '' || seismicFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSeismicFilter('all');
+                    }}
+                    className="mt-3 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                  >
+                    {lang === 'en' ? 'Reset Filters' : 'Reset Filter'}
+                  </button>
+                )}
               </div>
             ) : (
               filteredEvents.map((evt) => {
                 const mag = evt.magnitude?.toFixed(1) ?? 'N/A';
                 const magVal = evt.magnitude ?? 0;
                 const bookmarked = isBookmarked(evt);
-                const relTime = formatRelativeTime(evt.occurred_at);
+                const relTime = formatRelativeTime(evt.occurred_at, lang);
 
                 return (
                   <div
@@ -481,7 +541,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                           e.stopPropagation();
                           onToggleBookmark(evt);
                         }}
-                        title={bookmarked ? 'Hapus bookmark' : 'Simpan bookmark'}
+                        title={bookmarked ? (lang === 'en' ? 'Remove bookmark' : 'Hapus bookmark') : (lang === 'en' ? 'Save bookmark' : 'Simpan bookmark')}
                         className={`p-1.5 rounded-lg transition-all duration-150 cursor-pointer ${
                           bookmarked
                             ? 'text-blue-600 opacity-100'
@@ -502,14 +562,31 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
             filteredHotspots.length === 0 ? (
               <div className="h-48 flex flex-col items-center justify-center text-center p-8 text-slate-400 font-sans text-xs">
                 <Flame className="w-6 h-6 text-slate-300 mb-2" />
-                <p className="font-medium text-slate-600">Tidak ada titik api ditemukan</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Satelit NASA tidak mendeteksi anomali pada filter ini</p>
+                <p className="font-medium text-slate-600">
+                  {lang === 'en' ? 'No hotspots found' : 'Tidak ada titik api ditemukan'}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {lang === 'en'
+                    ? 'NASA satellites detect no anomalies on this filter'
+                    : 'Satelit NASA tidak mendeteksi anomali pada filter ini'}
+                </p>
+                {(searchQuery.trim() !== '' || wildfireFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setWildfireFilter('all');
+                    }}
+                    className="mt-3 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                  >
+                    {lang === 'en' ? 'Reset Filters' : 'Reset Filter'}
+                  </button>
+                )}
               </div>
             ) : (
               filteredHotspots.map((hotspot) => {
                 const isHigh = hotspot.frp >= 100;
                 const isExtreme = hotspot.frp >= 200;
-                const relTime = formatRelativeTime(hotspot.detected_at);
+                const relTime = formatRelativeTime(hotspot.detected_at, lang);
 
                 return (
                   <div
@@ -579,7 +656,20 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
             filteredVolcanoes.length === 0 ? (
               <div className="h-48 flex flex-col items-center justify-center text-center p-8 text-slate-400 font-sans text-xs">
                 <Triangle className="w-6 h-6 text-slate-300 mb-2" />
-                <p className="font-medium text-slate-600">Tidak ada gunung yang cocok</p>
+                <p className="font-medium text-slate-600">
+                  {lang === 'en' ? 'No matching volcanoes' : 'Tidak ada gunung yang cocok'}
+                </p>
+                {(searchQuery.trim() !== '' || volcanoFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setVolcanoFilter('all');
+                    }}
+                    className="mt-3 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                  >
+                    {lang === 'en' ? 'Reset Filters' : 'Reset Filter'}
+                  </button>
+                )}
               </div>
             ) : (
               filteredVolcanoes.map((volcano) => {
@@ -613,7 +703,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                             isLevel4 ? 'bg-rose-600 animate-pulse' : isLevel3 ? 'bg-orange-600 animate-pulse' : 'bg-yellow-500'
                           }`}
                         />
-                        {volcano.alert_level === 'Level III' ? 'SIAGA' : volcano.alert_level === 'Level II' ? 'WASPADA' : 'AWAS'}
+                        {volcano.alert_level === 'Level III' ? (lang === 'en' ? 'ALERT' : 'SIAGA') : volcano.alert_level === 'Level II' ? (lang === 'en' ? 'ADVISORY' : 'WASPADA') : (lang === 'en' ? 'WARNING' : 'AWAS')}
                       </span>
                       <span className="text-[9px] font-mono text-slate-400 mt-1">
                         {volcano.elevation_m} mdpl
@@ -652,7 +742,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
             <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 shadow-2xs text-slate-600 font-medium">
               ESC
             </kbd>
-            <span>tutup</span>
+            <span>{lang === 'en' ? 'close' : 'tutup'}</span>
           </span>
         </div>
       </aside>

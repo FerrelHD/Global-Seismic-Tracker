@@ -1,4 +1,4 @@
-import { VolcanoActivity } from '../types/seismic';
+import { VolcanoActivity } from '../types/seismic.ts';
 
 export const INDONESIA_ACTIVE_VOLCANOES: VolcanoActivity[] = [
   {

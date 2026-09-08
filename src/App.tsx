@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import Lenis from 'lenis';
 import { VectorGlobe, CameraCoordinates } from './components/ui/VectorGlobe';
 import { ViewportTechnicalFrame } from './components/ui/ViewportTechnicalFrame';
@@ -7,18 +7,27 @@ import { LiquidGlassFilter, LiquidCard } from './components/ui/liquid-glass';
 import { FloatingControllerDock } from './components/ui/FloatingControllerDock';
 import { BookmarkDrawer } from './components/ui/BookmarkDrawer';
 import { EventsListDrawer } from './components/ui/EventsListDrawer';
-import { EventModal } from './components/ui/EventModal';
 import { StoryChapterCard } from './components/story/StoryChapterCard';
 import { StoryProgressRail } from './components/story/StoryProgressRail';
 import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
 import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
-import { BMKGShakemapModal } from './components/ui/BMKGShakemapModal';
-import { SocialInfographicModal } from './components/ui/SocialInfographicModal';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode, VolcanoActivity } from './types/seismic';
-import { VolcanoDetailModal } from './components/ui/VolcanoDetailModal';
 import { fetchVolcanoActivity } from './utils/volcanoService';
 import { fetchLiveWildfireHotspots } from './utils/firmsService';
+
+const EventModal = lazy(() =>
+  import('./components/ui/EventModal').then((m) => ({ default: m.EventModal }))
+);
+const BMKGShakemapModal = lazy(() =>
+  import('./components/ui/BMKGShakemapModal').then((m) => ({ default: m.BMKGShakemapModal }))
+);
+const SocialInfographicModal = lazy(() =>
+  import('./components/ui/SocialInfographicModal').then((m) => ({ default: m.SocialInfographicModal }))
+);
+const VolcanoDetailModal = lazy(() =>
+  import('./components/ui/VolcanoDetailModal').then((m) => ({ default: m.VolcanoDetailModal }))
+);
 import {
   fetchSeismicEvents,
   fetchWildfireHotspots,
@@ -208,11 +217,10 @@ export const App: React.FC = () => {
           occurred_at: res.datetime || new Date().toISOString(),
         };
 
-        setEvents((prev) => {
-          const exists = prev.some((e) => e.id === 'bmkg-autogempa' || e.usgs_id === 'bmkg-autogempa');
-          if (exists) return prev;
-          return [bmkgEvent, ...prev];
-        });
+        setEvents((prev) => [
+          bmkgEvent,
+          ...prev.filter((e) => e.id !== 'bmkg-autogempa' && e.usgs_id !== 'bmkg-autogempa'),
+        ]);
       }
     });
 
@@ -1462,21 +1470,23 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
       />
 
       {/* 7. EVENT DETAIL & BOOKMARK MODAL */}
-      <EventModal
-        event={selectedEvent}
-        onClose={() => {
-          setSelectedEvent(null);
-          setEventModalTab('telemetry');
-        }}
-        isBookmarked={isEventBookmarked(selectedEvent)}
-        onToggleBookmark={handleToggleBookmark}
-        onFocusGlobe={(evt) => setTargetFocus([evt.latitude, evt.longitude])}
-        onOpenInfographic={(evt) => {
-          setInfographicEvent(evt);
-          setIsInfographicOpen(true);
-        }}
-        initialTab={eventModalTab}
-      />
+      <Suspense fallback={null}>
+        <EventModal
+          event={selectedEvent}
+          onClose={() => {
+            setSelectedEvent(null);
+            setEventModalTab('telemetry');
+          }}
+          isBookmarked={isEventBookmarked(selectedEvent)}
+          onToggleBookmark={handleToggleBookmark}
+          onFocusGlobe={(evt) => setTargetFocus([evt.latitude, evt.longitude])}
+          onOpenInfographic={(evt) => {
+            setInfographicEvent(evt);
+            setIsInfographicOpen(true);
+          }}
+          initialTab={eventModalTab}
+        />
+      </Suspense>
 
       {/* 8. ACTIVE MULTI-HAZARD FEED DRAWER */}
       <EventsListDrawer
@@ -1501,6 +1511,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
         }}
         isBookmarked={isEventBookmarked}
         onToggleBookmark={handleToggleBookmark}
+        lang={lang}
       />
 
       {/* 9. SAVED BOOKMARKS SLIDING DRAWER */}
@@ -1536,44 +1547,50 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
       )}
 
       {/* 11. BMKG OFFICIAL SHAKEMAP MODAL */}
-      <BMKGShakemapModal
-        isOpen={isShakemapModalOpen}
-        onClose={() => setIsShakemapModalOpen(false)}
-        shakemapUrl={
-          bmkgAlert?.shakemap
-            ? bmkgAlert.shakemap.startsWith('http')
-              ? bmkgAlert.shakemap
-              : `https://data.bmkg.go.id/DataMKG/TEWS/${bmkgAlert.shakemap}`
-            : null
-        }
-        location={formattedBMKG?.location || 'Kepulauan Indonesia'}
-        magnitude={`M${bmkgAlert?.magnitude || '5.0+'}`}
-        depth={formattedBMKG?.depth || `${bmkgAlert?.kedalaman || '10 km'}`}
-        time={formattedBMKG?.time || bmkgAlert?.tanggal || 'Terbaru'}
-        potensi={formattedBMKG?.potensi || bmkgAlert?.potensi || 'Tidak berpotensi tsunami'}
-        coordinates={bmkgAlert?.coordinates}
-      />
+      <Suspense fallback={null}>
+        <BMKGShakemapModal
+          isOpen={isShakemapModalOpen}
+          onClose={() => setIsShakemapModalOpen(false)}
+          shakemapUrl={
+            bmkgAlert?.shakemap
+              ? bmkgAlert.shakemap.startsWith('http')
+                ? bmkgAlert.shakemap
+                : `https://data.bmkg.go.id/DataMKG/TEWS/${bmkgAlert.shakemap}`
+              : null
+          }
+          location={formattedBMKG?.location || 'Kepulauan Indonesia'}
+          magnitude={`M${bmkgAlert?.magnitude || '5.0+'}`}
+          depth={formattedBMKG?.depth || `${bmkgAlert?.kedalaman || '10 km'}`}
+          time={formattedBMKG?.time || bmkgAlert?.tanggal || 'Terbaru'}
+          potensi={formattedBMKG?.potensi || bmkgAlert?.potensi || 'Tidak berpotensi tsunami'}
+          coordinates={bmkgAlert?.coordinates}
+        />
+      </Suspense>
 
       {/* 12. DISASTER INFOGRAPHIC SOCIAL CARD GENERATOR */}
-      <SocialInfographicModal
-        isOpen={isInfographicOpen}
-        onClose={() => setIsInfographicOpen(false)}
-        event={infographicEvent || selectedEvent}
-        location={infographicEvent?.place || formattedBMKG?.location || 'Indonesia Archipelago'}
-        magnitude={infographicEvent ? (infographicEvent.magnitude ?? '5.0') : (bmkgAlert?.magnitude || '5.0')}
-        depth={infographicEvent ? `${infographicEvent.depth} km` : (formattedBMKG?.depth || '10 km')}
-        time={infographicEvent ? new Date(infographicEvent.occurred_at).toLocaleString('id-ID') : (formattedBMKG?.time || 'Terbaru')}
-        potensi={formattedBMKG?.potensi || 'Tidak berpotensi tsunami'}
-        coordinates={infographicEvent ? `${infographicEvent.latitude.toFixed(2)}°, ${infographicEvent.longitude.toFixed(2)}°` : (bmkgAlert?.coordinates || undefined)}
-      />
+      <Suspense fallback={null}>
+        <SocialInfographicModal
+          isOpen={isInfographicOpen}
+          onClose={() => setIsInfographicOpen(false)}
+          event={infographicEvent || selectedEvent}
+          location={infographicEvent?.place || formattedBMKG?.location || 'Indonesia Archipelago'}
+          magnitude={infographicEvent ? (infographicEvent.magnitude ?? '5.0') : (bmkgAlert?.magnitude || '5.0')}
+          depth={infographicEvent ? `${infographicEvent.depth} km` : (formattedBMKG?.depth || '10 km')}
+          time={infographicEvent ? new Date(infographicEvent.occurred_at).toLocaleString('id-ID') : (formattedBMKG?.time || 'Terbaru')}
+          potensi={formattedBMKG?.potensi || 'Tidak berpotensi tsunami'}
+          coordinates={infographicEvent ? `${infographicEvent.latitude.toFixed(2)}°, ${infographicEvent.longitude.toFixed(2)}°` : (bmkgAlert?.coordinates || undefined)}
+        />
+      </Suspense>
 
       {/* 14. VOLCANO ACTIVITY & ASH PLUME MODAL */}
       {selectedVolcano && (
-        <VolcanoDetailModal
-          volcano={selectedVolcano}
-          onClose={() => setSelectedVolcano(null)}
-          lang={lang}
-        />
+        <Suspense fallback={null}>
+          <VolcanoDetailModal
+            volcano={selectedVolcano}
+            onClose={() => setSelectedVolcano(null)}
+            lang={lang}
+          />
+        </Suspense>
       )}
     </div>
   );

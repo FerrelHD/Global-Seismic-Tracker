@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bookmark } from '../../types/seismic';
 import { LiquidCard } from './liquid-glass';
 import { X, Bookmark as BookmarkIcon, Trash2, MapPin, Layers, Clock, FileText, Check } from 'lucide-react';
@@ -22,6 +22,26 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState('');
+
+  // Escape key listener & body scroll lock
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   const startEditing = (b: Bookmark) => {
     setEditingId(b.id);

@@ -69,6 +69,26 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isCityDropdownOpen]);
 
+  // Escape key listener & body scroll lock
+  useEffect(() => {
+    if (!volcano) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [volcano, onClose]);
+
   // Default benchmark city (Default to closest NTT city if in NTT, else Depok/Jakarta)
   const [selectedCityName, setSelectedCityName] = useState<string>(() => {
     if (!volcano) return 'Depok';

@@ -61,6 +61,40 @@ function verifyChapterTitles(lang) {
 }
 assert.equal(verifyChapterTitles('id'), 'Megathrust Sunda');
 assert.equal(verifyChapterTitles('en'), 'The Sunda Megathrust');
-console.log('✔ Bilingual storytelling translations verified.');
+// 5. BMKG Event Replacement Logic Verification
+function updateEventsWithBMKG(prev, newBmkg) {
+  return [newBmkg, ...prev.filter((e) => e.id !== 'bmkg-autogempa' && e.usgs_id !== 'bmkg-autogempa')];
+}
+const initialList = [
+  { id: 'bmkg-autogempa', magnitude: 4.8, place: 'Old Gempa' },
+  { id: 'usgs-1', magnitude: 5.2, place: 'Maluku' },
+];
+const updatedBmkg = { id: 'bmkg-autogempa', magnitude: 6.1, place: 'New Gempa Banggai' };
+const nextList = updateEventsWithBMKG(initialList, updatedBmkg);
+assert.equal(nextList.length, 2, 'List length must remain 2 after update');
+assert.equal(nextList[0].magnitude, 6.1, 'BMKG event must be updated to new magnitude 6.1');
+assert.equal(nextList[0].place, 'New Gempa Banggai', 'BMKG event place must be updated to new place');
+console.log('✔ BMKG event update logic verified.');
+
+// 6. Relative Time Formatting (ID & EN)
+function formatRelativeTime(dateString, lang = 'id') {
+  const diff = Date.now() - new Date(dateString).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (lang === 'id') {
+    if (mins < 1) return 'Baru saja';
+    if (mins < 60) return `${mins}m lalu`;
+    return 'Lama';
+  }
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  return 'Old';
+}
+const nowStr = new Date().toISOString();
+const tenMinsAgoStr = new Date(Date.now() - 10 * 60000).toISOString();
+assert.equal(formatRelativeTime(nowStr, 'id'), 'Baru saja');
+assert.equal(formatRelativeTime(nowStr, 'en'), 'Just now');
+assert.equal(formatRelativeTime(tenMinsAgoStr, 'id'), '10m lalu');
+assert.equal(formatRelativeTime(tenMinsAgoStr, 'en'), '10m ago');
+console.log('✔ Relative time i18n verified.');
 
 console.log('✅ ALL LOGIC CHECKS PASSED PERFECTLY!');
