@@ -5,6 +5,7 @@ import { useUserLocation } from '../../hooks/useUserLocation';
 import { useLanguage } from '../../utils/i18n';
 import {
   calculateDistanceKm,
+  calculateSeismicWaveETA,
   estimateMMI,
   formatSeismicWAMessage,
   openWhatsAppShare,
@@ -19,6 +20,7 @@ import {
   Copy,
   Layers,
   Activity,
+  Radio,
   Share2,
   MapPin,
   Navigation,
@@ -187,6 +189,11 @@ export const EventModal: React.FC<EventModalProps> = ({
   const mmiInfo = useMemo(() => {
     if (userDistanceKm == null || !event || event.magnitude == null) return null;
     return estimateMMI(event.magnitude, event.depth, userDistanceKm);
+  }, [userDistanceKm, event]);
+
+  const waveETA = useMemo(() => {
+    if (userDistanceKm == null || !event) return null;
+    return calculateSeismicWaveETA(userDistanceKm, event.depth || 10);
   }, [userDistanceKm, event]);
 
   if (!event) return null;
@@ -559,6 +566,57 @@ export const EventModal: React.FC<EventModalProps> = ({
                       <p className="text-[9.5px] font-mono text-slate-600 mt-1 leading-snug">
                         {mmiInfo.description}
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {waveETA && (
+                  <div className="p-2.5 rounded-xl bg-slate-900 text-white border border-slate-800 shadow-xs">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                        <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-cyan-300">
+                          {lang === 'id' ? 'ESTIMASI RAMBAT GELOMBANG (ETA)' : 'SEISMIC WAVE TRAVEL ETA'}
+                        </span>
+                      </div>
+                      <span className="text-[8.5px] font-mono font-bold text-slate-400">
+                        {lang === 'id' ? `JEDA: ~${waveETA.goldenWindowSec}s` : `WINDOW: ~${waveETA.goldenWindowSec}s`}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-left">
+                      {/* P-Wave Box */}
+                      <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                        <div className="flex items-center justify-between text-[8px] font-mono text-slate-400">
+                          <span>P-WAVE (PRIMER)</span>
+                          <span className="text-cyan-400">~6 km/s</span>
+                        </div>
+                        <div className="text-sm font-mono font-black text-cyan-300 mt-0.5 tabular-nums">
+                          ~{waveETA.pWaveTravelSec}s
+                        </div>
+                        <div className="text-[8px] font-mono text-slate-400 mt-0.5 leading-tight">
+                          {lang === 'id' ? 'Gelombang awal kompresi' : 'Initial compressional wave'}
+                        </div>
+                      </div>
+
+                      {/* S-Wave Box */}
+                      <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                        <div className="flex items-center justify-between text-[8px] font-mono text-slate-400">
+                          <span>S-WAVE (SEKUNDER)</span>
+                          <span className="text-amber-400">~3.5 km/s</span>
+                        </div>
+                        <div className="text-sm font-mono font-black text-amber-300 mt-0.5 tabular-nums">
+                          ~{waveETA.sWaveTravelSec}s
+                        </div>
+                        <div className="text-[8px] font-mono text-slate-400 mt-0.5 leading-tight">
+                          {lang === 'id' ? 'Guncangan geser utama' : 'Main shear shaking'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 pt-1.5 border-t border-slate-800 text-[8px] font-mono text-slate-400 flex items-center justify-between">
+                      <span>{lang === 'id' ? 'Jeda Peringatan Dini (S − P):' : 'Early Warning Window (S − P):'}</span>
+                      <span className="text-emerald-400 font-bold tabular-nums">~{waveETA.goldenWindowSec} detik</span>
                     </div>
                   </div>
                 )}

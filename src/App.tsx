@@ -154,15 +154,46 @@ export const App: React.FC = () => {
     }
   }, [selectedEvent]);
 
+  const [syncCountdown, setSyncCountdown] = useState(45);
+  const [pingLatencyMs, setPingLatencyMs] = useState<number | null>(null);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+
   // Load live data from Supabase / USGS / NASA FIRMS
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
+    const start = performance.now();
     try {
       const data = await fetchSeismicEvents();
+      const latency = Math.round(performance.now() - start);
+      setPingLatencyMs(latency);
+
       setEvents((prev) => {
         const bmkg = prev.find((e) => e.id === 'bmkg-autogempa');
         return bmkg ? [bmkg, ...data.filter((e) => e.id !== 'bmkg-autogempa')] : data;
       });
+
+      // Background alert trigger on new events if not initial load
+      if (!isInitialLoadRef.current && data && data.length > 0) {
+        const newEvents = data.filter(
+          (e) => !knownEventIdsRef.current.has(e.id) && !knownEventIdsRef.current.has(e.usgs_id)
+        );
+        if (newEvents.length > 0) {
+          newEvents.forEach((e) => {
+            if (e.id) knownEventIdsRef.current.add(e.id);
+            if (e.usgs_id) knownEventIdsRef.current.add(e.usgs_id);
+          });
+          const latest = newEvents[0];
+          triggerSeismicAlert({
+            id: latest.id || latest.usgs_id,
+            magnitude: latest.magnitude ?? 5.0,
+            place: latest.place || 'Indonesia Archipelago',
+            time: 'Baru saja',
+            depth: latest.depth,
+            latitude: latest.latitude,
+            longitude: latest.longitude,
+          });
+        }
+      }
 
       // Deep linking support: ?event=<id> or ?id=<id> with optional &tab=news
       if (typeof window !== 'undefined' && window.location.search) {
@@ -181,7 +212,8 @@ export const App: React.FC = () => {
     } catch (err) {
       console.error('Failed to load events:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+      isInitialLoadRef.current = false;
     }
 
     fetchBMKGAutogempa().then((res) => {
@@ -231,6 +263,16 @@ export const App: React.FC = () => {
     fetchVolcanoActivity().then((data) => {
       if (data) setVolcanoes(data);
     });
+  };
+
+  const handleManualRefresh = async () => {
+    setIsManualSyncing(true);
+    setSyncCountdown(45);
+    try {
+      await loadData(true);
+    } finally {
+      setIsManualSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -977,38 +1019,18 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
       setAlertsEnabled(true);
     }
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const fresh = await fetchSeismicEvents();
-        if (fresh && fresh.length > 0 && !isInitialLoadRef.current) {
-          const newEvents = fresh.filter(
-            (e) => !knownEventIdsRef.current.has(e.id) && !knownEventIdsRef.current.has(e.usgs_id)
-          );
-          if (newEvents.length > 0) {
-            newEvents.forEach((e) => {
-              if (e.id) knownEventIdsRef.current.add(e.id);
-              if (e.usgs_id) knownEventIdsRef.current.add(e.usgs_id);
-            });
-            const latest = newEvents[0];
-            triggerSeismicAlert({
-              id: latest.id || latest.usgs_id,
-              magnitude: latest.magnitude ?? 5.0,
-              place: latest.place || 'Indonesia Archipelago',
-              time: 'Baru saja',
-              depth: latest.depth,
-              latitude: latest.latitude,
-              longitude: latest.longitude,
-            });
-            setEvents((prev) => [...newEvents, ...prev]);
-          }
+    const timer = setInterval(() => {
+      setSyncCountdown((prev) => {
+        if (prev <= 1) {
+          loadData(true);
+          return 45;
         }
-      } catch (err) {
-        console.warn('Background alert polling check:', err);
-      }
-    }, 45000);
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => clearInterval(pollInterval);
-  }, [triggerSeismicAlert]);
+    return () => clearInterval(timer);
+  }, []);
 
   const effectiveTranslateX = isDesktop ? `${globeOffsetVw}vw` : '0px';
   return (
@@ -1130,6 +1152,43 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
                   <ArrowDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-300" />
                 </button>
               )}
+
+              {/* Telemetry Ping Latency & Auto-Refresh Countdown Pill */}
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                title={
+                  lang === 'id'
+                    ? `Latensi Data: ${pingLatencyMs ? `${pingLatencyMs}ms` : 'Mengukur...'} • Auto-refresh dalam ${syncCountdown}s (Klik untuk refresh manual)`
+                    : `Data Latency: ${pingLatencyMs ? `${pingLatencyMs}ms` : 'Measuring...'} • Auto-refresh in ${syncCountdown}s (Click to refresh now)`
+                }
+                className="flex items-center gap-1.5 px-2 py-1 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[10px] sm:text-[11px] font-medium tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 text-slate-700"
+              >
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span
+                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                      pingLatencyMs && pingLatencyMs < 400 ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`}
+                  />
+                  <span
+                    className={`relative inline-flex rounded-full h-2 w-2 ${
+                      pingLatencyMs && pingLatencyMs < 400 ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                  />
+                </span>
+                <span className="tabular-nums font-bold text-slate-900 hidden sm:inline">
+                  {pingLatencyMs ? `${pingLatencyMs}ms` : 'LIVE'}
+                </span>
+                <span className="text-slate-300 font-light hidden sm:inline">/</span>
+                <span className="tabular-nums font-bold text-slate-600">
+                  {syncCountdown}s
+                </span>
+                <RefreshCw
+                  className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 transition-transform ${
+                    isManualSyncing ? 'animate-spin text-slate-900' : ''
+                  }`}
+                />
+              </button>
 
               {/* Language Switcher: ID / EN */}
               <button

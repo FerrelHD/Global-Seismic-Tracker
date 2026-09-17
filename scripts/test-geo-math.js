@@ -30,3 +30,30 @@ assert(Math.abs(xSouth) < 1e-6);
 assert(Math.abs(ySouth - (-R)) < 1e-6);
 
 console.log('✓ Spherical coordinate conversion self-check passed.');
+
+// Test Seismic Wave ETA: Distance 60km, depth 10km -> hypocentral ~60.8km
+// P-wave ~10s, S-wave ~17s, Golden Window ~7s
+function calculateSeismicWaveETA(surfaceDistKm, depthKm = 10) {
+  const hypocentralDist = Math.sqrt(surfaceDistKm * surfaceDistKm + depthKm * depthKm);
+  const pWaveSpeedKmS = 6.0;
+  const sWaveSpeedKmS = 3.5;
+  const pWaveTravelSec = Math.max(1, Math.round(hypocentralDist / pWaveSpeedKmS));
+  const sWaveTravelSec = Math.max(2, Math.round(hypocentralDist / sWaveSpeedKmS));
+  const goldenWindowSec = Math.max(1, sWaveTravelSec - pWaveTravelSec);
+
+  return {
+    pWaveSpeedKmS,
+    sWaveSpeedKmS,
+    pWaveTravelSec,
+    sWaveTravelSec,
+    goldenWindowSec,
+  };
+}
+
+const eta = calculateSeismicWaveETA(60, 10);
+assert.strictEqual(eta.pWaveSpeedKmS, 6.0);
+assert.strictEqual(eta.sWaveSpeedKmS, 3.5);
+assert.strictEqual(eta.pWaveTravelSec, 10);
+assert.strictEqual(eta.sWaveTravelSec, 17);
+assert.strictEqual(eta.goldenWindowSec, 7);
+console.log('✓ Seismic wave travel time & golden window ETA self-check passed.');

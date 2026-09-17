@@ -35,6 +35,36 @@ export function calculateDistanceKm(
   return parseFloat((R * c).toFixed(1));
 }
 
+export interface SeismicWaveETA {
+  pWaveSpeedKmS: number;
+  sWaveSpeedKmS: number;
+  pWaveTravelSec: number;
+  sWaveTravelSec: number;
+  goldenWindowSec: number;
+}
+
+/**
+ * Calculates estimated travel times for primary (P) and secondary (S) seismic waves
+ * from hypocenter to observer's location.
+ * Standard crustal velocities: Vp ~ 6.0 km/s, Vs ~ 3.5 km/s.
+ */
+export function calculateSeismicWaveETA(surfaceDistKm: number, depthKm: number = 10): SeismicWaveETA {
+  const hypocentralDist = Math.sqrt(surfaceDistKm * surfaceDistKm + depthKm * depthKm);
+  const pWaveSpeedKmS = 6.0;
+  const sWaveSpeedKmS = 3.5;
+  const pWaveTravelSec = Math.max(1, Math.round(hypocentralDist / pWaveSpeedKmS));
+  const sWaveTravelSec = Math.max(2, Math.round(hypocentralDist / sWaveSpeedKmS));
+  const goldenWindowSec = Math.max(1, sWaveTravelSec - pWaveTravelSec);
+
+  return {
+    pWaveSpeedKmS,
+    sWaveSpeedKmS,
+    pWaveTravelSec,
+    sWaveTravelSec,
+    goldenWindowSec,
+  };
+}
+
 /**
  * Estimates human-perceived shaking intensity (MMI - Modified Mercalli Intensity)
  * at a given hypocentral distance based on seismic magnitude and depth.
