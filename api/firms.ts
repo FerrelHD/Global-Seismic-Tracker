@@ -41,6 +41,18 @@ export default async function handler(req: Request): Promise<Response> {
       process.env.NASA_FIRMS_MAP_KEY ||
       process.env.VITE_NASA_FIRMS_KEY;
 
+    if (!mapKey) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store',
+          'X-FIRMS-Status': 'missing-api-key',
+        },
+      });
+    }
+
     // VIIRS NOAA-20 Near-Real-Time sensor over Indonesian Archipelago Bounding Box
     // Bounds: 95E, -11S to 141E, 6N. Day range: 2 (Sliding 48 hours to ensure zero-blank morning window)
     const primaryUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_NOAA20_NRT/95,-11,141,6/2`;
