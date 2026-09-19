@@ -162,7 +162,8 @@ function firmsDevApiPlugin(): Plugin {
         }
 
         try {
-          const mapKey = process.env.VITE_NASA_FIRMS_KEY;
+          const rawKey = process.env.VITE_NASA_FIRMS_KEY || process.env.NASA_FIRMS_MAP_KEY;
+          const mapKey = rawKey?.trim().replace(/['"`]/g, '');
           const primaryUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_NOAA20_NRT/95,-11,141,6/2`;
           const fallbackUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/95,-11,141,6/2`;
 

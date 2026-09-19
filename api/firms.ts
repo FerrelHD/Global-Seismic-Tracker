@@ -37,9 +37,10 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    const mapKey =
+    const rawKey =
       process.env.NASA_FIRMS_MAP_KEY ||
       process.env.VITE_NASA_FIRMS_KEY;
+    const mapKey = rawKey?.trim().replace(/['"`]/g, '');
 
     if (!mapKey) {
       return new Response(JSON.stringify([]), {
@@ -69,11 +70,12 @@ export default async function handler(req: Request): Promise<Response> {
         headers: {
           'User-Agent': 'Nusantara-Hazard-Observatory/1.0',
         },
-      });
+      }).catch(() => null);
     }
 
     if (!upstream || !upstream.ok) {
-      throw new Error(`NASA upstream status: ${upstream?.status || 'network_error'}`);
+      const errText = await upstream?.text().catch(() => '');
+      throw new Error(`NASA upstream status: ${upstream?.status || 'network_error'}${errText ? ` - ${errText.slice(0, 100)}` : ''}`);
     }
 
     const csvText = await upstream.text();
