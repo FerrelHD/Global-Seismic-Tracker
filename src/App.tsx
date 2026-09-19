@@ -54,6 +54,25 @@ import {
   Bell,
 } from 'lucide-react';
 
+// Geographic Coordinate Bounding Boxes for Indonesian Archipelago Sectors
+// Module-level constant — not recreated on every render
+const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: number; maxLon: number }> = {
+  sumatra: { minLat: -6.0, maxLat: 6.0, minLon: 95.0, maxLon: 106.0 },
+  java: { minLat: -11.0, maxLat: -5.5, minLon: 105.0, maxLon: 116.0 },
+  sulawesi: { minLat: -6.0, maxLat: 2.5, minLon: 118.5, maxLon: 125.5 },
+  banda: { minLat: -11.0, maxLat: 2.0, minLon: 119.0, maxLon: 134.0 },
+  papua: { minLat: -10.0, maxLat: 1.0, minLon: 130.0, maxLon: 141.0 },
+};
+
+const REGION_FOCUS_COORDS: Record<string, [number, number]> = {
+  sumatra: [-0.5897, 101.3431],
+  java: [-7.6145, 110.7122],
+  sulawesi: [-1.43, 121.4456],
+  banda: [-5.5, 129.5],
+  papua: [-3.8, 138.5],
+};
+const DEFAULT_FOCUS: [number, number] = [-0.78, 118.0];
+
 export const App: React.FC = () => {
   const { lang, t, toggleLanguage } = useLanguage();
   const [events, setEvents] = useState<SeismicEvent[]>([]);
@@ -159,7 +178,7 @@ export const App: React.FC = () => {
   const [isManualSyncing, setIsManualSyncing] = useState(false);
 
   // Load live data from Supabase / USGS / NASA FIRMS
-  const loadData = async (silent = false) => {
+  const loadData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     const start = performance.now();
     try {
@@ -263,7 +282,9 @@ export const App: React.FC = () => {
     fetchVolcanoActivity().then((data) => {
       if (data) setVolcanoes(data);
     });
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   const handleManualRefresh = async () => {
     setIsManualSyncing(true);
@@ -524,16 +545,9 @@ export const App: React.FC = () => {
     lenisRef.current?.scrollTo(`#chapter-section-${index}`, { duration: 1.1 });
   };
 
-// Geographic Coordinate Bounding Boxes for Indonesian Archipelago Sectors
-const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: number; maxLon: number }> = {
-  sumatra: { minLat: -6.0, maxLat: 6.0, minLon: 95.0, maxLon: 106.0 },
-  java: { minLat: -11.0, maxLat: -5.5, minLon: 105.0, maxLon: 116.0 },
-  sulawesi: { minLat: -6.0, maxLat: 2.5, minLon: 118.5, maxLon: 125.5 },
-  banda: { minLat: -11.0, maxLat: 2.0, minLon: 119.0, maxLon: 134.0 },
-  papua: { minLat: -10.0, maxLat: 1.0, minLon: 130.0, maxLon: 141.0 },
-};
 
   // Filtered Events Pipeline
+
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
       if (searchQuery.trim() !== '') {
@@ -701,22 +715,7 @@ const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: nu
   // Region Preset Click Handler (Indonesian Archipelago Sectors)
   const handleRegionChange = (region: string) => {
     setSearchQuery(region);
-    const lower = region.toLowerCase();
-    if (lower === '' || lower === 'indonesia' || lower === 'all') {
-      setTargetFocus([-0.78, 118.0]);
-    } else if (lower === 'sumatra') {
-      setTargetFocus([-0.5897, 101.3431]);
-    } else if (lower === 'java') {
-      setTargetFocus([-7.6145, 110.7122]);
-    } else if (lower === 'sulawesi') {
-      setTargetFocus([-1.43, 121.4456]);
-    } else if (lower === 'banda') {
-      setTargetFocus([-5.5, 129.5]);
-    } else if (lower === 'papua') {
-      setTargetFocus([-3.8, 138.5]);
-    } else {
-      setTargetFocus([-0.78, 118.0]);
-    }
+    setTargetFocus(REGION_FOCUS_COORDS[region.toLowerCase()] ?? DEFAULT_FOCUS);
   };
 
   // Bilingual formatting for BMKG Ground Zero telemetry
