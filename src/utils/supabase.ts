@@ -4,7 +4,7 @@ import { SeismicEvent, Bookmark, WildfireHotspot } from '../types/seismic';
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
   import.meta.env.SUPABASE_URL ||
-  'https://wyguzokuixndqfbyqhwp.supabase.co';
+  '';
 
 const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||

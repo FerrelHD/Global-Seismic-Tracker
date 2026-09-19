@@ -165,7 +165,7 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     const url = new URL(req.url);
-    const query = url.searchParams.get('q') || 'gempa indonesia';
+    const query = (url.searchParams.get('q') || 'gempa indonesia').slice(0, 200);
     const lang = (url.searchParams.get('lang') === 'en' ? 'en' : 'id') as 'id' | 'en';
 
     // Query Google News RSS with time constraint for fresh real-time reporting

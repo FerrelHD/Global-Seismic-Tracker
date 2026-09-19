@@ -23,7 +23,6 @@ export interface StoryChapter {
 export function buildStoryChapters(events: SeismicEvent[], lang: Language = 'id'): StoryChapter[] {
   // Aggregate regional metrics
   const totalCount = events.length || 380;
-  const majorShocks = events.filter((e) => (e.magnitude ?? 0) >= 5.0).length;
   const maxMag = events.length > 0 ? Math.max(...events.map((e) => e.magnitude ?? 0)).toFixed(1) : '6.4';
 
   const isId = lang === 'id';

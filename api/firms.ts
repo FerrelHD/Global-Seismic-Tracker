@@ -39,8 +39,7 @@ export default async function handler(req: Request): Promise<Response> {
   try {
     const mapKey =
       process.env.NASA_FIRMS_MAP_KEY ||
-      process.env.VITE_NASA_FIRMS_KEY ||
-      '07f1b45f7415962d481155788cfd4bdc';
+      process.env.VITE_NASA_FIRMS_KEY;
 
     // VIIRS NOAA-20 Near-Real-Time sensor over Indonesian Archipelago Bounding Box
     // Bounds: 95E, -11S to 141E, 6N. Day range: 2 (Sliding 48 hours to ensure zero-blank morning window)
