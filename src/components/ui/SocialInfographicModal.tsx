@@ -278,9 +278,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/80 font-mono text-xs">
           <div className="flex items-center gap-2 text-neutral-900 font-bold tracking-wider">
-            <span className="w-6 h-6 rounded-full bg-[#0f2f63] text-white flex items-center justify-center">
-              <Share2 className="w-3.5 h-3.5" />
-            </span>
+            <Share2 className="w-4 h-4 text-slate-700 shrink-0" />
             <span>DISASTER INFOGRAPHIC GENERATOR</span>
           </div>
 

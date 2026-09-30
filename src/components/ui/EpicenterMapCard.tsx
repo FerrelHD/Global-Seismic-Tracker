@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
+import { ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface EpicenterMapCardProps {
   location?: string;
@@ -432,11 +433,15 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
                               }}
                               className="w-full flex items-center justify-between px-2 py-1 rounded bg-slate-100/90 hover:bg-slate-200/90 border border-slate-200/80 font-mono text-[9px] text-slate-700 transition-colors cursor-pointer"
                             >
-                              <span className="flex items-center gap-1 font-semibold">
-                                <span>🛡️</span>
+                              <span className="flex items-center gap-1.5 font-semibold">
+                                <ShieldAlert className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                                 <span>{lang === 'id' ? 'Protokol Evakuasi 20-20-20' : '20-20-20 Evacuation Rule'}</span>
                               </span>
-                              <span className="text-slate-400">{showTsunamiGuide ? '▲' : '▼'}</span>
+                              {showTsunamiGuide ? (
+                                <ChevronUp className="w-3 h-3 text-slate-400" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3 text-slate-400" />
+                              )}
                             </button>
 
                             {showTsunamiGuide && (

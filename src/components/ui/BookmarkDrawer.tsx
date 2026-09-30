@@ -76,9 +76,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
         {/* Header (Fixed at top) */}
         <div className="shrink-0 p-6 border-b border-slate-100 flex items-center justify-between bg-white/40">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800">
-              <BookmarkIcon className="w-4 h-4" />
-            </div>
+            <BookmarkIcon className="w-5 h-5 text-slate-800 shrink-0" />
             <div>
               <h2 className="text-sm font-bold tracking-tight text-slate-900 font-mono uppercase">
                 SAVED OBSERVATIONS
@@ -105,9 +103,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
         >
           {bookmarks.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-300 mb-3">
-                <BookmarkIcon className="w-6 h-6" />
-              </div>
+              <BookmarkIcon className="w-8 h-8 text-slate-300 mb-3" />
               <p className="text-sm font-semibold text-slate-800">No events saved yet</p>
               <p className="text-xs text-slate-500 mt-1 max-w-xs font-light">
                 Use the bookmark action on any seismic event to store telemetry and notes for future reference.

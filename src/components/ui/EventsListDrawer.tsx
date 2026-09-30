@@ -505,9 +505,9 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                       <span
                         className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                           magVal >= 6.0
-                            ? 'bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.6)] animate-pulse'
+                            ? 'bg-rose-600'
                             : magVal >= 5.0
-                            ? 'bg-amber-500'
+                            ? 'bg-amber-600'
                             : 'bg-slate-300'
                         }`}
                       />
@@ -605,10 +605,10 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
                         <span
                           className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                             isExtreme
-                              ? 'bg-rose-600 shadow-[0_0_6px_rgba(225,29,72,0.8)] animate-pulse'
+                              ? 'bg-rose-700'
                               : isHigh
-                              ? 'bg-orange-500'
-                              : 'bg-amber-400'
+                              ? 'bg-amber-600'
+                              : 'bg-slate-400'
                           }`}
                         />
                         <span

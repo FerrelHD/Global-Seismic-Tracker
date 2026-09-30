@@ -55,9 +55,7 @@ export const DisasterNewsVerification: React.FC<DisasterNewsVerificationProps> =
       {/* Header Bar */}
       <div className="px-4 py-3 border-b border-slate-200/70 flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-xs">
-            <Newspaper className="w-3.5 h-3.5 text-slate-100" />
-          </div>
+          <Newspaper className="w-4 h-4 text-slate-700 shrink-0" />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-mono font-bold text-[11px] tracking-wider text-slate-900 uppercase">
@@ -166,9 +164,7 @@ export const DisasterNewsVerification: React.FC<DisasterNewsVerificationProps> =
         ) : (
           /* Empty / Pending State */
           <div className="py-4 px-3 text-center space-y-2">
-            <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 border border-amber-200/80 mx-auto flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4 text-amber-600" />
-            </div>
+            <ShieldCheck className="w-6 h-6 text-amber-600 mx-auto" />
             <div>
               <p className="text-[11px] font-mono font-medium text-slate-700">
                 {lang === 'id' ? 'Belum Ada Artikel Media Terindeks' : 'No Media Articles Indexed Yet'}

@@ -1,5 +1,46 @@
+# Dependencies
 node_modules/
-.env
-.DS_Store
+.pnp
+.pnp.js
+
+# Build Outputs & Bundler Cache
 dist/
-.next/
+dist-ssr/
+*.local
+.vite/
+
+# Serverless & Framework Outputs
+.vercel/
+
+# Environment Files & Secrets
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS Junk & Metadata
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Files
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

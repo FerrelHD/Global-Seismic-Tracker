@@ -42,21 +42,20 @@ export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
       <div className="relative overflow-hidden rounded-full bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-lg px-3.5 sm:px-5 py-2 flex items-center justify-between gap-2 sm:gap-4 pointer-events-auto">
         {/* Left: Tectonic Telemetry Feed Readout */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          {/* Pulsing Beacon Indicator */}
-          <span className="relative flex h-2.5 w-2.5 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600" />
+          {/* Beacon Indicator */}
+          <span className="relative flex h-2 w-2 shrink-0">
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600" />
           </span>
 
           {/* Dispatch Tag */}
-          <span className="hidden sm:inline-block font-mono text-[10px] font-bold text-rose-600 tracking-wider whitespace-nowrap">
+          <span className="hidden sm:inline-block font-mono text-[10px] font-bold text-rose-700 tracking-wider whitespace-nowrap">
             [RUPTURE ALERT]
           </span>
 
           <span className="hidden sm:inline text-slate-300 font-mono text-xs">/</span>
 
           {/* Magnitude Badge */}
-          <span className="shrink-0 px-2 py-0.5 rounded-full bg-rose-100 border border-rose-200 text-rose-900 font-mono font-black text-[11px] sm:text-xs tracking-tight">
+          <span className="shrink-0 px-2 py-0.5 rounded-full bg-rose-50 border border-rose-200/90 text-rose-800 font-mono font-bold text-[11px] sm:text-xs tracking-tight">
             M{alert.magnitude.toFixed(1)}
           </span>
 
@@ -70,7 +69,7 @@ export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
           </span>
 
           {alert.tsunami && (
-            <span className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono text-[9px] font-bold uppercase tracking-wider shrink-0">
+            <span className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-700 text-white font-mono text-[9px] font-bold uppercase tracking-wider shrink-0 border border-rose-800/80">
               <AlertTriangle className="w-2.5 h-2.5" />
               <span>TSUNAMI WARNING</span>
             </span>
@@ -81,7 +80,7 @@ export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => onLocate(alert)}
-            className="group flex items-center gap-1 font-mono text-[11px] sm:text-xs font-bold text-slate-950 hover:text-rose-600 transition-colors uppercase underline underline-offset-4 decoration-rose-500/70 cursor-pointer whitespace-nowrap"
+            className="group flex items-center gap-1 font-mono text-[11px] sm:text-xs font-bold text-slate-950 hover:text-rose-700 transition-colors uppercase underline underline-offset-4 decoration-rose-700/60 cursor-pointer whitespace-nowrap"
           >
             <span>TRACK EPICENTER</span>
             <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-1" />

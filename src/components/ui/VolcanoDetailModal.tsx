@@ -200,21 +200,18 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       aria-modal="true"
       aria-label={`Detail status vulkanik ${volcano.name}`}
       onClick={onClose}
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerUp={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
       className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        onPointerDown={(e) => e.stopPropagation()}
-        onPointerUp={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
-        className="w-full max-w-[560px] max-h-[85vh] overflow-y-auto my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        data-lenis-prevent="true"
+        className="w-full max-w-[560px] max-h-[85dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
       >
         {/* Editorial Liquid Glass Native Card */}
-        <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 pb-6 shadow-2xl border border-white/90 select-none bg-white/95 backdrop-blur-2xl relative overflow-visible ring-1 ring-black/[0.04]">
+        <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 pb-6 shadow-2xl border border-white/90 bg-white/95 backdrop-blur-2xl relative overflow-visible ring-1 ring-black/[0.04]">
           {/* Technical Corner Crosshairs */}
           <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┌</span>
           <span className="absolute top-3 right-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┐</span>
@@ -234,8 +231,16 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 {volcano.name}
               </h2>
               <div className="flex items-center gap-2 mt-1">
-                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold tracking-wider ${alertBadgeColor}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${alertDotColor}`} />
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold tracking-wider ${alertBadgeColor}`}>
+                  {isCritical ? (
+                    <AlertOctagon className="w-3 h-3 text-rose-700 shrink-0" />
+                  ) : isWarning ? (
+                    <AlertTriangle className="w-3 h-3 text-amber-700 shrink-0" />
+                  ) : volcano.alert_level === 'Level II' ? (
+                    <ShieldAlert className="w-3 h-3 text-yellow-800 shrink-0" />
+                  ) : (
+                    <ShieldCheck className="w-3 h-3 text-emerald-700 shrink-0" />
+                  )}
                   {alertLevelLabel}
                 </span>
                 <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
@@ -526,7 +531,13 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase shadow-2xs ${proximityData.safety.badgeClass}`}
                           >
-                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            {proximityData.safety.level === 'danger' ? (
+                              <AlertOctagon className="w-3 h-3 text-white shrink-0" />
+                            ) : proximityData.safety.level === 'warning' ? (
+                              <AlertTriangle className="w-3 h-3 text-white shrink-0" />
+                            ) : (
+                              <ShieldCheck className="w-3 h-3 text-white shrink-0" />
+                            )}
                             {proximityData.safety.badge}
                           </span>
                           <span className="block text-[8.5px] text-slate-400 mt-1 uppercase">

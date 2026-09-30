@@ -1491,11 +1491,10 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
             >
               <div
                 onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                onPointerUp={(e) => e.stopPropagation()}
                 onWheel={(e) => e.stopPropagation()}
                 data-lenis-prevent="true"
-                className="w-full max-w-[560px] max-h-[88vh] overflow-y-auto my-auto rounded-3xl [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                className="w-full max-w-[560px] max-h-[85dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-3xl no-scrollbar"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               >
                 {/* Container Liquid Glass Native */}
                 <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 select-none bg-white/85 backdrop-blur-2xl relative overflow-hidden ring-1 ring-black/[0.04]">
@@ -1707,9 +1706,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                     {userGeoStatus !== 'granted' || !userCoords || hotspotDistKm == null ? (
                       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center shrink-0">
-                            <MapPin className="w-3.5 h-3.5 text-orange-700" />
-                          </div>
+                          <MapPin className="w-4 h-4 text-slate-600 shrink-0" />
                           <div className="min-w-0">
                             <span className="text-[10px] font-mono font-bold text-slate-800 block tracking-wider uppercase">
                               CEK JARAK DARI LOKASI SAYA
@@ -1728,12 +1725,12 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                         >
                           {userGeoStatus === 'requesting' ? (
                             <>
-                              <Loader2 className="w-3 h-3 text-orange-400 animate-spin" />
+                              <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
                               <span>MENGUKUR...</span>
                             </>
                           ) : (
                             <>
-                              <Navigation className="w-3 h-3 text-orange-300" />
+                              <Navigation className="w-3 h-3 text-slate-300" />
                               <span>UKUR SEKARANG</span>
                             </>
                           )}

@@ -52,6 +52,9 @@ import {
   ArrowDown,
   ArrowUp,
   Bell,
+  Activity,
+  Flame,
+  Mountain,
 } from 'lucide-react';
 
 // Geographic Coordinate Bounding Boxes for Indonesian Archipelago Sectors
@@ -1117,13 +1120,13 @@ export const App: React.FC = () => {
             <div
               onClick={scrollToHero}
               title={lang === 'id' ? 'Klik untuk kembali ke Bab Cerita / Beranda' : 'Click to return to Stories / Hero'}
-              className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink cursor-pointer group"
+              className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0 cursor-pointer group"
             >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
-                <GlobeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
+                <GlobeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1.5 text-[11px] sm:text-sm">
+                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1.5 text-[10px] sm:text-sm">
                   <span className="whitespace-nowrap font-extrabold tracking-tight">
                     {lang === 'id' ? 'OBSERVATORIUM' : 'SEISMIC'}
                   </span>
@@ -1145,7 +1148,7 @@ export const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={scrollToObservatory}
-                  className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[10px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
+                  className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[9px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
                 >
                   <span>{lang === 'id' ? 'PETA' : 'MAP'}</span>
                   <ArrowDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-300" />
@@ -1161,16 +1164,11 @@ export const App: React.FC = () => {
                     ? `Latensi Data: ${pingLatencyMs ? `${pingLatencyMs}ms` : 'Mengukur...'} • Auto-refresh dalam ${syncCountdown}s (Klik untuk refresh manual)`
                     : `Data Latency: ${pingLatencyMs ? `${pingLatencyMs}ms` : 'Measuring...'} • Auto-refresh in ${syncCountdown}s (Click to refresh now)`
                 }
-                className="flex items-center gap-1.5 px-2 py-1 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[10px] sm:text-[11px] font-medium tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 text-slate-700"
+                className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[9px] sm:text-[11px] font-medium tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 text-slate-700"
               >
-                <span className="relative flex h-2 w-2 shrink-0">
+                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0">
                   <span
-                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      pingLatencyMs && pingLatencyMs < 400 ? 'bg-emerald-400' : 'bg-amber-400'
-                    }`}
-                  />
-                  <span
-                    className={`relative inline-flex rounded-full h-2 w-2 ${
+                    className={`relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 ${
                       pingLatencyMs && pingLatencyMs < 400 ? 'bg-emerald-500' : 'bg-amber-500'
                     }`}
                   />
@@ -1183,7 +1181,7 @@ export const App: React.FC = () => {
                   {syncCountdown}s
                 </span>
                 <RefreshCw
-                  className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 transition-transform ${
+                  className={`w-2 h-2 sm:w-2.5 sm:h-2.5 text-slate-500 transition-transform ${
                     isManualSyncing ? 'animate-spin text-slate-900' : ''
                   }`}
                 />
@@ -1194,7 +1192,7 @@ export const App: React.FC = () => {
                 type="button"
                 onClick={toggleLanguage}
                 title={lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
-                className="flex items-center gap-0.5 px-2 py-1 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[10.5px] sm:text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                className="flex items-center gap-0.5 px-1.5 py-0.5 sm:px-2 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[9.5px] sm:text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
               >
                 <span className={lang === 'id' ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}>ID</span>
                 <span className="text-slate-300 font-light">/</span>
@@ -1220,7 +1218,7 @@ export const App: React.FC = () => {
                     : 'bg-neutral-100/80 text-neutral-500 border-neutral-200/80 hover:bg-neutral-200/90'
                 }`}
               >
-                <Bell className={`w-3.5 h-3.5 ${alertsEnabled ? 'text-rose-600 animate-pulse' : 'text-neutral-500'}`} />
+                <Bell className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${alertsEnabled ? 'text-rose-600' : 'text-neutral-500'}`} />
               </button>
 
               {/* Bookmarks (Icon Only with counter badge) */}
@@ -1231,9 +1229,9 @@ export const App: React.FC = () => {
                 title={t.saved}
                 className="relative p-1.5 sm:p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center"
               >
-                <BookmarkIcon className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
+                <BookmarkIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-neutral-600 shrink-0" />
                 {bookmarks.length > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#0f2f63] text-white text-[8.5px] font-mono font-bold leading-none shadow-xs">
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#0f2f63] text-white text-[8px] sm:text-[8.5px] font-mono font-bold leading-none shadow-xs">
                     {bookmarks.length}
                   </span>
                 )}
@@ -1243,7 +1241,7 @@ export const App: React.FC = () => {
               <button
                 type="button"
                 id="refresh-btn"
-                onClick={loadData}
+                onClick={() => loadData()}
                 title={lang === 'id' ? 'Muat Ulang Telemetri' : 'Reload Telemetry'}
                 className="hidden sm:flex p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer shrink-0 active:scale-95 shadow-2xs items-center justify-center"
               >
@@ -1352,8 +1350,8 @@ export const App: React.FC = () => {
                           }}
                           className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2rem)] sm:max-w-md py-1.5 px-1 pr-6"
                         >
-                          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase flex items-center gap-1 px-1 shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-600 uppercase flex items-center gap-1.5 px-1 shrink-0">
+                            <Activity className="w-3 h-3 text-slate-700 shrink-0" />
                             <span>{lang === 'id' ? 'SOROTAN:' : 'MAJOR:'}</span>
                           </span>
                           {majorHighlights.map((item) => (
@@ -1370,35 +1368,27 @@ export const App: React.FC = () => {
                                   setSelectedVolcano(item.data);
                                 }
                               }}
-                              className={`group relative hover:z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 font-mono text-[10px] tracking-wide shadow-xs border transition-all cursor-pointer active:scale-95 backdrop-blur-md hover:scale-105 hover:shadow-md shrink-0 sm:shrink ${
-                                item.type === 'event'
-                                  ? 'border-rose-200/90 hover:border-rose-400 text-slate-900'
-                                  : item.type === 'volcano'
-                                  ? 'border-red-300/90 hover:border-red-500 text-slate-900'
-                                  : 'border-orange-200/90 hover:border-orange-400 text-slate-900'
-                              }`}
+                              className="group relative hover:z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50/95 hover:bg-white font-mono text-[10px] tracking-wide shadow-2xs border border-slate-200/90 hover:border-slate-300 text-slate-900 transition-all cursor-pointer active:scale-95 backdrop-blur-md shrink-0 sm:shrink"
                               title={
                                 lang === 'id'
                                   ? `Fokus kamera & buka detail ${item.place} (${item.badge})`
                                   : `Focus camera & view details of ${item.place} (${item.badge})`
                               }
                             >
-                              <span
-                                className={`w-2 h-2 rounded-full shrink-0 animate-pulse ${
-                                  item.type === 'event'
-                                    ? 'bg-rose-600'
-                                    : item.type === 'volcano'
-                                    ? 'bg-red-600'
-                                    : 'bg-orange-500'
-                                }`}
-                              />
+                              {item.type === 'event' ? (
+                                <Activity className="w-3 h-3 text-rose-700 shrink-0" />
+                              ) : item.type === 'volcano' ? (
+                                <Mountain className="w-3 h-3 text-red-700 shrink-0" />
+                              ) : (
+                                <Flame className="w-3 h-3 text-amber-700 shrink-0" />
+                              )}
                               <span
                                 className={`font-bold ${
                                   item.type === 'event'
-                                    ? 'text-rose-700'
+                                    ? 'text-rose-800'
                                     : item.type === 'volcano'
-                                    ? 'text-red-700'
-                                    : 'text-orange-700'
+                                    ? 'text-red-800'
+                                    : 'text-amber-800'
                                 }`}
                               >
                                 {item.badge}

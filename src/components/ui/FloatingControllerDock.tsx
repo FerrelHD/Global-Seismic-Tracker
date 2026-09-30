@@ -189,11 +189,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     aria-label={lang === 'id' ? 'Filter Gempa Bumi' : 'Filter Earthquakes'}
                     className={`${iconPillBase} ${
                       hazardMode === 'seismic'
-                        ? 'bg-blue-600 text-white font-semibold shadow-xs border border-blue-700'
-                        : 'text-slate-500 hover:text-blue-600 hover:bg-white/80'
+                        ? pillActive
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/80'
                     }`}
                   >
-                    <Activity className="w-3.5 h-3.5 text-blue-400 group-hover:text-blue-600" />
+                    <Activity className={`w-3.5 h-3.5 ${hazardMode === 'seismic' ? 'text-sky-300' : 'text-slate-500 group-hover:text-slate-800'}`} />
                     <span className="hidden xl:inline text-[9px] font-bold">
                       {lang === 'id' ? 'GEMPA' : 'QUAKES'}
                     </span>
@@ -211,11 +211,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     aria-label={lang === 'id' ? 'Filter Titik Api Karhutla' : 'Filter Wildfires'}
                     className={`${iconPillBase} ${
                       hazardMode === 'wildfire'
-                        ? 'bg-amber-600 text-white font-semibold shadow-xs border border-amber-700'
-                        : 'text-slate-500 hover:text-amber-600 hover:bg-white/80'
+                        ? pillActive
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/80'
                     }`}
                   >
-                    <Flame className="w-3.5 h-3.5 text-amber-400 group-hover:text-amber-600" />
+                    <Flame className={`w-3.5 h-3.5 ${hazardMode === 'wildfire' ? 'text-amber-300' : 'text-slate-500 group-hover:text-slate-800'}`} />
                     <span className="hidden xl:inline text-[9px] font-bold">
                       {lang === 'id' ? 'TITIK API' : 'FIRES'}
                     </span>
@@ -233,11 +233,11 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     aria-label={lang === 'id' ? 'Filter Gunung Api' : 'Filter Volcanoes'}
                     className={`${iconPillBase} ${
                       hazardMode === 'volcano'
-                        ? 'bg-rose-600 text-white font-semibold shadow-xs border border-rose-700'
-                        : 'text-slate-500 hover:text-rose-600 hover:bg-white/80'
+                        ? pillActive
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-white/80'
                     }`}
                   >
-                    <Mountain className="w-3.5 h-3.5 text-rose-400 group-hover:text-rose-600" />
+                    <Mountain className={`w-3.5 h-3.5 ${hazardMode === 'volcano' ? 'text-rose-300' : 'text-slate-500 group-hover:text-slate-800'}`} />
                     <span className="hidden xl:inline text-[9px] font-bold">
                       {lang === 'id' ? 'GUNUNG' : 'VOLCANO'}
                     </span>
@@ -310,7 +310,7 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     title={lang === 'id' ? 'Gempa Signifikan / Kuat (M ≥ 5.5)' : 'Major Earthquakes (M ≥ 5.5)'}
                     className={`${pillBase} ${
                       magCategory === 'significant'
-                        ? 'bg-rose-600 text-white font-semibold shadow-xs border border-rose-700'
+                        ? 'bg-rose-700 text-white font-semibold shadow-xs border border-rose-800'
                         : pillInactive
                     }`}
                   >
