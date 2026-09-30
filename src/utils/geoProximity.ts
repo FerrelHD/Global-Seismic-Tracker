@@ -416,9 +416,9 @@ export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatu
       badge: 'ZONA BAHAYA',
       statusText: distanceKm === 0 ? 'Posisi berada di dalam zona sebaran abu!' : 'Sangat dekat dengan lintasan abu vulkanik.',
       recommendation: 'Gunakan masker standar N95 / medis dan batasi aktivitas luar ruang.',
-      colorHex: '#e11d48',
-      badgeClass: 'bg-slate-900 text-white border border-slate-950',
-      borderClass: 'border-slate-200/80',
+      colorHex: '#be123c',
+      badgeClass: 'bg-rose-700 text-white border border-rose-800/80',
+      borderClass: 'border-rose-200/80',
       bgClass: 'bg-white/90',
     };
   }
@@ -429,9 +429,9 @@ export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatu
       badge: 'RADIUS SIAGA',
       statusText: 'Waspadai pergeseran arah angin muson.',
       recommendation: 'Siapkan perlindungan masker dan pantau rute penerbangan setempat.',
-      colorHex: '#d97706',
-      badgeClass: 'bg-slate-900 text-white border border-slate-950',
-      borderClass: 'border-slate-200/80',
+      colorHex: '#b45309',
+      badgeClass: 'bg-amber-600 text-white border border-amber-700/80',
+      borderClass: 'border-amber-200/80',
       bgClass: 'bg-white/90',
     };
   }
@@ -441,9 +441,9 @@ export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatu
     badge: 'ZONA AMAN',
     statusText: 'Di luar jangkauan abu permukaan saat ini.',
     recommendation: 'Lokasi Anda aman dan jauh dari lintasan dispersi abu vulkanik aktif.',
-    colorHex: '#059669',
-    badgeClass: 'bg-slate-900 text-white border border-slate-950',
-    borderClass: 'border-slate-200/80',
+    colorHex: '#047857',
+    badgeClass: 'bg-emerald-700 text-white border border-emerald-800/80',
+    borderClass: 'border-emerald-200/80',
     bgClass: 'bg-white/90',
   };
 }

@@ -152,12 +152,21 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
 
   const isCritical = volcano.alert_level === 'Level IV';
   const isWarning = volcano.alert_level === 'Level III';
+  const isAdvisory = volcano.alert_level === 'Level II';
+
+  const alertBadgeBg = isCritical
+    ? 'bg-rose-700 text-white border border-rose-800/80'
+    : isWarning
+    ? 'bg-amber-600 text-white border border-amber-700/80'
+    : isAdvisory
+    ? 'bg-yellow-600 text-white border border-yellow-700/80'
+    : 'bg-emerald-700 text-white border border-emerald-800/80';
 
   const alertDotColor = isCritical
     ? 'bg-rose-500'
     : isWarning
     ? 'bg-amber-500'
-    : volcano.alert_level === 'Level II'
+    : isAdvisory
     ? 'bg-yellow-500'
     : 'bg-emerald-500';
 
@@ -223,8 +232,16 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 {volcano.name}
               </h2>
               <div className="flex items-center gap-2 mt-2">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-xs font-bold tracking-wider shadow-2xs">
-                  <span className={`w-1.5 h-1.5 rounded-full ${alertDotColor}`} />
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-bold tracking-wider shadow-2xs ${alertBadgeBg}`}>
+                  {isCritical ? (
+                    <AlertOctagon className="w-3.5 h-3.5 text-white shrink-0" />
+                  ) : isWarning ? (
+                    <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0" />
+                  ) : isAdvisory ? (
+                    <ShieldAlert className="w-3.5 h-3.5 text-white shrink-0" />
+                  ) : (
+                    <ShieldCheck className="w-3.5 h-3.5 text-white shrink-0" />
+                  )}
                   <span>{alertLevelLabel}</span>
                 </div>
                 <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">
@@ -512,16 +529,14 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
 
                         {/* Status Tag Indicator */}
                         <div className="text-right shrink-0">
-                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-xs font-bold tracking-wider uppercase shadow-2xs">
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                proximityData.safety.level === 'danger'
-                                  ? 'bg-rose-400'
-                                  : proximityData.safety.level === 'warning'
-                                  ? 'bg-amber-400'
-                                  : 'bg-emerald-400'
-                              }`}
-                            />
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-bold tracking-wider uppercase shadow-2xs ${proximityData.safety.badgeClass}`}>
+                            {proximityData.safety.level === 'danger' ? (
+                              <AlertOctagon className="w-3.5 h-3.5 text-white shrink-0" />
+                            ) : proximityData.safety.level === 'warning' ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0" />
+                            ) : (
+                              <ShieldCheck className="w-3.5 h-3.5 text-white shrink-0" />
+                            )}
                             <span>{proximityData.safety.badge}</span>
                           </div>
                           <span className="block text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider">
@@ -533,22 +548,28 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                       {/* Dynamic Safety Advisory Box (Swiss Technical Specimen) */}
                       <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-white/90 text-xs leading-relaxed flex items-start gap-3">
                         <div
-                          className={`w-1 self-stretch rounded-full shrink-0 ${
+                          className={`w-1.5 self-stretch rounded-full shrink-0 ${
                             proximityData.safety.level === 'danger'
-                              ? 'bg-rose-500'
+                              ? 'bg-rose-600'
                               : proximityData.safety.level === 'warning'
-                              ? 'bg-amber-500'
+                              ? 'bg-amber-600'
                               : 'bg-emerald-600'
                           }`}
                         />
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900 text-xs tracking-wide">
+                          <div className={`flex items-center gap-1.5 font-mono font-bold text-xs tracking-wide ${
+                            proximityData.safety.level === 'danger'
+                              ? 'text-rose-700'
+                              : proximityData.safety.level === 'warning'
+                              ? 'text-amber-700'
+                              : 'text-emerald-700'
+                          }`}>
                             {proximityData.safety.level === 'danger' ? (
-                              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                              <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
                             ) : proximityData.safety.level === 'warning' ? (
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                             ) : (
-                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
                             )}
                             <span>{proximityData.safety.statusText}</span>
                           </div>

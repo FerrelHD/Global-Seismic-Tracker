@@ -366,7 +366,13 @@ export const EventModal: React.FC<EventModalProps> = ({
                     <span className="text-[10px] font-mono font-bold text-slate-400 block tracking-widest uppercase">
                       MAGNITUDE (Mw)
                     </span>
-                    <span className="text-xs font-mono font-medium text-slate-600 mt-0.5 block tracking-wide">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 mt-0.5 rounded-sm text-[10px] font-mono font-bold tracking-wider text-white shadow-2xs ${
+                      isMajor
+                        ? 'bg-rose-700 border border-rose-800/80'
+                        : isModerate
+                        ? 'bg-amber-600 border border-amber-700/80'
+                        : 'bg-emerald-700 border border-emerald-800/80'
+                    }`}>
                       {isMajor ? 'MAJOR RUPTURE' : isModerate ? 'MODERATE TREMOR' : 'LIGHT CRUSTAL SHOCK'}
                     </span>
                   </div>
