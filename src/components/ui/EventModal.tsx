@@ -269,7 +269,7 @@ export const EventModal: React.FC<EventModalProps> = ({
         className="w-full max-w-[560px] max-h-[85dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-3xl no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
       >
-        <LiquidCard className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 backdrop-blur-2xl relative overflow-hidden">
+        <LiquidCard className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/90 backdrop-blur-2xl relative overflow-hidden">
           {/* Subtle Technical Corner Crosshairs (No Art Style) */}
           <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">
             ┌
@@ -285,9 +285,9 @@ export const EventModal: React.FC<EventModalProps> = ({
           </span>
 
           {/* 1. HEADER ROW */}
-          <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-100">
+          <div className="flex items-start justify-between gap-4 pb-3.5 sm:pb-4 border-b border-slate-100">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0f2f63] shrink-0" />
                 <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold truncate">
                   SEISMIC SPECIMEN // {event.usgs_id}
@@ -297,7 +297,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 {cleanPlace(event.place)}
               </h2>
               {event.place && (
-                <p className="text-xs text-slate-500 font-mono mt-0.5 truncate tracking-wide">
+                <p className="text-xs text-slate-500 font-mono mt-1 truncate tracking-wide">
                   {event.place.toUpperCase()}
                 </p>
               )}
@@ -314,11 +314,11 @@ export const EventModal: React.FC<EventModalProps> = ({
 
           {/* TAB SWITCHER: TELEMETRY & SENSORS vs LIVE NEWS VERIFICATION (Gated to Major M >= 4.0 or BMKG) */}
           {isSignificantForNews && (
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3.5">
               <button
                 type="button"
                 onClick={() => setActiveTab('telemetry')}
-                className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'telemetry'
                     ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
                     : 'text-slate-500 hover:text-slate-900'
@@ -330,7 +330,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('news')}
-                className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'news'
                     ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
                     : 'text-slate-500 hover:text-slate-900'
@@ -346,7 +346,7 @@ export const EventModal: React.FC<EventModalProps> = ({
           {activeTab === 'telemetry' ? (
             <div>
               {/* 2. SCIENTIFIC VISUALIZATION MATRIX (MAGNITUDE + WAVEFORM + DEPTH GAUGE) */}
-              <div className="py-3.5 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
+              <div className="py-4 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
             {/* Left Col: Magnitude + Richter Segment Meter + Seismograph Waveform */}
             <div className="sm:col-span-7 flex flex-col justify-between">
               <div>
@@ -373,8 +373,8 @@ export const EventModal: React.FC<EventModalProps> = ({
                 </div>
 
                 {/* Segmented Richter Energy Scale (10 Discrete Segments) */}
-                <div className="mt-2.5">
-                  <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider mb-1 uppercase">
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tracking-wider mb-1.5 uppercase">
                     <span>RICHTER SCALE</span>
                     <span className="font-semibold text-slate-700">{energyStr}</span>
                   </div>
@@ -408,17 +408,17 @@ export const EventModal: React.FC<EventModalProps> = ({
               </div>
 
               {/* Dynamic Waveform Visualizer */}
-              <div className="mt-3 pt-2.5 border-t border-slate-100/80">
-                <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider mb-1 uppercase">
+              <div className="mt-3.5 pt-3 border-t border-slate-100/80">
+                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tracking-wider mb-1.5 uppercase">
                   <div className="flex items-center gap-1.5">
-                    <Activity className="w-3 h-3 text-slate-400" />
+                    <Activity className="w-3.5 h-3.5 text-slate-400" />
                     <span>SEISMOGRAPH HARMONIC</span>
                   </div>
                   <span className="text-slate-500 font-semibold">
                     {magVal >= 6 ? 'HIGH CODA' : 'STABLE OSCILLATION'}
                   </span>
                 </div>
-                <div className="w-full h-9 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-center overflow-hidden px-2">
+                <div className="w-full h-11 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-center overflow-hidden px-2.5">
                   <svg viewBox="0 0 150 36" className="w-full h-full text-slate-800">
                     <path
                       d={waveformPath}
@@ -434,17 +434,17 @@ export const EventModal: React.FC<EventModalProps> = ({
             </div>
 
             {/* Right Col: Depth Stratum Cross-Section Gauge */}
-            <div className="sm:col-span-5 bg-slate-50/90 rounded-2xl p-3 border border-slate-100 flex flex-col justify-between">
-              <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider uppercase">
+            <div className="sm:col-span-5 bg-slate-50/90 rounded-2xl p-3.5 border border-slate-100 flex flex-col justify-between">
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tracking-wider uppercase">
                 <div className="flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-slate-400" />
+                  <Layers className="w-3.5 h-3.5 text-slate-400" />
                   <span>DEPTH GAUGE</span>
                 </div>
                 <span className="font-bold text-slate-900 font-mono text-xs">{event.depth.toFixed(1)} KM</span>
               </div>
 
               {/* Vertical Stratum Meter Bar */}
-              <div className="my-1.5 flex gap-2.5 items-center">
+              <div className="my-2 flex gap-3 items-center">
                 {/* Stratum Bar */}
                 <div className="relative w-3.5 h-24 bg-slate-200/80 rounded-full overflow-hidden shrink-0 border border-slate-300/60">
                   {/* Crust zone (0 - 70km = top 10%) */}
@@ -462,7 +462,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 </div>
 
                 {/* Stratum Labels & Depth Ticks */}
-                <div className="flex flex-col justify-between h-24 font-mono text-[9px] tracking-tight text-slate-500 leading-tight">
+                <div className="flex flex-col justify-between h-24 font-mono text-[10px] tracking-tight text-slate-500 leading-normal">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold text-slate-800">0 km</span>
                     <span className="text-slate-400">SURFACE</span>
@@ -483,8 +483,8 @@ export const EventModal: React.FC<EventModalProps> = ({
               </div>
 
               {/* Crust Stratum Pill Tag */}
-              <div className="pt-1.5 border-t border-slate-200/60">
-                <span className="text-[8px] font-mono font-bold tracking-wider text-slate-700 uppercase block truncate">
+              <div className="pt-2 border-t border-slate-200/60">
+                <span className="text-[9px] font-mono font-bold tracking-wider text-slate-700 uppercase block truncate">
                   {crustLayerLabel}
                 </span>
               </div>
@@ -492,7 +492,7 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
 
           {/* 2.5 LIVE PROXIMITY & SHAKING ESTIMATE (LIQUID GLASS STYLE) */}
-          <div className="my-3 p-3 rounded-2xl bg-white/70 border border-slate-200/80 shadow-2xs backdrop-blur-md relative overflow-hidden">
+          <div className="my-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/70 border border-slate-200/80 shadow-2xs backdrop-blur-md relative overflow-hidden">
             {geoStatus !== 'granted' || !coords || userDistanceKm == null ? (
               <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -501,7 +501,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                     <span className="text-[10px] font-mono font-bold text-slate-800 block tracking-wider uppercase">
                       CEK JARAK DARI LOKASI SAYA
                     </span>
-                    <span className="text-[9px] font-mono text-slate-500 block truncate">
+                    <span className="text-xs font-mono text-slate-500 block truncate mt-0.5">
                       Hitung jarak langsung & estimasi getaran ke tempat tinggal Anda
                     </span>
                   </div>
@@ -511,57 +511,57 @@ export const EventModal: React.FC<EventModalProps> = ({
                   type="button"
                   onClick={requestLocation}
                   disabled={geoStatus === 'requesting'}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-mono text-[10px] font-semibold tracking-wider transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-semibold tracking-wider transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
                 >
                   {geoStatus === 'requesting' ? (
                     <>
-                      <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
                       <span>MENGUKUR...</span>
                     </>
                   ) : (
                     <>
-                      <Navigation className="w-3 h-3 text-slate-300" />
+                      <Navigation className="w-3.5 h-3.5 text-slate-300" />
                       <span>UKUR SEKARANG</span>
                     </>
                   )}
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="flex items-center gap-2">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-700">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700">
                       JARAK DARI LOKASI ANDA
                     </span>
                   </div>
-                  <span className="text-[12px] font-mono font-black tabular-nums text-slate-950 bg-white/95 px-2 py-0.5 rounded-md border border-slate-200/90 shadow-2xs">
+                  <span className="text-xs font-mono font-black tabular-nums text-slate-950 bg-white/95 px-2.5 py-1 rounded-md border border-slate-200/90 shadow-2xs">
                     ~{userDistanceKm.toLocaleString('id-ID')} KM
                   </span>
                 </div>
 
                 {mmiInfo && (
-                  <div className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-start gap-2.5">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-start gap-3">
                     <div
                       className="w-1.5 self-stretch rounded-full shrink-0"
                       style={{ backgroundColor: mmiInfo.color }}
                     />
                     <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm text-white"
+                          className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-xs text-white"
                           style={{ backgroundColor: mmiInfo.color }}
                         >
                           {mmiInfo.scale}
                         </span>
-                        <span className="text-[10.5px] font-mono font-bold text-slate-800">
+                        <span className="text-xs font-mono font-bold text-slate-800">
                           {mmiInfo.label}
                         </span>
                       </div>
-                      <p className="text-[9.5px] font-mono text-slate-600 mt-1 leading-snug">
+                      <p className="text-xs font-mono text-slate-600 mt-1.5 leading-relaxed">
                         {mmiInfo.description}
                       </p>
                     </div>
@@ -569,50 +569,50 @@ export const EventModal: React.FC<EventModalProps> = ({
                 )}
 
                 {waveETA && (
-                  <div className="p-2.5 rounded-xl bg-slate-900 text-white border border-slate-800 shadow-xs">
-                    <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="p-3 sm:p-3.5 rounded-xl bg-slate-900 text-white border border-slate-800 shadow-xs space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
                         <Radio className="w-3.5 h-3.5 text-sky-400" />
-                        <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-slate-300">
+                        <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-300">
                           {lang === 'id' ? 'ESTIMASI RAMBAT GELOMBANG (ETA)' : 'SEISMIC WAVE TRAVEL ETA'}
                         </span>
                       </div>
-                      <span className="text-[8.5px] font-mono font-bold text-slate-400">
+                      <span className="text-[10px] font-mono font-bold text-slate-400">
                         {lang === 'id' ? `JEDA: ~${waveETA.goldenWindowSec}s` : `WINDOW: ~${waveETA.goldenWindowSec}s`}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-left">
+                    <div className="grid grid-cols-2 gap-2.5 text-left">
                       {/* P-Wave Box */}
-                      <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60">
-                        <div className="flex items-center justify-between text-[8px] font-mono text-slate-400">
+                      <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
                           <span>P-WAVE (PRIMER)</span>
-                          <span className="text-sky-300 font-semibold">~6 km/s</span>
+                          <span className="text-sky-300 font-semibold text-[10px]">~6 km/s</span>
                         </div>
-                        <div className="text-sm font-mono font-black text-slate-100 mt-0.5 tabular-nums">
+                        <div className="text-sm font-mono font-black text-slate-100 mt-1 tabular-nums">
                           ~{waveETA.pWaveTravelSec}s
                         </div>
-                        <div className="text-[8px] font-mono text-slate-400 mt-0.5 leading-tight">
+                        <div className="text-[9px] font-mono text-slate-400 mt-1 leading-normal">
                           {lang === 'id' ? 'Gelombang awal kompresi' : 'Initial compressional wave'}
                         </div>
                       </div>
 
                       {/* S-Wave Box */}
-                      <div className="p-2 rounded-lg bg-slate-800/80 border border-slate-700/60">
-                        <div className="flex items-center justify-between text-[8px] font-mono text-slate-400">
+                      <div className="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
                           <span>S-WAVE (SEKUNDER)</span>
-                          <span className="text-amber-300 font-semibold">~3.5 km/s</span>
+                          <span className="text-amber-300 font-semibold text-[10px]">~3.5 km/s</span>
                         </div>
-                        <div className="text-sm font-mono font-black text-slate-100 mt-0.5 tabular-nums">
+                        <div className="text-sm font-mono font-black text-slate-100 mt-1 tabular-nums">
                           ~{waveETA.sWaveTravelSec}s
                         </div>
-                        <div className="text-[8px] font-mono text-slate-400 mt-0.5 leading-tight">
+                        <div className="text-[9px] font-mono text-slate-400 mt-1 leading-normal">
                           {lang === 'id' ? 'Guncangan geser utama' : 'Main shear shaking'}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-2 pt-1.5 border-t border-slate-800 text-[8px] font-mono text-slate-400 flex items-center justify-between">
+                    <div className="pt-2 border-t border-slate-800 text-[10px] font-mono text-slate-400 flex items-center justify-between">
                       <span>{lang === 'id' ? 'Jeda Peringatan Dini (S − P):' : 'Early Warning Window (S − P):'}</span>
                       <span className="text-emerald-400 font-bold tabular-nums">~{waveETA.goldenWindowSec} detik</span>
                     </div>
@@ -622,24 +622,24 @@ export const EventModal: React.FC<EventModalProps> = ({
             )}
 
             {geoError && (
-              <p className="text-[9px] font-mono text-rose-600 mt-1.5">{geoError}</p>
+              <p className="text-[10px] font-mono text-rose-600 mt-2">{geoError}</p>
             )}
           </div>
 
           {/* 2.6 BMKG 20-20-20 COASTAL TSUNAMI PROTOCOL */}
-          <div className="mb-3 rounded-2xl bg-slate-50/80 border border-slate-200/80 overflow-hidden">
+          <div className="mb-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/80 overflow-hidden">
             <button
               type="button"
               onClick={() => setShowTsunamiGuide((prev) => !prev)}
-              className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-slate-100/80 transition-colors cursor-pointer"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-slate-100/80 transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
                 <div className="min-w-0">
-                  <span className="text-[10px] font-mono font-bold text-slate-800 uppercase tracking-wider block">
+                  <span className="text-xs font-mono font-bold text-slate-800 uppercase tracking-wider block">
                     {lang === 'id' ? 'PANDUAN EVAKUASI TSUNAMI (BMKG 20-20-20)' : 'TSUNAMI EVACUATION GUIDE (BMKG 20-20-20)'}
                   </span>
-                  <span className="text-[9px] font-mono text-slate-500 block truncate">
+                  <span className="text-[10px] font-mono text-slate-500 block truncate mt-0.5">
                     {lang === 'id' ? 'Aturan keselamatan mandiri jika berada di dekat garis pantai' : 'Self-evacuation safety protocol if near coastline'}
                   </span>
                 </div>
@@ -652,20 +652,20 @@ export const EventModal: React.FC<EventModalProps> = ({
             </button>
 
             {showTsunamiGuide && (
-              <div className="px-3 pb-3 pt-1 border-t border-slate-200/60 bg-amber-50/60 text-amber-950 font-mono text-[9.5px] space-y-1.5 leading-snug">
-                <div className="flex items-start gap-1.5">
+              <div className="p-3.5 border-t border-slate-200/60 bg-amber-50/60 text-amber-950 font-mono text-xs space-y-2 leading-relaxed">
+                <div className="flex items-start gap-2">
                   <span className="font-bold text-amber-800 shrink-0">{lang === 'id' ? '20 DETIK:' : '20 SECONDS:'}</span>
                   <span>{lang === 'id' ? 'Jika merasakan gempa berayun kuat atau terus-menerus selama minimal 20 detik.' : 'If you feel strong or continuous shaking lasting at least 20 seconds.'}</span>
                 </div>
-                <div className="flex items-start gap-1.5">
+                <div className="flex items-start gap-2">
                   <span className="font-bold text-amber-800 shrink-0">{lang === 'id' ? '20 MENIT:' : '20 MINUTES:'}</span>
                   <span>{lang === 'id' ? 'Anda memiliki waktu sekitar 20 menit sebelum gelombang pertama tiba ke bibir pantai.' : 'You have roughly 20 minutes before the first wave crests onto shore.'}</span>
                 </div>
-                <div className="flex items-start gap-1.5">
+                <div className="flex items-start gap-2">
                   <span className="font-bold text-amber-800 shrink-0">{lang === 'id' ? '20 METER:' : '20 METERS:'}</span>
                   <span>{lang === 'id' ? 'Segera lari menjauhi laut menuju dataran tinggi atau bangunan vertikal minimal ketinggian 20 meter.' : 'Immediately run inland toward high ground or vertical shelter at least 20 meters high.'}</span>
                 </div>
-                <p className="text-[8.5px] text-amber-800/80 pt-1 italic border-t border-amber-200/50">
+                <p className="text-[10px] text-amber-800/80 pt-1.5 italic border-t border-amber-200/50 leading-normal">
                   {lang === 'id'
                     ? '*Jangan menunggu sirine atau konfirmasi resmi bila guncangan kuat membuat sulit berdiri di pesisir.'
                     : '*Do not wait for formal sirens if strong shaking makes standing difficult near the coast.'}
@@ -678,17 +678,17 @@ export const EventModal: React.FC<EventModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab('news')}
-            className="w-full mt-3 p-2.5 rounded-xl border border-slate-200/80 bg-slate-50/90 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-between gap-2 text-left shadow-2xs"
+            className="w-full mt-3.5 p-3 rounded-xl border border-slate-200/80 bg-slate-50/90 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-between gap-3 text-left shadow-2xs"
           >
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
-              <span className="text-[10.5px] font-mono text-slate-700 font-medium">
+              <span className="text-xs font-mono text-slate-700 font-medium">
                 {lang === 'id'
                   ? 'Periksa liputan berita terkini & konfirmasi media untuk titik ini'
                   : 'Check live news & media verification reports for this event'}
               </span>
             </div>
-            <span className="text-[10px] font-mono font-bold text-slate-900 shrink-0 uppercase tracking-wider">
+            <span className="text-xs font-mono font-bold text-slate-900 shrink-0 uppercase tracking-wider">
               {lang === 'id' ? 'BUKA BERITA →' : 'VIEW NEWS →'}
             </span>
           </button>
@@ -700,18 +700,18 @@ export const EventModal: React.FC<EventModalProps> = ({
       )}
 
           {/* 3. TECHNICAL METRICS FOOTER */}
-          <div className="py-2.5 space-y-1.5 font-mono text-xs">
+          <div className="py-3 space-y-2 font-mono text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-[10px] uppercase tracking-wider">{t.timestamp}:</span>
-              <span className="text-slate-800 text-[11px] font-medium tracking-wide">
+              <span className="text-slate-400 text-xs uppercase tracking-wider">{t.timestamp}:</span>
+              <span className="text-slate-800 text-xs font-medium tracking-wide">
                 {formattedDate} · {formattedTime} <span className="text-slate-400">({relTime})</span>
               </span>
             </div>
 
             <div className="flex items-center justify-between">
-              <span className="text-slate-400 text-[10px] uppercase tracking-wider">{t.coordinates}:</span>
+              <span className="text-slate-400 text-xs uppercase tracking-wider">{t.coordinates}:</span>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-900 text-[11px] tracking-wider">{formattedCoords}</span>
+                <span className="font-bold text-slate-900 text-xs tracking-wider">{formattedCoords}</span>
                 <button
                   onClick={handleCopy}
                   title={lang === 'id' ? 'Salin Koordinat' : 'Copy Coordinates'}
@@ -724,12 +724,12 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
 
           {/* 4. ACTION CONTROLS DOCK */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
             {/* Action Buttons Left Side */}
             <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 onClick={handleFocus}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
               >
                 <Compass className="w-3.5 h-3.5 text-slate-700" />
                 <span>GLOBE</span>
@@ -739,7 +739,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
                 title={lang === 'id' ? 'Salin tautan langsung titik ini' : 'Copy direct link to this disaster event'}
               >
                 {copiedLink ? (
@@ -761,7 +761,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                   );
                   openWhatsAppShare(msg);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10.5px] font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
                 title={lang === 'id' ? 'Bagikan Ringkasan Laporan ke WhatsApp' : 'Share Telemetry Summary to WhatsApp'}
               >
                 <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
@@ -773,7 +773,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               {onOpenInfographic && (
                 <button
                   onClick={() => onOpenInfographic(event)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
                   title="Generate Kartu Infografis Bencana"
                 >
                   <Share2 className="w-3.5 h-3.5 text-slate-600" />
@@ -788,7 +788,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                 href={usgsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-[11px] font-mono font-medium tracking-wider transition-all border border-slate-200/60"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-xs font-mono font-medium tracking-wider transition-all border border-slate-200/60"
               >
                 <span>REPORT</span>
                 <ExternalLink className="w-3 h-3" />
@@ -797,7 +797,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               {/* Bookmark Toggle */}
               <button
                 onClick={() => onToggleBookmark(event)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold tracking-wider transition-all cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer ${
                   isBookmarked
                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200'
                     : 'bg-[#0f2f63] hover:bg-[#153e7e] text-white shadow-xs'

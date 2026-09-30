@@ -1497,7 +1497,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
               >
                 {/* Container Liquid Glass Native */}
-                <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/90 select-none bg-white/85 backdrop-blur-2xl relative overflow-hidden ring-1 ring-black/[0.04]">
+                <div className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/90 select-none bg-white/85 backdrop-blur-2xl relative overflow-hidden ring-1 ring-black/[0.04]">
                   {/* Technical Corner Crosshairs */}
                   <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┌</span>
                   <span className="absolute top-3 right-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┐</span>
@@ -1505,9 +1505,9 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                   <span className="absolute bottom-3 right-3 text-slate-300 font-mono text-xs select-none pointer-events-none">┘</span>
 
                   {/* 1. HEADER ROW */}
-                  <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-100">
+                  <div className="flex items-start justify-between gap-4 pb-3.5 sm:pb-4 border-b border-slate-100">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-orange-600 shrink-0" />
                         <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold truncate">
                           THERMAL SPECIMEN // {selectedHotspot.satellite} - {(selectedHotspot.id || '').slice(0, 8)}
@@ -1516,7 +1516,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                       <h2 className="text-xl sm:text-2xl font-sans font-black text-slate-950 tracking-tight leading-snug truncate uppercase">
                         {selectedHotspot.island} REGION
                       </h2>
-                      <p className="text-xs text-slate-500 font-mono mt-0.5 truncate tracking-wide uppercase">
+                      <p className="text-xs text-slate-500 font-mono mt-1 truncate tracking-wide uppercase">
                         VIIRS THERMAL ANOMALY // SATELLITE TELEMETRY
                       </p>
                     </div>
@@ -1532,11 +1532,11 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                   </div>
 
                   {/* TAB SWITCHER: TELEMETRI TERMAL vs VERIFIKASI BERITA */}
-                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3">
+                  <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3.5">
                     <button
                       type="button"
                       onClick={() => setHotspotModalTab('telemetry')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         hotspotModalTab === 'telemetry'
                           ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
                           : 'text-slate-500 hover:text-slate-900'
@@ -1548,7 +1548,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                     <button
                       type="button"
                       onClick={() => setHotspotModalTab('news')}
-                      className={`flex-1 py-1.5 px-3 rounded-lg font-mono text-[10.5px] font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      className={`flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                         hotspotModalTab === 'news'
                           ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
                           : 'text-slate-500 hover:text-slate-900'
@@ -1565,7 +1565,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                   {hotspotModalTab === 'telemetry' ? (
                     <div>
                       {/* 2. SCIENTIFIC VISUALIZATION MATRIX */}
-                  <div className="py-3.5 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
+                  <div className="py-4 grid grid-cols-1 sm:grid-cols-12 gap-4 border-b border-slate-100">
                     {/* Left Col: Numeric FRP + Segmented Meter + Plume Box */}
                     <div className="sm:col-span-7 flex flex-col justify-between">
                       <div>
@@ -1587,8 +1587,8 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                         </div>
 
                         {/* Segmented Radiative Energy Scale */}
-                        <div className="mt-2.5">
-                          <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider mb-1 uppercase">
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tracking-wider mb-1.5 uppercase">
                             <span>RADIATIVE SCALE</span>
                             <span className="font-semibold text-slate-700">{selectedHotspot.frp} MW FLUX</span>
                           </div>
@@ -1616,17 +1616,17 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                       </div>
 
                       {/* Wind Drift Vector Telemetry */}
-                      <div className="mt-3 pt-2.5 border-t border-slate-100/80">
-                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider mb-1 uppercase">
+                      <div className="mt-3.5 pt-3 border-t border-slate-100/80">
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tracking-wider mb-1.5 uppercase">
                           <div className="flex items-center gap-1.5">
-                            <Wind className="w-3 h-3 text-slate-400" />
+                            <Wind className="w-3.5 h-3.5 text-slate-400" />
                             <span>PLUME DRIFT VECTOR</span>
                           </div>
-                          <span className="text-orange-600 font-semibold">
+                          <span className="text-orange-600 font-semibold text-xs">
                             TOWARD {driftCompass}
                           </span>
                         </div>
-                        <div className="w-full h-9 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-between px-2.5 text-[10px] font-mono">
+                        <div className="w-full h-11 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-between px-3 text-xs font-mono">
                           <div className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
                             <span className="text-slate-500">WIND:</span>
@@ -1641,10 +1641,10 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                     </div>
 
                     {/* Right Col: FRP Stratum Gauge */}
-                    <div className="sm:col-span-5 bg-slate-50/90 rounded-2xl p-3 border border-slate-100 flex flex-col justify-between">
-                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 tracking-wider uppercase">
-                        <div className="flex items-center gap-1">
-                          <Flame className="w-3 h-3 text-slate-400" />
+                    <div className="sm:col-span-5 bg-slate-50/90 rounded-2xl p-3.5 sm:p-4 border border-slate-100 flex flex-col justify-between">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tracking-wider uppercase">
+                        <div className="flex items-center gap-1.5">
+                          <Flame className="w-3.5 h-3.5 text-slate-400" />
                           <span>CONFIDENCE</span>
                         </div>
                         <span className="font-bold text-slate-900 font-mono text-xs uppercase">
@@ -1653,7 +1653,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                       </div>
 
                       {/* Vertical Stratum Meter Bar */}
-                      <div className="my-1.5 flex gap-2.5 items-center">
+                      <div className="my-2 flex gap-3 items-center">
                         <div className="relative w-3.5 h-24 bg-slate-200/80 rounded-full overflow-hidden shrink-0 border border-slate-300/60">
                           {/* Extreme zone */}
                           <div className="absolute top-0 inset-x-0 h-[25%] bg-rose-200/90 border-b border-rose-300/40" />
@@ -1672,7 +1672,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                         </div>
 
                         {/* Stratum Labels & MW Ticks */}
-                        <div className="flex flex-col justify-between h-24 font-mono text-[9px] tracking-tight text-slate-500 leading-tight">
+                        <div className="flex flex-col justify-between h-24 font-mono text-[10px] tracking-tight text-slate-500 leading-normal">
                           <div className="flex items-center gap-1.5">
                             <span className="font-semibold text-slate-800">&gt;150 MW</span>
                             <span className="text-slate-400">EXTREME</span>
@@ -1693,8 +1693,8 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                       </div>
 
                       {/* Sensor Pill Tag */}
-                      <div className="pt-1.5 border-t border-slate-200/60">
-                        <span className="text-[8px] font-mono font-bold tracking-wider text-slate-700 uppercase block truncate">
+                      <div className="pt-2 border-t border-slate-200/60">
+                        <span className="text-[9px] font-mono font-bold tracking-wider text-slate-600 uppercase block truncate">
                           SENSOR: {selectedHotspot.satellite}
                         </span>
                       </div>
@@ -1702,16 +1702,16 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                   </div>
 
                   {/* 2.5 LIVE PROXIMITY & SMOKE DRIFT MATRIX (LIQUID GLASS STYLE) */}
-                  <div className="my-3 p-3 rounded-2xl bg-white/70 border border-slate-200/80 shadow-2xs backdrop-blur-md relative overflow-hidden">
+                  <div className="my-3.5 p-3.5 sm:p-4 rounded-2xl bg-white/70 border border-slate-200/80 shadow-2xs backdrop-blur-md relative overflow-hidden">
                     {userGeoStatus !== 'granted' || !userCoords || hotspotDistKm == null ? (
                       <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <MapPin className="w-4 h-4 text-slate-600 shrink-0" />
                           <div className="min-w-0">
-                            <span className="text-[10px] font-mono font-bold text-slate-800 block tracking-wider uppercase">
+                            <span className="text-xs font-mono font-bold text-slate-800 block tracking-wider uppercase">
                               CEK JARAK DARI LOKASI SAYA
                             </span>
-                            <span className="text-[9px] font-mono text-slate-500 block truncate">
+                            <span className="text-[10px] font-mono text-slate-500 block truncate mt-0.5">
                               Hitung jarak langsung ke titik api & pantau sebaran asap
                             </span>
                           </div>
@@ -1721,50 +1721,50 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                           type="button"
                           onClick={requestUserLocation}
                           disabled={userGeoStatus === 'requesting'}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-mono text-[10px] font-semibold tracking-wider transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-mono text-xs font-semibold tracking-wider transition-all cursor-pointer active:scale-95 shrink-0 shadow-xs"
                         >
                           {userGeoStatus === 'requesting' ? (
                             <>
-                              <Loader2 className="w-3 h-3 text-slate-400 animate-spin" />
+                              <Loader2 className="w-3.5 h-3.5 text-slate-400 animate-spin" />
                               <span>MENGUKUR...</span>
                             </>
                           ) : (
                             <>
-                              <Navigation className="w-3 h-3 text-slate-300" />
+                              <Navigation className="w-3.5 h-3.5 text-slate-300" />
                               <span>UKUR SEKARANG</span>
                             </>
                           )}
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-2">
                             <span className="relative flex h-2 w-2">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                             </span>
-                            <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-slate-700">
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-700">
                               JARAK TITIK API KE LOKASI ANDA
                             </span>
                           </div>
-                          <span className="text-[12px] font-mono font-black tabular-nums text-slate-950 bg-white/95 px-2 py-0.5 rounded-md border border-slate-200/90 shadow-2xs">
+                          <span className="text-xs sm:text-sm font-mono font-black tabular-nums text-slate-950 bg-white/95 px-2.5 py-1 rounded-md border border-slate-200/90 shadow-2xs">
                             ~{hotspotDistKm.toLocaleString('id-ID')} KM
                           </span>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-start gap-2.5">
+                        <div className="p-3 sm:p-3.5 rounded-xl bg-slate-50/90 border border-slate-200/80 flex items-start gap-3">
                           <div className="w-1.5 self-stretch rounded-full shrink-0 bg-orange-500" />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-sm text-white bg-orange-600">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded text-white bg-orange-600">
                                 ASAP MENUJU {driftCompass}
                               </span>
-                              <span className="text-[10.5px] font-mono font-bold text-slate-800">
+                              <span className="text-xs font-mono font-bold text-slate-800">
                                 Kecepatan Angin {wind.windSpeed.toFixed(1)} km/h
                               </span>
                             </div>
-                            <p className="text-[9.5px] font-mono text-slate-600 mt-1 leading-snug">
+                            <p className="text-xs font-mono text-slate-600 mt-1.5 leading-relaxed">
                               {hotspotDistKm < 100
                                 ? 'Perhatian: Titik api terdeteksi dalam radius dekat (<100 km). Waspadai potensi penurunan kualitas udara / kabut asap.'
                                 : 'Titik api berada di luar radius pemukiman dekat Anda. Pantau arah angin untuk potensi sebaran asap regional.'}
@@ -1775,15 +1775,15 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                     )}
 
                     {userGeoError && (
-                      <p className="text-[9px] font-mono text-rose-600 mt-1.5">{userGeoError}</p>
+                      <p className="text-xs font-mono text-rose-600 mt-2">{userGeoError}</p>
                     )}
                   </div>
 
                   {/* 3. TECHNICAL METRICS FOOTER */}
-                  <div className="py-2.5 space-y-1.5 font-mono text-xs">
+                  <div className="py-3 space-y-2 font-mono text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400 text-[10px] uppercase tracking-wider">TIMESTAMP:</span>
-                      <span className="text-slate-800 text-[11px] font-medium tracking-wide">
+                      <span className="text-slate-800 text-xs font-medium tracking-wide">
                         {formattedDate} · {formattedTime} <span className="text-slate-400">({ageH < 1 ? 'Just now' : `${Math.round(ageH)}h ago`})</span>
                       </span>
                     </div>
@@ -1791,7 +1791,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400 text-[10px] uppercase tracking-wider">COORDINATES:</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-[11px] tracking-wider">{formattedCoords}</span>
+                        <span className="font-bold text-slate-900 text-xs tracking-wider">{formattedCoords}</span>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1826,8 +1826,8 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
               )}
 
                   {/* 4. ACTION CONTROLS DOCK */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         type="button"
                         onClick={() => {
@@ -1836,7 +1836,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                           targetZoomRef.current = 2.4;
                           setSelectedHotspot(null);
                         }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-[10.5px] font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
                       >
                         <svg className="w-3.5 h-3.5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
@@ -1860,7 +1860,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                           );
                           openWhatsAppShare(msg);
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-[10.5px] font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
                         title="Bagikan Ringkasan Laporan Titik Api ke WhatsApp"
                       >
                         <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
@@ -1870,15 +1870,15 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                       </button>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0">
                       <a
                         href={`https://firms.modaps.eosdis.nasa.gov/map/#d:today;@${selectedHotspot.longitude},${selectedHotspot.latitude},11z`}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-[11px] font-mono font-medium tracking-wider transition-all border border-slate-200/60"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-xs font-mono font-medium tracking-wider transition-all border border-slate-200/60"
                       >
                         <span>FIRMS VIIRS</span>
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                           <polyline points="15 3 21 3 21 9" />
                           <line x1="10" y1="14" x2="21" y2="3" />
@@ -1888,7 +1888,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedHotspot(null)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono font-semibold tracking-wider transition-all cursor-pointer bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer bg-slate-900 hover:bg-slate-800 text-white shadow-xs"
                       >
                         <span>DISMISS</span>
                       </button>
