@@ -153,16 +153,8 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
   const isCritical = volcano.alert_level === 'Level IV';
   const isWarning = volcano.alert_level === 'Level III';
 
-  const alertBadgeColor = isCritical
-    ? 'bg-rose-50 border-rose-200 text-rose-700'
-    : isWarning
-    ? 'bg-amber-50 border-amber-200 text-amber-700'
-    : volcano.alert_level === 'Level II'
-    ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-    : 'bg-emerald-50 border-emerald-200 text-emerald-700';
-
   const alertDotColor = isCritical
-    ? 'bg-rose-600'
+    ? 'bg-rose-500'
     : isWarning
     ? 'bg-amber-500'
     : volcano.alert_level === 'Level II'
@@ -222,7 +214,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
           <div className="flex items-start justify-between gap-4 pb-3.5 sm:pb-4 border-b border-slate-100">
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
-                <span className={`w-2 h-2 rounded-full ${alertDotColor} shrink-0 ${isCritical ? 'animate-ping' : ''}`} />
+                <span className={`w-2 h-2 rounded-full ${alertDotColor} shrink-0`} />
                 <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold truncate">
                   VOLCANIC TELEMETRY // PVMBG - MAGMA INDONESIA
                 </span>
@@ -230,19 +222,11 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
               <h2 className="text-xl sm:text-2xl font-sans font-black text-slate-950 tracking-tight leading-snug truncate uppercase">
                 {volcano.name}
               </h2>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-mono font-bold tracking-wider ${alertBadgeColor}`}>
-                  {isCritical ? (
-                    <AlertOctagon className="w-3.5 h-3.5 text-rose-700 shrink-0" />
-                  ) : isWarning ? (
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  ) : volcano.alert_level === 'Level II' ? (
-                    <ShieldAlert className="w-3.5 h-3.5 text-yellow-800 shrink-0" />
-                  ) : (
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  )}
-                  {alertLevelLabel}
-                </span>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-xs font-bold tracking-wider shadow-2xs">
+                  <span className={`w-1.5 h-1.5 rounded-full ${alertDotColor}`} />
+                  <span>{alertLevelLabel}</span>
+                </div>
                 <span className="text-xs font-mono text-slate-500 uppercase tracking-wider">
                   {volcano.island}
                 </span>
@@ -285,7 +269,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
               <Newspaper className="w-3.5 h-3.5 text-rose-500" />
               <span>{lang === 'id' ? 'VERIFIKASI BERITA' : 'NEWS VERIFICATION'}</span>
               {(isCritical || isWarning) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse ml-0.5" />
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 ml-0.5" />
               )}
             </button>
           </div>
@@ -327,33 +311,33 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* 3. ASH PLUME & AVIATION HAZARD TELEMETRY */}
+              {/* 3. ASH PLUME & AVIATION HAZARD TELEMETRY (SWISS TECHNICAL SPECIMEN) */}
               {volcano.ash_plume && (
                 <div className="py-3.5 border-b border-slate-100">
-                  <div className="bg-rose-50/70 border border-rose-200/80 rounded-xl p-3.5 sm:p-4 flex flex-col gap-2.5 font-mono text-xs">
-                    <div className="flex items-center justify-between text-rose-800 font-bold">
+                  <div className="bg-slate-50/90 border border-slate-200/80 rounded-2xl p-3.5 sm:p-4 flex flex-col gap-2.5 font-mono text-xs">
+                    <div className="flex items-center justify-between text-slate-900 font-bold">
                       <span className="flex items-center gap-1.5 text-xs tracking-wide">
-                        <Wind className="w-3.5 h-3.5 text-rose-600" />
+                        <Wind className="w-3.5 h-3.5 text-slate-700" />
                         <span>SEBARAN ABU VULKANIK (VAAC DARWIN)</span>
                       </span>
-                      <span className="text-xs bg-rose-600 text-white px-2 py-0.5 rounded font-bold">
-                        FL{volcano.ash_plume.cloud_top_fl} (~{(volcano.ash_plume.cloud_top_fl * 100 * 0.3048).toFixed(0)}m)
+                      <span className="text-xs font-mono font-bold bg-white text-slate-900 border border-slate-200/90 px-2.5 py-0.5 rounded-md shadow-2xs tabular-nums">
+                        FL{volcano.ash_plume.cloud_top_fl} // ~{(volcano.ash_plume.cloud_top_fl * 100 * 0.3048).toFixed(0)} M
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 pt-2 border-t border-rose-200/60">
+                    <div className="grid grid-cols-2 gap-3 text-xs text-slate-700 pt-2.5 border-t border-slate-200/70">
                       <div>
-                        <span className="text-slate-400 block text-[10px]">ARAH ANGIN:</span>
-                        <span className="font-bold text-rose-900">{volcano.ash_plume.direction} ({volcano.ash_plume.speed_knots} KNOTS)</span>
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">ARAH ANGIN:</span>
+                        <span className="font-bold text-slate-900">{volcano.ash_plume.direction} ({volcano.ash_plume.speed_knots} KNOTS)</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px]">STATUS KORIDOR UDARA:</span>
-                        <span className="font-bold text-rose-900">NOTAM / SIGMET ACTIVE</span>
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">STATUS KORIDOR UDARA:</span>
+                        <span className="font-bold text-slate-900">NOTAM / SIGMET ACTIVE</span>
                       </div>
                     </div>
 
                     {volcano.ash_plume.advisory_summary && (
-                      <p className="text-xs text-slate-600 font-sans leading-relaxed bg-white/70 p-2.5 rounded-lg border border-rose-100">
+                      <p className="text-xs text-slate-700 font-sans leading-relaxed bg-white/90 p-3 rounded-xl border border-slate-200/70">
                         {volcano.ash_plume.advisory_summary}
                       </p>
                     )}
@@ -526,43 +510,52 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                           </div>
                         </div>
 
-                        {/* Status Pill Indicator */}
+                        {/* Status Tag Indicator */}
                         <div className="text-right shrink-0">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase shadow-2xs ${proximityData.safety.badgeClass}`}
-                          >
-                            {proximityData.safety.level === 'danger' ? (
-                              <AlertOctagon className="w-3.5 h-3.5 text-white shrink-0" />
-                            ) : proximityData.safety.level === 'warning' ? (
-                              <AlertTriangle className="w-3.5 h-3.5 text-white shrink-0" />
-                            ) : (
-                              <ShieldCheck className="w-3.5 h-3.5 text-white shrink-0" />
-                            )}
-                            {proximityData.safety.badge}
-                          </span>
-                          <span className="block text-[9px] text-slate-400 mt-1 uppercase">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 text-white font-mono text-xs font-bold tracking-wider uppercase shadow-2xs">
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                proximityData.safety.level === 'danger'
+                                  ? 'bg-rose-400'
+                                  : proximityData.safety.level === 'warning'
+                                  ? 'bg-amber-400'
+                                  : 'bg-emerald-400'
+                              }`}
+                            />
+                            <span>{proximityData.safety.badge}</span>
+                          </div>
+                          <span className="block text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider">
                             {proximityData.craterDist < 50 ? '< 50 KM RADIUS' : proximityData.craterDist <= 250 ? '50 - 250 KM RADIUS' : '> 250 KM RADIUS'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Dynamic Safety Advisory Box */}
-                      <div
-                        className={`p-3 sm:p-3.5 rounded-xl border text-xs leading-relaxed flex flex-col gap-1.5 ${proximityData.safety.bgClass} ${proximityData.safety.borderClass}`}
-                      >
-                        <div className="flex items-center gap-2 font-bold" style={{ color: proximityData.safety.colorHex }}>
-                          {proximityData.safety.level === 'danger' ? (
-                            <AlertOctagon className="w-4 h-4 shrink-0" />
-                          ) : proximityData.safety.level === 'warning' ? (
-                            <AlertTriangle className="w-4 h-4 shrink-0" />
-                          ) : (
-                            <ShieldCheck className="w-4 h-4 shrink-0" />
-                          )}
-                          <span>{proximityData.safety.statusText}</span>
+                      {/* Dynamic Safety Advisory Box (Swiss Technical Specimen) */}
+                      <div className="p-3 sm:p-3.5 rounded-xl border border-slate-200/80 bg-white/90 text-xs leading-relaxed flex items-start gap-3">
+                        <div
+                          className={`w-1 self-stretch rounded-full shrink-0 ${
+                            proximityData.safety.level === 'danger'
+                              ? 'bg-rose-500'
+                              : proximityData.safety.level === 'warning'
+                              ? 'bg-amber-500'
+                              : 'bg-emerald-600'
+                          }`}
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900 text-xs tracking-wide">
+                            {proximityData.safety.level === 'danger' ? (
+                              <AlertOctagon className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            ) : proximityData.safety.level === 'warning' ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            ) : (
+                              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            )}
+                            <span>{proximityData.safety.statusText}</span>
+                          </div>
+                          <p className="font-sans text-xs text-slate-600 mt-1 leading-relaxed">
+                            {proximityData.safety.recommendation}
+                          </p>
                         </div>
-                        <p className="font-sans text-xs text-slate-700 leading-relaxed pl-6">
-                          {proximityData.safety.recommendation}
-                        </p>
                       </div>
 
                       <div className="flex items-center justify-between text-[9px] text-slate-400 tracking-wider pt-2 border-t border-slate-200/60 uppercase">
