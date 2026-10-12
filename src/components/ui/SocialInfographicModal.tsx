@@ -265,21 +265,21 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 select-none"
       onClick={onClose}
       onWheel={(e) => e.stopPropagation()}
     >
       <div
-        className="relative w-full max-w-xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-3xl overflow-hidden border border-neutral-200 bg-white text-neutral-900"
+        className="relative w-full max-w-xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-neutral-200 bg-white text-neutral-900"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
         data-lenis-prevent="true"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/80 font-mono text-xs">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-neutral-200 bg-neutral-50/80 font-mono text-xs">
           <div className="flex items-center gap-2 text-neutral-900 font-bold tracking-wider">
             <Share2 className="w-4 h-4 text-slate-700 shrink-0" />
-            <span>DISASTER INFOGRAPHIC GENERATOR</span>
+            <span className="text-[11px] sm:text-xs">DISASTER INFOGRAPHIC GENERATOR</span>
           </div>
 
           <button
@@ -294,33 +294,33 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         <div
           data-lenis-prevent="true"
           onWheel={(e) => e.stopPropagation()}
-          className="flex-1 overflow-hidden p-4 sm:p-6 flex flex-col items-center justify-center bg-neutral-100/50"
+          className="flex-1 overflow-hidden p-3 sm:p-6 flex flex-col items-center justify-center bg-neutral-100/50"
         >
           {/* Hidden Canvas for High-Res Generation */}
           <canvas ref={canvasRef} className="hidden" />
 
           {/* Scaled Visual Preview */}
           {dataUrl && (
-            <div className="relative rounded-2xl overflow-hidden shadow-xl border border-neutral-200 max-h-[58vh]">
+            <div className="relative rounded-2xl overflow-hidden shadow-xl border border-neutral-200 max-h-[50vh] sm:max-h-[58vh]">
               <img
                 src={dataUrl}
                 alt="Disaster Card Preview"
-                className="w-full h-auto max-h-[58vh] object-contain rounded-2xl"
+                className="w-full h-auto max-h-[50vh] sm:max-h-[58vh] object-contain rounded-2xl"
               />
             </div>
           )}
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-t border-neutral-200 bg-white font-mono text-xs">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-t border-neutral-200 bg-white font-mono text-xs">
           <span className="text-neutral-500 text-[10px] hidden sm:inline">
             1080×1350 HD · READY TO SHARE
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <button
               onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-xs transition-all border border-neutral-200 cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-xs transition-all border border-neutral-200 cursor-pointer flex-1 sm:flex-initial"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? 'COPIED' : 'COPY'}</span>
@@ -328,7 +328,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
             <button
               onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0f2f63] hover:bg-[#153e7e] text-white font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-[#0f2f63] hover:bg-[#153e7e] text-white font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95 flex-1 sm:flex-initial"
             >
               <Download className="w-3.5 h-3.5" />
               <span>DOWNLOAD PNG</span>

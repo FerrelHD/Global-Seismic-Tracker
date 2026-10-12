@@ -1,4 +1,4 @@
-import { defineConfig, Plugin } from 'vite';
+import { defineConfig, loadEnv, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -164,6 +164,12 @@ function firmsDevApiPlugin(): Plugin {
         try {
           const rawKey = process.env.VITE_NASA_FIRMS_KEY || process.env.NASA_FIRMS_MAP_KEY;
           const mapKey = rawKey?.trim().replace(/['"`]/g, '');
+          if (!mapKey) {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify([]));
+            return;
+          }
           const primaryUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_NOAA20_NRT/95,-11,141,6/2`;
           const fallbackUrl = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/95,-11,141,6/2`;
 
@@ -356,13 +362,17 @@ function volcanoesDevApiPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  plugins: [tailwindcss(), react(), newsDevApiPlugin(), firmsDevApiPlugin(), volcanoesDevApiPlugin()],
-  envPrefix: ['VITE_', 'SUPABASE_'],
-  server: {
-    port: 3000,
-    open: false,
-  },
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  Object.assign(process.env, env);
+
+  return {
+    plugins: [tailwindcss(), react(), newsDevApiPlugin(), firmsDevApiPlugin(), volcanoesDevApiPlugin()],
+    envPrefix: ['VITE_', 'SUPABASE_'],
+    server: {
+      port: 3000,
+      open: false,
+    },
   build: {
     rollupOptions: {
       output: {
@@ -380,4 +390,5 @@ export default defineConfig({
       },
     },
   },
+};
 });

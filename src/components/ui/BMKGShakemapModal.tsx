@@ -56,7 +56,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 md:p-8 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200 select-none"
       onClick={onClose}
       onWheel={(e) => e.stopPropagation()}
     >
@@ -67,9 +67,9 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
         data-lenis-prevent="true"
       >
         {/* 1. Swiss Editorial Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/90 bg-white font-mono text-xs">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200/90 bg-white font-mono text-xs">
           <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
             <span className="font-bold tracking-widest text-slate-900 uppercase">
               BMKG TEWS · BULLETIN
             </span>
@@ -98,14 +98,14 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
         <div
           data-lenis-prevent="true"
           onWheel={(e) => e.stopPropagation()}
-          className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6"
+          className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-4 sm:space-y-6"
         >
           {/* Header Title & Date */}
-          <div className="border-b border-slate-200/80 pb-4">
+          <div className="border-b border-slate-200/80 pb-3 sm:pb-4">
             <span className="text-[10px] font-mono tracking-widest uppercase text-slate-400 block mb-1">
               EPICENTER SECTOR REPORT
             </span>
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-950 uppercase font-sans">
+            <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-950 break-words uppercase font-sans">
               {location}
             </h2>
             <p className="text-xs font-mono text-slate-500 mt-1">
@@ -233,18 +233,18 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
         </div>
 
         {/* 5. Minimal Clean Footer */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-t border-slate-200 bg-white font-mono text-xs">
-          <span className="text-[10px] text-slate-400 tracking-wider uppercase">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-0 px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-200 bg-white font-mono text-xs">
+          <span className="text-[10px] text-slate-400 tracking-wider uppercase text-center sm:text-left">
             SUMBER: PUSAT GEMPABUMI DAN TSUNAMI BMKG
           </span>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
             {shakemapUrl && (
               <a
                 href={shakemapUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border border-slate-300 font-mono text-[11px] font-medium tracking-wider transition-all cursor-pointer"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border border-slate-300 font-mono text-[11px] font-medium tracking-wider transition-all cursor-pointer flex-1 sm:flex-initial"
               >
                 <span>BUKA CITRA ASLI</span>
                 <ExternalLink className="w-3 h-3 text-slate-400" />
@@ -252,7 +252,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="px-3.5 py-1.5 rounded-full bg-slate-900 hover:bg-black text-white font-mono text-[11px] font-semibold tracking-wider transition-all cursor-pointer"
+              className="px-4 py-2 sm:py-1.5 rounded-full bg-slate-900 hover:bg-black text-white font-mono text-[11px] font-semibold tracking-wider transition-all cursor-pointer flex-1 sm:flex-initial text-center"
             >
               TUTUP
             </button>

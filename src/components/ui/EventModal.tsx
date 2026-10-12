@@ -260,16 +260,16 @@ export const EventModal: React.FC<EventModalProps> = ({
     <div
       onClick={onClose}
       onWheel={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
         data-lenis-prevent="true"
-        className="w-full max-w-[560px] max-h-[85dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-3xl no-scrollbar"
+        className="w-full max-w-[560px] max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
       >
-        <LiquidCard className="w-full rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl border border-white/90 backdrop-blur-2xl relative overflow-hidden">
+        <LiquidCard className="w-full rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-2xl border border-white/90 backdrop-blur-2xl relative overflow-hidden">
           {/* Subtle Technical Corner Crosshairs (No Art Style) */}
           <span className="absolute top-3 left-3 text-slate-300 font-mono text-xs select-none pointer-events-none">
             ┌
@@ -285,19 +285,19 @@ export const EventModal: React.FC<EventModalProps> = ({
           </span>
 
           {/* 1. HEADER ROW */}
-          <div className="flex items-start justify-between gap-4 pb-3.5 sm:pb-4 border-b border-slate-100">
+          <div className="flex items-start justify-between gap-3 pb-3 sm:pb-4 border-b border-slate-100">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#0f2f63] shrink-0" />
                 <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold truncate">
                   SEISMIC SPECIMEN // {event.usgs_id}
                 </span>
               </div>
-              <h2 className="text-xl sm:text-2xl font-sans font-black text-slate-950 tracking-tight leading-snug truncate uppercase">
+              <h2 className="text-lg sm:text-2xl font-sans font-black text-slate-950 tracking-tight leading-snug break-words uppercase">
                 {cleanPlace(event.place)}
               </h2>
               {event.place && (
-                <p className="text-xs text-slate-500 font-mono mt-1 truncate tracking-wide">
+                <p className="text-[11px] sm:text-xs text-slate-500 font-mono mt-0.5 truncate tracking-wide">
                   {event.place.toUpperCase()}
                 </p>
               )}
@@ -314,23 +314,24 @@ export const EventModal: React.FC<EventModalProps> = ({
 
           {/* TAB SWITCHER: TELEMETRY & SENSORS vs LIVE NEWS VERIFICATION (Gated to Major M >= 4.0 or BMKG) */}
           {isSignificantForNews && (
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3.5">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100/90 border border-slate-200/80 my-3">
               <button
                 type="button"
                 onClick={() => setActiveTab('telemetry')}
-                className={`flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-mono text-[11px] sm:text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'telemetry'
                     ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
                     : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 <Activity className="w-3.5 h-3.5 text-slate-600" />
-                <span>{lang === 'id' ? 'TELEMETRI & INSTRUMEN' : 'TELEMETRY & SENSORS'}</span>
+                <span className="sm:inline hidden">{lang === 'id' ? 'TELEMETRI & INSTRUMEN' : 'TELEMETRY & SENSORS'}</span>
+                <span className="sm:hidden inline">{lang === 'id' ? 'TELEMETRI' : 'TELEMETRY'}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('news')}
-                className={`flex-1 py-2 px-3 rounded-lg font-mono text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                className={`flex-1 py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg font-mono text-[11px] sm:text-xs font-bold tracking-wider uppercase transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'news'
                     ? 'bg-white text-slate-950 shadow-2xs border border-slate-200/70'
                     : 'text-slate-500 hover:text-slate-900'
@@ -338,7 +339,6 @@ export const EventModal: React.FC<EventModalProps> = ({
               >
                 <Newspaper className="w-3.5 h-3.5 text-rose-500" />
                 <span>{lang === 'id' ? 'VERIFIKASI BERITA' : 'NEWS VERIFICATION'}</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse ml-0.5" />
               </button>
             </div>
           )}
@@ -730,31 +730,27 @@ export const EventModal: React.FC<EventModalProps> = ({
           </div>
 
           {/* 4. ACTION CONTROLS DOCK */}
-          <div className="pt-3.5 border-t border-slate-100 flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
-            {/* Action Buttons Left Side */}
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="pt-3.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            {/* Primary & Broadcast Actions */}
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5">
               <button
                 onClick={handleFocus}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200/90 text-slate-900 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
               >
                 <Compass className="w-3.5 h-3.5 text-slate-700" />
                 <span>GLOBE</span>
               </button>
 
-              {/* Copy Direct Event Link */}
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
-                title={lang === 'id' ? 'Salin tautan langsung titik ini' : 'Copy direct link to this disaster event'}
-              >
-                {copiedLink ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                ) : (
-                  <Link2 className="w-3.5 h-3.5 text-slate-600" />
-                )}
-                <span>{copiedLink ? (lang === 'id' ? 'TERSALIN' : 'COPIED') : 'LINK'}</span>
-              </button>
+              {onOpenInfographic && (
+                <button
+                  onClick={() => onOpenInfographic(event)}
+                  className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                  title="Generate Kartu Infografis Bencana"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-slate-600" />
+                  <span>SHARE</span>
+                </button>
+              )}
 
               {/* WhatsApp One-Click Broadcast */}
               <button
@@ -767,7 +763,7 @@ export const EventModal: React.FC<EventModalProps> = ({
                   );
                   openWhatsAppShare(msg);
                 }}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
+                className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
                 title={lang === 'id' ? 'Bagikan Ringkasan Laporan ke WhatsApp' : 'Share Telemetry Summary to WhatsApp'}
               >
                 <svg className="w-3.5 h-3.5 fill-current shrink-0" viewBox="0 0 24 24">
@@ -775,26 +771,31 @@ export const EventModal: React.FC<EventModalProps> = ({
                 </svg>
                 <span>WHATSAPP</span>
               </button>
-
-              {onOpenInfographic && (
-                <button
-                  onClick={() => onOpenInfographic(event)}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
-                  title="Generate Kartu Infografis Bencana"
-                >
-                  <Share2 className="w-3.5 h-3.5 text-slate-600" />
-                  <span>SHARE</span>
-                </button>
-              )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Link, Report, Bookmark Actions */}
+            <div className="grid grid-cols-3 sm:flex sm:items-center gap-1.5 shrink-0">
+              {/* Copy Direct Event Link */}
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer shadow-2xs border border-slate-200/70"
+                title={lang === 'id' ? 'Salin tautan langsung titik ini' : 'Copy direct link to this disaster event'}
+              >
+                {copiedLink ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                ) : (
+                  <Link2 className="w-3.5 h-3.5 text-slate-600" />
+                )}
+                <span>{copiedLink ? (lang === 'id' ? 'TERSALIN' : 'COPIED') : 'LINK'}</span>
+              </button>
+
               {/* USGS Official Link */}
               <a
                 href={usgsUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-xs font-mono font-medium tracking-wider transition-all border border-slate-200/60"
+                className="inline-flex items-center justify-center gap-1 px-2.5 sm:px-3 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-950 text-xs font-mono font-medium tracking-wider transition-all border border-slate-200/60"
               >
                 <span>REPORT</span>
                 <ExternalLink className="w-3 h-3" />
@@ -803,7 +804,7 @@ export const EventModal: React.FC<EventModalProps> = ({
               {/* Bookmark Toggle */}
               <button
                 onClick={() => onToggleBookmark(event)}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer ${
+                className={`inline-flex items-center justify-center gap-1 px-2.5 sm:px-3.5 py-2.5 sm:py-2 rounded-xl sm:rounded-full text-xs font-mono font-semibold tracking-wider transition-all cursor-pointer ${
                   isBookmarked
                     ? 'bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200'
                     : 'bg-[#0f2f63] hover:bg-[#153e7e] text-white shadow-xs'
