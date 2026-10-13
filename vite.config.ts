@@ -157,6 +157,7 @@ function firmsDevApiPlugin(): Plugin {
         if (cachedHotspots.length > 0 && Date.now() - lastFetched < TTL) {
           res.statusCode = 200;
           res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
           res.end(JSON.stringify(cachedHotspots));
           return;
         }
@@ -233,15 +234,16 @@ function firmsDevApiPlugin(): Plugin {
               if (hotspots.length > 0) {
                 cachedHotspots = hotspots
                   .sort((a, b) => {
-                    const timeDiff = new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
-                    if (Math.abs(timeDiff) > 3600000 * 6) return timeDiff;
-                    return b.frp - a.frp;
+                    const frpDiff = b.frp - a.frp;
+                    if (Math.abs(frpDiff) > 0.5) return frpDiff;
+                    return new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
                   })
-                  .slice(0, 500);
+                  .slice(0, 1200);
                 lastFetched = Date.now();
 
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
                 res.end(JSON.stringify(cachedHotspots));
                 return;
               }

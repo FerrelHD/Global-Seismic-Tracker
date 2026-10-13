@@ -278,7 +278,7 @@ export const App: React.FC = () => {
       }
     });
 
-    fetchLiveWildfireHotspots().then((res) => {
+    fetchLiveWildfireHotspots(true).then((res) => {
       if (res?.hotspots) setHotspots(res.hotspots);
     });
 
@@ -294,6 +294,10 @@ export const App: React.FC = () => {
     setSyncCountdown(45);
     try {
       await loadData(true);
+      const firmsRes = await fetchLiveWildfireHotspots(true);
+      if (firmsRes?.hotspots) setHotspots(firmsRes.hotspots);
+      const volcRes = await fetchVolcanoActivity();
+      if (volcRes) setVolcanoes(volcRes);
     } finally {
       setIsManualSyncing(false);
     }

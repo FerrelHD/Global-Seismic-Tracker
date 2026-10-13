@@ -1,7 +1,10 @@
 import { WildfireHotspot } from '../types/seismic';
 import { supabase } from './supabase';
 
-const FIRMS_STORAGE_KEY = 'firms_live_hotspots_v1';
+const FIRMS_STORAGE_KEY = 'firms_live_hotspots_v2';
+try {
+  localStorage.removeItem('firms_live_hotspots_v1');
+} catch {}
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 export interface FIRMSResult {
@@ -73,11 +76,11 @@ function parseNASAcsv(csvText: string): WildfireHotspot[] {
 
   return hotspots
     .sort((a, b) => {
-      const timeDiff = new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
-      if (Math.abs(timeDiff) > 3600000 * 6) return timeDiff;
-      return b.frp - a.frp;
+      const frpDiff = b.frp - a.frp;
+      if (Math.abs(frpDiff) > 0.5) return frpDiff;
+      return new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
     })
-    .slice(0, 500);
+    .slice(0, 1200);
 }
 
 /**

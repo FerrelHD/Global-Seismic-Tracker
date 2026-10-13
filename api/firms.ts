@@ -151,14 +151,14 @@ export default async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // Sort: prioritize freshest acquisition passes (past 6-12h), then highest FRP
+    // Sort: prioritize highest thermal intensity (FRP) and recency so all island clusters are fairly represented
     const sorted = hotspots
       .sort((a, b) => {
-        const timeDiff = new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
-        if (Math.abs(timeDiff) > 3600000 * 6) return timeDiff;
-        return b.frp - a.frp;
+        const frpDiff = b.frp - a.frp;
+        if (Math.abs(frpDiff) > 0.5) return frpDiff;
+        return new Date(b.detected_at).getTime() - new Date(a.detected_at).getTime();
       })
-      .slice(0, 500);
+      .slice(0, 1200);
 
     return new Response(JSON.stringify(sorted), {
       status: 200,
