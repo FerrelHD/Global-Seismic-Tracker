@@ -17,12 +17,14 @@ interface SeismicAlertToastProps {
   alert: AlertEventData | null;
   onClose: () => void;
   onLocate: (alert: AlertEventData) => void;
+  lang?: 'id' | 'en';
 }
 
 export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
   alert,
   onClose,
   onLocate,
+  lang = 'id',
 }) => {
   useEffect(() => {
     if (!alert) return;
@@ -49,7 +51,7 @@ export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
 
           {/* Dispatch Tag */}
           <span className="hidden sm:inline-block font-mono text-[10px] font-bold text-rose-700 tracking-wider whitespace-nowrap">
-            [RUPTURE ALERT]
+            {lang === 'en' ? '[RUPTURE ALERT]' : '[PERINGATAN RUPTUR]'}
           </span>
 
           <span className="hidden sm:inline text-slate-300 font-mono text-xs">/</span>
@@ -71,7 +73,7 @@ export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
           {alert.tsunami && (
             <span className="hidden lg:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-700 text-white font-mono text-[9px] font-bold uppercase tracking-wider shrink-0 border border-rose-800/80">
               <AlertTriangle className="w-2.5 h-2.5" />
-              <span>TSUNAMI WARNING</span>
+              <span>{lang === 'en' ? 'TSUNAMI WARNING' : 'PERINGATAN TSUNAMI'}</span>
             </span>
           )}
         </div>
@@ -82,14 +84,14 @@ export const SeismicAlertToast: React.FC<SeismicAlertToastProps> = ({
             onClick={() => onLocate(alert)}
             className="group flex items-center gap-1 font-mono text-[11px] sm:text-xs font-bold text-slate-950 hover:text-rose-700 transition-colors uppercase underline underline-offset-4 decoration-rose-700/60 cursor-pointer whitespace-nowrap"
           >
-            <span>TRACK EPICENTER</span>
+            <span>{lang === 'en' ? 'TRACK EPICENTER' : 'LACAK EPISENTER'}</span>
             <ArrowRight className="w-3 h-3 transition-transform duration-200 group-hover:translate-x-1" />
           </button>
 
           <button
             onClick={onClose}
             className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all cursor-pointer shrink-0"
-            title="Dismiss Dispatch"
+            title={lang === 'en' ? 'Dismiss Dispatch' : 'Tutup Peringatan'}
           >
             <X className="w-3.5 h-3.5" />
           </button>

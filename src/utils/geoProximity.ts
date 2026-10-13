@@ -73,8 +73,10 @@ export function calculateSeismicWaveETA(surfaceDistKm: number, depthKm: number =
 export function estimateMMI(
   magnitude: number,
   depthKm: number,
-  surfaceDistKm: number
+  surfaceDistKm: number,
+  lang: 'id' | 'en' = 'id'
 ): MMIIntensity {
+  const isEn = lang === 'en';
   // Hypocentral slant distance (hypotenuse)
   const hypocentralDist = Math.sqrt(surfaceDistKm * surfaceDistKm + depthKm * depthKm);
 
@@ -87,8 +89,10 @@ export function estimateMMI(
     return {
       scale: 'MMI I - II',
       romans: 'I-II',
-      label: 'Getaran Nyaris Tidak Terasa',
-      description: 'Hanya dirasakan oleh beberapa orang dalam keadaan diam/santai di lantai atas gedung.',
+      label: isEn ? 'Barely Perceptible Shaking' : 'Getaran Nyaris Tidak Terasa',
+      description: isEn
+        ? 'Felt only by a few people under especially favorable conditions, mostly indoors.'
+        : 'Hanya dirasakan oleh beberapa orang dalam keadaan diam/santai di lantai atas gedung.',
       color: '#64748b', // slate
     };
   }
@@ -96,8 +100,10 @@ export function estimateMMI(
     return {
       scale: 'MMI III',
       romans: 'III',
-      label: 'Getaran Lemah di Dalam Rumah',
-      description: 'Dirasakan nyata di dalam rumah, terasa seperti ada truk ringan yang sedang melintas.',
+      label: isEn ? 'Weak Shaking Indoors' : 'Getaran Lemah di Dalam Rumah',
+      description: isEn
+        ? 'Felt noticeably indoors, especially on upper floors. Like a passing light truck.'
+        : 'Dirasakan nyata di dalam rumah, terasa seperti ada truk ringan yang sedang melintas.',
       color: '#0284c7', // sky
     };
   }
@@ -105,8 +111,10 @@ export function estimateMMI(
     return {
       scale: 'MMI IV',
       romans: 'IV',
-      label: 'Getaran Ringan - Sedang',
-      description: 'Dirasakan oleh banyak orang di dalam rumah. Benda gantung, cangkir, atau jendela berdenting.',
+      label: isEn ? 'Light - Moderate Tremor' : 'Getaran Ringan - Sedang',
+      description: isEn
+        ? 'Felt indoors by many. Dishes, windows, doors disturbed; walls make cracking sound.'
+        : 'Dirasakan oleh banyak orang di dalam rumah. Benda gantung, cangkir, atau jendela berdenting.',
       color: '#059669', // emerald
     };
   }
@@ -114,8 +122,10 @@ export function estimateMMI(
     return {
       scale: 'MMI V',
       romans: 'V',
-      label: 'Getaran Sedang - Kuat',
-      description: 'Dirasakan hampir semua orang. Benda terpelanting, tiang bergoyang, orang terbangun tidur.',
+      label: isEn ? 'Moderate - Strong Shaking' : 'Getaran Sedang - Kuat',
+      description: isEn
+        ? 'Felt by nearly everyone. Many awakened. Some dishes and windows broken, unstable objects overturned.'
+        : 'Dirasakan hampir semua orang. Benda terpelanting, tiang bergoyang, orang terbangun tidur.',
       color: '#d97706', // amber
     };
   }
@@ -123,16 +133,20 @@ export function estimateMMI(
     return {
       scale: 'MMI VI',
       romans: 'VI',
-      label: 'Getaran Kuat (Potensi Retak)',
-      description: 'Semua orang berlari keluar. Kerusakan ringan pada dinding plester atau bangunan tidak bertulang.',
+      label: isEn ? 'Strong Shaking (Minor Cracks)' : 'Getaran Kuat (Potensi Retak)',
+      description: isEn
+        ? 'Felt by all, many frightened. Some heavy furniture moved; plaster cracked or slight damage.'
+        : 'Semua orang berlari keluar. Kerusakan ringan pada dinding plester atau bangunan tidak bertulang.',
       color: '#ea580c', // orange
     };
   }
   return {
     scale: 'MMI VII+',
     romans: 'VII+',
-    label: 'Getaran Sangat Kuat (Destruktif)',
-    description: 'Kerusakan pada bangunan berkonstruksi lemah, retakan pada tanah, cerobong roboh.',
+    label: isEn ? 'Very Strong (Destructive)' : 'Getaran Sangat Kuat (Destruktif)',
+    description: isEn
+      ? 'Damage considerable in poorly built or badly designed structures; slight in specially designed structures.'
+      : 'Kerusakan pada bangunan berkonstruksi lemah, retakan pada tanah, cerobong roboh.',
     color: '#e11d48', // rose
   };
 }
@@ -227,43 +241,63 @@ export function formatWildfireWAMessage(
     detected_at: string;
   },
   windInfo?: { windSpeed: number; windDirection: number; driftCompass?: string },
-  userDistKm?: number
+  userDistKm?: number,
+  lang: 'id' | 'en' = 'id'
 ): string {
+  const isEn = lang === 'en';
+  const locale = isEn ? 'en-US' : 'id-ID';
   const dateObj = new Date(hotspot.detected_at);
-  const formattedDate = dateObj.toLocaleDateString('id-ID', {
+  const formattedDate = dateObj.toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
-  const formattedTime = dateObj.toLocaleTimeString('id-ID', {
+  const formattedTime = dateObj.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     timeZoneName: 'short',
   });
 
-  const lines = [
-    `🔥 *PANTAUAN TITIK API / KARHUTLA (NASA FIRMS)* 🔥`,
-    ``,
-    `📍 *Wilayah:* ${hotspot.island.toUpperCase()} REGION`,
-    `🛰️ *Sensor Satelit:* ${hotspot.satellite}`,
-    `⚡ *Daya Radiasi (FRP):* ${hotspot.frp} MW`,
-    `🕒 *Waktu Deteksi:* ${formattedDate} - ${formattedTime}`,
-  ];
+  const lines = isEn
+    ? [
+        `🔥 *WILDFIRE HOTSPOT MONITORING (NASA FIRMS)* 🔥`,
+        ``,
+        `📍 *Region:* ${hotspot.island.toUpperCase()} REGION`,
+        `🛰️ *Satellite Sensor:* ${hotspot.satellite}`,
+        `⚡ *Radiative Power (FRP):* ${hotspot.frp} MW`,
+        `🕒 *Detection Time:* ${formattedDate} - ${formattedTime}`,
+      ]
+    : [
+        `🔥 *PANTAUAN TITIK API / KARHUTLA (NASA FIRMS)* 🔥`,
+        ``,
+        `📍 *Wilayah:* ${hotspot.island.toUpperCase()} REGION`,
+        `🛰️ *Sensor Satelit:* ${hotspot.satellite}`,
+        `⚡ *Daya Radiasi (FRP):* ${hotspot.frp} MW`,
+        `🕒 *Waktu Deteksi:* ${formattedDate} - ${formattedTime}`,
+      ];
 
   if (windInfo) {
     lines.push(
-      `💨 *Arah Sebaran Asap:* Menuju ${windInfo.driftCompass || 'sekitarnya'} (${windInfo.windSpeed.toFixed(1)} km/h)`
+      isEn
+        ? `💨 *Smoke Plume Drift:* Toward ${windInfo.driftCompass || 'surroundings'} (${windInfo.windSpeed.toFixed(1)} km/h)`
+        : `💨 *Arah Sebaran Asap:* Menuju ${windInfo.driftCompass || 'sekitarnya'} (${windInfo.windSpeed.toFixed(1)} km/h)`
     );
   }
 
   if (userDistKm != null) {
-    lines.push(`📌 *Jarak dari saya:* ~${userDistKm.toLocaleString('id-ID')} km`);
+    lines.push(
+      isEn
+        ? `📌 *Distance from my location:* ~${userDistKm.toLocaleString(locale)} km`
+        : `📌 *Jarak dari saya:* ~${userDistKm.toLocaleString(locale)} km`
+    );
   }
 
   lines.push(
     ``,
-    `🌐 *Pantau Arah Angin & Titik Api di Peta:*`,
+    isEn
+      ? `🌐 *Live Wind & Hotspot Map:*`
+      : `🌐 *Pantau Arah Angin & Titik Api di Peta:*`,
     `https://global-seismic-tracker.vercel.app`
   );
 
@@ -409,13 +443,18 @@ export interface AshPlumeSafetyStatus {
 /**
  * Returns standardized Indonesian civil protection safety status based on distance to ash plume.
  */
-export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatus {
+export function getAshPlumeSafetyStatus(distanceKm: number, lang: 'id' | 'en' = 'id'): AshPlumeSafetyStatus {
+  const isEn = lang === 'en';
   if (distanceKm < 50) {
     return {
       level: 'danger',
-      badge: 'ZONA BAHAYA',
-      statusText: distanceKm === 0 ? 'Posisi berada di dalam zona sebaran abu!' : 'Sangat dekat dengan lintasan abu vulkanik.',
-      recommendation: 'Gunakan masker standar N95 / medis dan batasi aktivitas luar ruang.',
+      badge: isEn ? 'DANGER ZONE' : 'ZONA BAHAYA',
+      statusText: distanceKm === 0
+        ? (isEn ? 'Location inside active ash dispersion corridor!' : 'Posisi berada di dalam zona sebaran abu!')
+        : (isEn ? 'Direct proximity to volcanic ash trajectory.' : 'Sangat dekat dengan lintasan abu vulkanik.'),
+      recommendation: isEn
+        ? 'Wear certified N95 masks and restrict outdoor activities.'
+        : 'Gunakan masker standar N95 / medis dan batasi aktivitas luar ruang.',
       colorHex: '#be123c',
       badgeClass: 'bg-rose-700 text-white border border-rose-800/80',
       borderClass: 'border-rose-200/80',
@@ -426,9 +465,11 @@ export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatu
   if (distanceKm <= 250) {
     return {
       level: 'warning',
-      badge: 'RADIUS SIAGA',
-      statusText: 'Waspadai pergeseran arah angin muson.',
-      recommendation: 'Siapkan perlindungan masker dan pantau rute penerbangan setempat.',
+      badge: isEn ? 'WATCH RADIUS' : 'RADIUS SIAGA',
+      statusText: isEn ? 'Be alert to shifts in monsoon wind trajectory.' : 'Waspadai pergeseran arah angin muson.',
+      recommendation: isEn
+        ? 'Prepare respiratory protection and monitor regional flight notices.'
+        : 'Siapkan perlindungan masker dan pantau rute penerbangan setempat.',
       colorHex: '#b45309',
       badgeClass: 'bg-amber-600 text-white border border-amber-700/80',
       borderClass: 'border-amber-200/80',
@@ -438,9 +479,11 @@ export function getAshPlumeSafetyStatus(distanceKm: number): AshPlumeSafetyStatu
 
   return {
     level: 'safe',
-    badge: 'ZONA AMAN',
-    statusText: 'Di luar jangkauan abu permukaan saat ini.',
-    recommendation: 'Lokasi Anda aman dan jauh dari lintasan dispersi abu vulkanik aktif.',
+    badge: isEn ? 'SAFE ZONE' : 'ZONA AMAN',
+    statusText: isEn ? 'Outside current active surface ash reach.' : 'Di luar jangkauan abu permukaan saat ini.',
+    recommendation: isEn
+      ? 'Your location is safe and distant from active volcanic ash fallout.'
+      : 'Lokasi Anda aman dan jauh dari lintasan dispersi abu vulkanik aktif.',
     colorHex: '#047857',
     badgeClass: 'bg-emerald-700 text-white border border-emerald-800/80',
     borderClass: 'border-emerald-200/80',

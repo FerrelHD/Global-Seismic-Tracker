@@ -544,7 +544,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
           }}
           transition={{ duration: 0.2 }}
         >
-          Click to inspect epicenter
+          {lang === 'id' ? 'Klik untuk inspeksi episenter' : 'Click to inspect epicenter'}
         </motion.p>
       )}
     </motion.div>

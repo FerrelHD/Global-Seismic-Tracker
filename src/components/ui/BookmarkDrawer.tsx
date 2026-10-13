@@ -10,6 +10,7 @@ interface BookmarkDrawerProps {
   onRemoveBookmark: (id: string) => void;
   onSelectEvent?: (eventId: string) => void;
   onUpdateNote?: (bookmarkId: string, note: string) => void;
+  lang?: 'id' | 'en';
 }
 
 export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
@@ -19,6 +20,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
   onRemoveBookmark,
   onSelectEvent,
   onUpdateNote,
+  lang = 'id',
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [noteInput, setNoteInput] = useState('');
@@ -79,10 +81,17 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
             <BookmarkIcon className="w-5 h-5 text-slate-800 shrink-0" />
             <div>
               <h2 className="text-sm font-bold tracking-tight text-slate-900 font-mono uppercase">
-                SAVED OBSERVATIONS
+                {lang === 'id' ? 'OBSERVASI TERSIMPAN' : 'SAVED OBSERVATIONS'}
               </h2>
               <p className="text-[11px] text-slate-500 font-mono font-medium">
-                {bookmarks.length} {bookmarks.length === 1 ? 'EVENT' : 'EVENTS'} BOOKMARKED
+                {bookmarks.length}{' '}
+                {bookmarks.length === 1
+                  ? lang === 'id'
+                    ? 'PERISTIWA TERSIMPAN'
+                    : 'EVENT BOOKMARKED'
+                  : lang === 'id'
+                  ? 'PERISTIWA TERSIMPAN'
+                  : 'EVENTS BOOKMARKED'}
               </p>
             </div>
           </div>
@@ -104,9 +113,13 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
           {bookmarks.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <BookmarkIcon className="w-8 h-8 text-slate-300 mb-3" />
-              <p className="text-sm font-semibold text-slate-800">No events saved yet</p>
+              <p className="text-sm font-semibold text-slate-800">
+                {lang === 'id' ? 'Belum ada peristiwa tersimpan' : 'No events saved yet'}
+              </p>
               <p className="text-xs text-slate-500 mt-1 max-w-xs font-light">
-                Use the bookmark action on any seismic event to store telemetry and notes for future reference.
+                {lang === 'id'
+                  ? 'Gunakan tombol simpan pada peristiwa seismik untuk mencatat telemetri dan catatan analisis.'
+                  : 'Use the bookmark action on any seismic event to store telemetry and notes for future reference.'}
               </p>
             </div>
           ) : (
@@ -137,7 +150,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
 
                     <button
                       onClick={() => onRemoveBookmark(b.id)}
-                      title="Remove bookmark"
+                      title={lang === 'id' ? 'Hapus simpanan' : 'Remove bookmark'}
                       className="text-slate-300 hover:text-rose-600 transition-colors p-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -151,7 +164,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
                   >
                     <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
                     <span className="text-xs font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                      {b.event.place || 'Unknown Epicenter'}
+                      {b.event.place || (lang === 'id' ? 'Episenter Tidak Diketahui' : 'Unknown Epicenter')}
                     </span>
                   </div>
 
@@ -163,7 +176,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3 text-slate-400" />
-                      {new Date(b.event.occurred_at).toLocaleDateString([], {
+                      {new Date(b.event.occurred_at).toLocaleDateString(lang === 'id' ? 'id-ID' : 'en-US', {
                         month: 'short',
                         day: 'numeric',
                       })}
@@ -178,7 +191,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
                           type="text"
                           value={noteInput}
                           onChange={(e) => setNoteInput(e.target.value)}
-                          placeholder="Add research note..."
+                          placeholder={lang === 'id' ? 'Tambah catatan analisis...' : 'Add research note...'}
                           className="flex-1 text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:border-slate-500 focus:outline-none"
                           autoFocus
                         />
@@ -192,14 +205,14 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
                     ) : (
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[11px] text-slate-600 italic truncate max-w-[240px]">
-                          {b.custom_note || 'No notes added'}
+                          {b.custom_note || (lang === 'id' ? 'Belum ada catatan' : 'No notes added')}
                         </span>
                         <button
                           onClick={() => startEditing(b)}
                           className="text-[10px] font-mono font-medium text-slate-400 hover:text-slate-800 flex items-center gap-1"
                         >
                           <FileText className="w-3 h-3" />
-                          {b.custom_note ? 'Edit' : 'Add Note'}
+                          {b.custom_note ? (lang === 'id' ? 'Edit' : 'Edit') : (lang === 'id' ? 'Tambah Catatan' : 'Add Note')}
                         </button>
                       </div>
                     )}
@@ -212,8 +225,8 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
 
         {/* Footer */}
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-[11px] font-mono text-slate-500">
-          <span>SYNCED LOCALLY & SUPABASE</span>
-          <span className="text-slate-400">PRESS ESC TO CLOSE</span>
+          <span>{lang === 'id' ? 'TERSINKRON LOKAL & SUPABASE' : 'SYNCED LOCALLY & SUPABASE'}</span>
+          <span className="text-slate-400">{lang === 'id' ? 'TEKAN ESC UNTUK MENUTUP' : 'PRESS ESC TO CLOSE'}</span>
         </div>
         </LiquidCard>
       </aside>

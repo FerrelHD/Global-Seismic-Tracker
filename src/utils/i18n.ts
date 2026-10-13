@@ -71,6 +71,21 @@ export interface Translations {
   timestamp: string;
   coordinates: string;
   close: string;
+  majorRupture: string;
+  moderateTremor: string;
+  lightCrustalShock: string;
+  highCoda: string;
+  stableOscillation: string;
+  surface: string;
+  crust: string;
+  subduction: string;
+  mantle: string;
+  etaWindow: string;
+  pWaveLabel: string;
+  sWaveLabel: string;
+  pWaveDesc: string;
+  sWaveDesc: string;
+  seconds: string;
 
   // Major Hazards HUD Bar
   megathrustTitle: string;
@@ -178,6 +193,21 @@ export const translations: Record<Language, Translations> = {
     timestamp: 'WAKTU DETEKSI',
     coordinates: 'KOORDINAT EPISENTER',
     close: 'TUTUP',
+    majorRupture: 'SESAR MAYOR',
+    moderateTremor: 'GUNCANGAN SEDANG',
+    lightCrustalShock: 'GUNCANGAN KERAK RINGAN',
+    highCoda: 'KODA TINGGI',
+    stableOscillation: 'OSILASI STABIL',
+    surface: 'PERMUKAAN',
+    crust: 'KERAK',
+    subduction: 'SUBDUKSI',
+    mantle: 'MANTEL',
+    etaWindow: 'JEDA PERINGATAN DINI (S − P)',
+    pWaveLabel: 'GELOMBANG P (PRIMER)',
+    sWaveLabel: 'GELOMBANG S (SEKUNDER)',
+    pWaveDesc: 'Gelombang awal kompresi',
+    sWaveDesc: 'Guncangan geser utama',
+    seconds: 'detik',
 
     // Major Hazards HUD Bar
     megathrustTitle: 'MEGATHRUST SUMATERA-JAWA',
@@ -283,6 +313,21 @@ export const translations: Record<Language, Translations> = {
     timestamp: 'TIMESTAMP',
     coordinates: 'COORDINATES',
     close: 'CLOSE',
+    majorRupture: 'MAJOR RUPTURE',
+    moderateTremor: 'MODERATE TREMOR',
+    lightCrustalShock: 'LIGHT CRUSTAL SHOCK',
+    highCoda: 'HIGH CODA',
+    stableOscillation: 'STABLE OSCILLATION',
+    surface: 'SURFACE',
+    crust: 'CRUST',
+    subduction: 'SUBDUCTION',
+    mantle: 'MANTLE',
+    etaWindow: 'EARLY WARNING WINDOW (S − P)',
+    pWaveLabel: 'P-WAVE (PRIMARY)',
+    sWaveLabel: 'S-WAVE (SECONDARY)',
+    pWaveDesc: 'Initial compressional wave',
+    sWaveDesc: 'Main shear shaking',
+    seconds: 'seconds',
 
     // Major Hazards HUD Bar
     megathrustTitle: 'SUMATRA-JAVA MEGATHRUST',
@@ -335,11 +380,23 @@ export function useLanguage() {
     return 'id'; // Default to Indonesian
   });
 
+  useEffect(() => {
+    const handleLangChange = (e: Event) => {
+      const custom = e as CustomEvent<Language>;
+      if (custom.detail && (custom.detail === 'id' || custom.detail === 'en')) {
+        setLang(custom.detail);
+      }
+    };
+    window.addEventListener('seismic_language_change', handleLangChange);
+    return () => window.removeEventListener('seismic_language_change', handleLangChange);
+  }, []);
+
   const toggleLanguage = () => {
     setLang((prev) => {
       const next = prev === 'id' ? 'en' : 'id';
       try {
         localStorage.setItem(LANG_STORAGE_KEY, next);
+        window.dispatchEvent(new CustomEvent('seismic_language_change', { detail: next }));
       } catch {
         // Ignore
       }
@@ -351,6 +408,7 @@ export function useLanguage() {
     setLang(newLang);
     try {
       localStorage.setItem(LANG_STORAGE_KEY, newLang);
+      window.dispatchEvent(new CustomEvent('seismic_language_change', { detail: newLang }));
     } catch {
       // Ignore
     }

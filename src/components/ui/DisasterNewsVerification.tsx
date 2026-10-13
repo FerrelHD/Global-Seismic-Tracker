@@ -187,7 +187,7 @@ export const DisasterNewsVerification: React.FC<DisasterNewsVerificationProps> =
       {/* Footer Info Notice */}
       <div className="px-4 py-2.5 bg-slate-100/70 border-t border-slate-200/60 flex items-center justify-between text-[10px] font-mono text-slate-500">
         <span>{lang === 'id' ? 'Sumber Berita Terverifikasi Google News' : 'Verified via Google News Feeds'}</span>
-        <span className="text-slate-400">Past 7 Days</span>
+        <span className="text-slate-400">{lang === 'id' ? '7 Hari Terakhir' : 'Past 7 Days'}</span>
       </div>
     </div>
   );

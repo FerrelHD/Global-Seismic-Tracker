@@ -294,7 +294,7 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
                     title={lang === 'id' ? 'Semua Kekuatan Gempa' : 'All Magnitudes'}
                     className={`${pillBase} ${magCategory === 'all' ? pillActive : pillInactive}`}
                   >
-                    <span>SEMUA</span>
+                    <span>{lang === 'id' ? 'SEMUA' : 'ALL'}</span>
                   </button>
                   <button
                     type="button"

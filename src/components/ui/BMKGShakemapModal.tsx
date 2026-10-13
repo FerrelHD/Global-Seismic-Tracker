@@ -11,6 +11,7 @@ interface BMKGShakemapModalProps {
   time?: string;
   potensi?: string;
   coordinates?: string;
+  lang?: 'id' | 'en';
 }
 
 export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
@@ -23,6 +24,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
   time = 'Terbaru',
   potensi = 'Tidak berpotensi tsunami',
   coordinates,
+  lang = 'id',
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -186,9 +188,13 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 font-mono text-xs">
-                <p className="font-semibold text-slate-700 mb-1">SHAKEMAP SEDANG DIPROSES BMKG</p>
+                <p className="font-semibold text-slate-700 mb-1">
+                  {lang === 'id' ? 'SHAKEMAP SEDANG DIPROSES BMKG' : 'SHAKEMAP CURRENTLY PROCESSED BY BMKG'}
+                </p>
                 <p className="text-[11px] text-slate-500 max-w-sm">
-                  Peta intensitas guncangan dipublikasikan secara resmi oleh sistem InaTEWS beberapa menit pasca perekaman gelombang seismik.
+                  {lang === 'id'
+                    ? 'Peta intensitas guncangan dipublikasikan secara resmi oleh sistem InaTEWS beberapa menit pasca perekaman gelombang seismik.'
+                    : 'Shaking intensity map is officially published by the InaTEWS system several minutes after seismic wave acquisition.'}
                 </p>
               </div>
             )}
@@ -197,8 +203,8 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
           {/* 4. Minimalist MMI Intensity Scale Ribbon */}
           <div className="p-4 rounded-xl bg-white border border-slate-200/90 space-y-2 font-mono">
             <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase tracking-wider">
-              <span>SKALA INTENSITAS GUNCANGAN (MMI)</span>
-              <span className="text-slate-500">BMKG OFFICIAL INTENSITY SCALE</span>
+              <span>{lang === 'id' ? 'SKALA INTENSITAS GUNCANGAN (MMI)' : 'SHAKING INTENSITY SCALE (MMI)'}</span>
+              <span className="text-slate-500">{lang === 'id' ? 'SKALA RESMI BMKG' : 'BMKG OFFICIAL INTENSITY SCALE'}</span>
             </div>
 
             {/* Continuous Color Ribbon */}
@@ -210,23 +216,23 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
             <div className="grid grid-cols-5 text-[9px] text-slate-500 pt-1">
               <div>
                 <span className="block font-bold text-slate-800">I - III</span>
-                <span>Lemah</span>
+                <span>{lang === 'id' ? 'Lemah' : 'Weak'}</span>
               </div>
               <div>
                 <span className="block font-bold text-slate-800">IV - V</span>
-                <span>Sedang</span>
+                <span>{lang === 'id' ? 'Sedang' : 'Moderate'}</span>
               </div>
               <div>
                 <span className="block font-bold text-slate-800">VI</span>
-                <span>Kuat</span>
+                <span>{lang === 'id' ? 'Kuat' : 'Strong'}</span>
               </div>
               <div>
                 <span className="block font-bold text-slate-800">VII - VIII</span>
-                <span>Sangat Kuat</span>
+                <span>{lang === 'id' ? 'Sangat Kuat' : 'Very Strong'}</span>
               </div>
               <div className="text-right">
                 <span className="block font-bold text-slate-800">IX - XII</span>
-                <span>Destruktif</span>
+                <span>{lang === 'id' ? 'Destruktif' : 'Destructive'}</span>
               </div>
             </div>
           </div>
@@ -235,7 +241,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
         {/* 5. Minimal Clean Footer */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-0 px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-200 bg-white font-mono text-xs">
           <span className="text-[10px] text-slate-400 tracking-wider uppercase text-center sm:text-left">
-            SUMBER: PUSAT GEMPABUMI DAN TSUNAMI BMKG
+            {lang === 'id' ? 'SUMBER: PUSAT GEMPABUMI DAN TSUNAMI BMKG' : 'SOURCE: BMKG EARTHQUAKE & TSUNAMI CENTER'}
           </span>
 
           <div className="flex items-center justify-center sm:justify-end gap-2 w-full sm:w-auto">
@@ -246,7 +252,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-950 border border-slate-300 font-mono text-[11px] font-medium tracking-wider transition-all cursor-pointer flex-1 sm:flex-initial"
               >
-                <span>BUKA CITRA ASLI</span>
+                <span>{lang === 'id' ? 'BUKA CITRA ASLI' : 'OPEN RAW IMAGE'}</span>
                 <ExternalLink className="w-3 h-3 text-slate-400" />
               </a>
             )}
@@ -254,7 +260,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
               onClick={onClose}
               className="px-4 py-2 sm:py-1.5 rounded-full bg-slate-900 hover:bg-black text-white font-mono text-[11px] font-semibold tracking-wider transition-all cursor-pointer flex-1 sm:flex-initial text-center"
             >
-              TUTUP
+              {lang === 'id' ? 'TUTUP' : 'CLOSE'}
             </button>
           </div>
         </div>

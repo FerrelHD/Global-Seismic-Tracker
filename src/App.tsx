@@ -1046,6 +1046,7 @@ export const App: React.FC = () => {
         alert={activeAlert}
         onClose={() => setActiveAlert(null)}
         onLocate={handleLocateAlert}
+        lang={lang}
       />
 
       {/* 1. Global Liquid Glass SVG Refraction Filter */}
@@ -1103,6 +1104,7 @@ export const App: React.FC = () => {
             selectedHotspot={selectedHotspot}
             onSelectHotspot={setSelectedHotspot}
             bmkgAlert={bmkgAlert}
+            lang={lang}
           />
         </div>
       </div>
@@ -1537,6 +1539,7 @@ export const App: React.FC = () => {
             setIsInfographicOpen(true);
           }}
           initialTab={eventModalTab}
+          lang={lang}
         />
       </Suspense>
 
@@ -1576,6 +1579,7 @@ export const App: React.FC = () => {
           handleSelectEventById(eventId);
           setIsDrawerOpen(false);
         }}
+        lang={lang}
       />
 
       {/* 10. TIME-LAPSE 7-DAY REPLAY SCRUBBER */}
@@ -1591,6 +1595,7 @@ export const App: React.FC = () => {
           onScrub={(t) => setTimelapseTime(t)}
           visibleCount={timelapseVisibleCount}
           totalCount={filteredEvents.length}
+          lang={lang}
           onClose={() => {
             setIsTimeLapseOpen(false);
             setIsTimeLapsePlaying(false);
@@ -1613,9 +1618,10 @@ export const App: React.FC = () => {
           location={formattedBMKG?.location || 'Kepulauan Indonesia'}
           magnitude={`M${bmkgAlert?.magnitude || '5.0+'}`}
           depth={formattedBMKG?.depth || `${bmkgAlert?.kedalaman || '10 km'}`}
-          time={formattedBMKG?.time || bmkgAlert?.tanggal || 'Terbaru'}
-          potensi={formattedBMKG?.potensi || bmkgAlert?.potensi || 'Tidak berpotensi tsunami'}
+          time={formattedBMKG?.time || bmkgAlert?.tanggal || (lang === 'id' ? 'Terbaru' : 'Latest')}
+          potensi={formattedBMKG?.potensi || bmkgAlert?.potensi || (lang === 'id' ? 'Tidak berpotensi tsunami' : 'No tsunami threat')}
           coordinates={bmkgAlert?.coordinates}
+          lang={lang}
         />
       </Suspense>
 
@@ -1628,9 +1634,10 @@ export const App: React.FC = () => {
           location={infographicEvent?.place || formattedBMKG?.location || 'Indonesia Archipelago'}
           magnitude={infographicEvent ? (infographicEvent.magnitude ?? '5.0') : (bmkgAlert?.magnitude || '5.0')}
           depth={infographicEvent ? `${infographicEvent.depth} km` : (formattedBMKG?.depth || '10 km')}
-          time={infographicEvent ? new Date(infographicEvent.occurred_at).toLocaleString('id-ID') : (formattedBMKG?.time || 'Terbaru')}
-          potensi={formattedBMKG?.potensi || 'Tidak berpotensi tsunami'}
+          time={infographicEvent ? new Date(infographicEvent.occurred_at).toLocaleString(lang === 'id' ? 'id-ID' : 'en-US') : (formattedBMKG?.time || (lang === 'id' ? 'Terbaru' : 'Latest'))}
+          potensi={formattedBMKG?.potensi || (lang === 'id' ? 'Tidak berpotensi tsunami' : 'No tsunami threat')}
           coordinates={infographicEvent ? `${infographicEvent.latitude.toFixed(2)}°, ${infographicEvent.longitude.toFixed(2)}°` : (bmkgAlert?.coordinates || undefined)}
+          lang={lang}
         />
       </Suspense>
 

@@ -14,6 +14,7 @@ interface TimeLapseScrubberProps {
   visibleCount: number;
   totalCount: number;
   onClose: () => void;
+  lang?: 'id' | 'en';
 }
 
 export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
@@ -28,6 +29,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
   visibleCount,
   totalCount,
   onClose,
+  lang = 'id',
 }) => {
   const range = Math.max(1, endTime - startTime);
   const progressPercent = Math.min(100, Math.max(0, ((currentTime - startTime) / range) * 100));
@@ -35,13 +37,13 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
   // Format date and time in WIB (GMT+7)
   const formatWIB = (ms: number) => {
     const d = new Date(ms);
-    const dateStr = d.toLocaleDateString('id-ID', {
+    const dateStr = d.toLocaleDateString(lang === 'en' ? 'en-US' : 'id-ID', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
       timeZone: 'Asia/Jakarta',
     });
-    const timeStr = d.toLocaleTimeString('id-ID', {
+    const timeStr = d.toLocaleTimeString(lang === 'en' ? 'en-US' : 'id-ID', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -63,7 +65,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={onTogglePlay}
-                title={isPlaying ? 'Pause Replay' : 'Play Replay'}
+                title={isPlaying ? (lang === 'en' ? 'Pause Replay' : 'Jeda Putar Ulang') : (lang === 'en' ? 'Play Replay' : 'Mulai Putar Ulang')}
                 className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-transform active:scale-95 shadow-xs cursor-pointer shrink-0"
               >
                 {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
@@ -97,12 +99,12 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
             <div className="flex items-center gap-2">
               <div className="px-2.5 py-1 rounded-full bg-slate-100/90 border border-slate-200/80 text-slate-600 text-[10px] font-medium tracking-wide">
                 <span className="font-bold text-slate-900 tabular-nums">{visibleCount}</span>
-                <span className="text-slate-400"> / {totalCount} RUPTURES</span>
+                <span className="text-slate-400"> / {totalCount} {lang === 'en' ? 'RUPTURES' : 'RUPTUR'}</span>
               </div>
 
               <button
                 onClick={onClose}
-                title="Keluar Time-Lapse"
+                title={lang === 'en' ? 'Exit Time-Lapse' : 'Keluar Time-Lapse'}
                 className="p-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-950 transition-all cursor-pointer shrink-0"
               >
                 <X className="w-3.5 h-3.5" />

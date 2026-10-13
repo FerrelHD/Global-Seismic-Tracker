@@ -119,7 +119,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       return {
         lat: userGpsCoords.latitude,
         lon: userGpsCoords.longitude,
-        label: 'Posisi GPS Saya',
+        label: lang === 'id' ? 'Posisi GPS Saya' : 'My GPS Position',
         subLabel: `${userGpsCoords.latitude.toFixed(2)}°, ${userGpsCoords.longitude.toFixed(2)}°`,
         isGps: true,
       };
@@ -131,7 +131,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       subLabel: selectedCity.province,
       isGps: false,
     };
-  }, [locationMode, userGpsCoords, selectedCity]);
+  }, [locationMode, userGpsCoords, selectedCity, lang]);
 
   // Calculated Distances & Safety Status
   const proximityData = useMemo(() => {
@@ -140,13 +140,13 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
 
     // Direct Geographic Distance to Volcano Crater
     const craterDist = Math.round(calculateDistanceKm(lat, lon, volcano.latitude, volcano.longitude));
-    const safety = getAshPlumeSafetyStatus(craterDist);
+    const safety = getAshPlumeSafetyStatus(craterDist, lang);
 
     return {
       craterDist,
       safety,
     };
-  }, [volcano, activeCoordinates]);
+  }, [volcano, activeCoordinates, lang]);
 
   if (!volcano) return null;
 
@@ -180,14 +180,22 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
   const handleShare = () => {
     let text = `🌋 *${volcano.name} - Status: ${volcano.alert_level}*\n`;
     if (volcano.ash_plume) {
-      text += `💨 Ketinggian Kolom Abu: FL${volcano.ash_plume.cloud_top_fl || 'N/A'}\n`;
-      text += `🧭 Arah Sebaran: ${volcano.ash_plume.direction || 'N/A'} (${volcano.ash_plume.speed_knots || 0} Knots)\n`;
+      text += lang === 'id'
+        ? `💨 Ketinggian Kolom Abu: FL${volcano.ash_plume.cloud_top_fl || 'N/A'}\n`
+        : `💨 Ash Column Height: FL${volcano.ash_plume.cloud_top_fl || 'N/A'}\n`;
+      text += lang === 'id'
+        ? `🧭 Arah Sebaran: ${volcano.ash_plume.direction || 'N/A'} (${volcano.ash_plume.speed_knots || 0} Knots)\n`
+        : `🧭 Ash Drift Direction: ${volcano.ash_plume.direction || 'N/A'} (${volcano.ash_plume.speed_knots || 0} Knots)\n`;
     }
     if (proximityData) {
-      text += `📍 *Jarak ke Kawah (${activeCoordinates.label}):* ~${proximityData.craterDist.toLocaleString('id-ID')} km\n`;
+      text += lang === 'id'
+        ? `📍 *Jarak ke Kawah (${activeCoordinates.label}):* ~${proximityData.craterDist.toLocaleString('id-ID')} km\n`
+        : `📍 *Distance to Crater (${activeCoordinates.label}):* ~${proximityData.craterDist.toLocaleString('en-US')} km\n`;
       text += `🛡️ *Status:* ${proximityData.safety.badge} - ${proximityData.safety.statusText}\n`;
     }
-    text += `\n🌐 *Pantau Peta & Abu Vulkanik:* https://global-seismic-tracker.vercel.app/`;
+    text += lang === 'id'
+      ? `\n🌐 *Pantau Peta & Abu Vulkanik:* https://global-seismic-tracker.vercel.app/`
+      : `\n🌐 *Live Map & Volcanic Ash Monitor:* https://global-seismic-tracker.vercel.app/`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -295,7 +303,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-100 flex flex-col justify-between">
                   <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                     <Mountain className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>ELEVASI</span>
+                    <span>{lang === 'id' ? 'ELEVASI' : 'ELEVATION'}</span>
                   </div>
                   <span className="text-xs sm:text-base font-bold text-slate-900 mt-1">{volcano.elevation_m.toLocaleString()} M</span>
                 </div>
@@ -303,7 +311,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 <div className="bg-slate-50/80 rounded-xl p-2.5 sm:p-3.5 border border-slate-100 flex flex-col justify-between">
                   <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                     <Compass className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <span>KOORDINAT</span>
+                    <span>{lang === 'id' ? 'KOORDINAT' : 'COORDINATES'}</span>
                   </div>
                   <span className="text-[11px] sm:text-xs font-bold text-slate-900 mt-1 truncate">{formattedCoords}</span>
                 </div>
@@ -332,7 +340,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                     <div className="flex items-center justify-between text-slate-900 font-bold">
                       <span className="flex items-center gap-1.5 text-xs tracking-wide">
                         <Wind className="w-3.5 h-3.5 text-slate-700" />
-                        <span>SEBARAN ABU VULKANIK (VAAC DARWIN)</span>
+                        <span>{lang === 'id' ? 'SEBARAN ABU VULKANIK (VAAC DARWIN)' : 'VOLCANIC ASH DRIFT (VAAC DARWIN)'}</span>
                       </span>
                       <span className="text-xs font-mono font-bold bg-white text-slate-900 border border-slate-200/90 px-2.5 py-0.5 rounded-md shadow-2xs tabular-nums">
                         FL{volcano.ash_plume.cloud_top_fl} // ~{(volcano.ash_plume.cloud_top_fl * 100 * 0.3048).toFixed(0)} M
@@ -341,11 +349,15 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
 
                     <div className="grid grid-cols-2 gap-3 text-xs text-slate-700 pt-2.5 border-t border-slate-200/70">
                       <div>
-                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">ARAH ANGIN:</span>
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">
+                          {lang === 'id' ? 'ARAH ANGIN:' : 'WIND VECTOR:'}
+                        </span>
                         <span className="font-bold text-slate-900">{volcano.ash_plume.direction} ({volcano.ash_plume.speed_knots} KNOTS)</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">STATUS KORIDOR UDARA:</span>
+                        <span className="text-slate-400 block text-[10px] uppercase tracking-wider">
+                          {lang === 'id' ? 'STATUS KORIDOR UDARA:' : 'AIRSPACE CORRIDOR:'}
+                        </span>
                         <span className="font-bold text-slate-900">NOTAM / SIGMET ACTIVE</span>
                       </div>
                     </div>
@@ -368,7 +380,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                       <div className="flex items-center gap-1.5">
                         <Navigation className="w-3.5 h-3.5 text-slate-700" />
                         <span className="text-xs font-mono font-bold text-slate-900 tracking-wide uppercase">
-                          KALKULATOR JARAK ABU VULKANIK
+                          {lang === 'id' ? 'KALKULATOR JARAK ABU VULKANIK' : 'VOLCANIC ASH PROXIMITY CALCULATOR'}
                         </span>
                       </div>
 
@@ -385,15 +397,13 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                               ? 'bg-slate-900 text-white shadow-2xs'
                               : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80'
                           }`}
-                          title="Gunakan posisi GPS browser"
+                          title={lang === 'id' ? 'Gunakan posisi GPS browser' : 'Use browser GPS location'}
                         >
                           <Navigation className={`w-3.5 h-3.5 ${gpsStatus === 'requesting' ? 'animate-spin' : ''}`} />
                           <span className="truncate">
                             {gpsStatus === 'requesting'
-                              ? 'MENCARI GPS...'
-                              : locationMode === 'gps' && userGpsCoords
-                              ? 'GPS SAYA'
-                              : 'GPS SAYA'}
+                              ? (lang === 'id' ? 'MENCARI GPS...' : 'ACQUIRING GPS...')
+                              : (lang === 'id' ? 'GPS SAYA' : 'MY GPS')}
                           </span>
                         </button>
 
@@ -409,7 +419,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                               ? 'bg-white text-slate-900 border-slate-300 shadow-2xs'
                               : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80'
                           }`}
-                          title="Pilih kota acuan jarak abu"
+                          title={lang === 'id' ? 'Pilih kota acuan jarak abu' : 'Select reference city for ash distance'}
                         >
                           <span className="flex items-center gap-1.5 min-w-0">
                             <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -434,7 +444,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                                 type="text"
                                 value={citySearchQuery}
                                 onChange={(e) => setCitySearchQuery(e.target.value)}
-                                placeholder="Cari kota / provinsi..."
+                                placeholder={lang === 'id' ? 'Cari kota / provinsi...' : 'Search city / province...'}
                                 className="w-full bg-transparent text-xs font-sans text-slate-900 placeholder-slate-400 outline-none"
                                 autoFocus
                               />
@@ -453,7 +463,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                             <div className="max-h-48 overflow-y-auto py-1 divide-y divide-slate-100/80 no-scrollbar sm:custom-scrollbar">
                                 {filteredCities.length === 0 ? (
                                   <div className="px-3 py-3 text-xs font-sans text-slate-400 text-center">
-                                    Kota tidak ditemukan
+                                    {lang === 'id' ? 'Kota tidak ditemukan' : 'City not found'}
                                   </div>
                                 ) : (
                                   filteredCities.map((city) => {
@@ -508,19 +518,19 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                         <div>
                           <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                            <span>LOKASI: {activeCoordinates.label}</span>
+                            <span>{lang === 'id' ? 'LOKASI:' : 'LOCATION:'} {activeCoordinates.label}</span>
                           </div>
                           <div className="flex items-baseline gap-1 mt-1">
                             <span className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
-                              ~{proximityData.craterDist.toLocaleString('id-ID')}
+                              ~{proximityData.craterDist.toLocaleString(lang === 'id' ? 'id-ID' : 'en-US')}
                             </span>
                             <span className="text-xs font-bold text-slate-600">KM</span>
                             <span className="text-xs text-slate-500 ml-1">
-                              dari kawah aktif
+                              {lang === 'id' ? 'dari kawah aktif' : 'from active crater'}
                             </span>
                           </div>
                           <div className="text-xs text-slate-500 mt-1">
-                            Elevasi: {volcano.elevation_m} mdpl · {volcano.island}
+                            {lang === 'id' ? 'Elevasi' : 'Elevation'}: {volcano.elevation_m} mdpl · {volcano.island}
                           </div>
                         </div>
 
@@ -588,7 +598,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
               {/* 5. ACTIVITY NARRATIVE & CRATER REPORT */}
               <div className="py-3.5 flex flex-col gap-2.5 font-sans text-xs">
                 <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-bold">
-                  CATATAN AKTIVITAS VISUAL & KEGEMPAAN (PVMBG)
+                  {lang === 'id' ? 'CATATAN AKTIVITAS VISUAL & KEGEMPAAN (PVMBG)' : 'VISUAL & SEISMIC ACTIVITY NOTES (PVMBG)'}
                 </span>
                 <p className="text-slate-700 leading-relaxed bg-slate-50/90 p-3.5 rounded-xl border border-slate-100 text-xs">
                   {volcano.status_description}
@@ -596,7 +606,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
                 {volcano.crater_status && (
                   <div className="flex items-center gap-2 text-xs text-slate-500 font-mono px-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    <span>KAWAH: {volcano.crater_status}</span>
+                    <span>{lang === 'id' ? 'KAWAH:' : 'CRATER:'} {volcano.crater_status}</span>
                   </div>
                 )}
               </div>
@@ -622,14 +632,14 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-mono text-xs font-semibold shadow-xs transition-colors cursor-pointer active:scale-98"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>BAGIKAN PERINGATAN (WA)</span>
+              <span>{lang === 'id' ? 'BAGIKAN PERINGATAN (WA)' : 'SHARE ADVISORY (WA)'}</span>
             </button>
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-xs font-semibold transition-colors cursor-pointer active:scale-98"
             >
-              TUTUP
+              {lang === 'id' ? 'TUTUP' : 'CLOSE'}
             </button>
           </div>
         </div>

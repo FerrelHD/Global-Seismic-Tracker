@@ -12,6 +12,7 @@ interface SocialInfographicModalProps {
   time?: string | null;
   potensi?: string | null;
   coordinates?: string | null;
+  lang?: 'id' | 'en';
 }
 
 export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
@@ -24,6 +25,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
   time = 'Terbaru',
   potensi = 'Tidak Berpotensi Tsunami',
   coordinates,
+  lang = 'id',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -89,11 +91,23 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
     // 3. Header Branding & Telemetry Status
     ctx.font = 'bold 22px "Courier New", Courier, monospace';
     ctx.fillStyle = '#0f2f63';
-    ctx.fillText('SEISMIC OBSERVATORY // NUSANTARA ARCHIPELAGO', 100, 130);
+    ctx.fillText(
+      lang === 'id'
+        ? 'OBSERVATORIUM SEISMIK // KEPULAUAN INDONESIA'
+        : 'SEISMIC OBSERVATORY // NUSANTARA ARCHIPELAGO',
+      100,
+      130
+    );
 
     ctx.font = '16px "Courier New", Courier, monospace';
     ctx.fillStyle = '#717784';
-    ctx.fillText('REAL-TIME GEOPHYSICAL TELEMETRY · BMKG & USGS VERIFIED', 100, 160);
+    ctx.fillText(
+      lang === 'id'
+        ? 'TELEMETRI GEOFISIKA REAL-TIME · TERVERIFIKASI BMKG & USGS'
+        : 'REAL-TIME GEOPHYSICAL TELEMETRY · BMKG & USGS VERIFIED',
+      100,
+      160
+    );
 
     // Divider
     ctx.strokeStyle = '#e6e8ec';
@@ -122,7 +136,15 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
     ctx.font = 'bold 20px "Courier New", Courier, monospace';
     ctx.fillStyle = '#0a0a0a';
     const categoryStr =
-      magNum >= 7.0
+      lang === 'id'
+        ? magNum >= 7.0
+          ? 'SESAR MAYOR DESTRUKTIF'
+          : magNum >= 5.5
+          ? 'GUNCANGAN KERAK KUAT'
+          : magNum >= 4.5
+          ? 'GUNCANGAN SEISMIK MENENGAH'
+          : 'GETARAN RINGAN TERASA'
+        : magNum >= 7.0
         ? 'MAJOR DESTRUCTIVE RUPTURE'
         : magNum >= 5.5
         ? 'STRONG CRUSTAL TREMOR'
@@ -133,12 +155,16 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
     ctx.font = '16px "Courier New", Courier, monospace';
     ctx.fillStyle = '#717784';
-    ctx.fillText(`HYPOCENTER DEPTH: ${safeDepth}`, 540, magBoxY + 148);
+    ctx.fillText(
+      lang === 'id' ? `KEDALAMAN HIPOSENTER: ${safeDepth}` : `HYPOCENTER DEPTH: ${safeDepth}`,
+      540,
+      magBoxY + 148
+    );
 
     // 5. Epicenter Location Title Block
     ctx.font = 'bold 16px "Courier New", Courier, monospace';
     ctx.fillStyle = '#717784';
-    ctx.fillText('EPICENTER SECTOR:', 100, 520);
+    ctx.fillText(lang === 'id' ? 'SEKTOR EPISENTER:' : 'EPICENTER SECTOR:', 100, 520);
 
     ctx.font = 'bold 40px "Inter", sans-serif';
     ctx.fillStyle = '#0a0a0a';
@@ -168,8 +194,18 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
       ctx.fillText(value, x + 25, y + 72);
     };
 
-    drawKVPair('EVENT TIME (WIB / GMT+7)', safeTime.slice(0, 24), 100, gridY);
-    drawKVPair('COORDINATES', coordinates || '-8.20° S, 120.45° E', 555, gridY);
+    drawKVPair(
+      lang === 'id' ? 'WAKTU PERISTIWA (WIB / GMT+7)' : 'EVENT TIME (WIB / GMT+7)',
+      safeTime.slice(0, 24),
+      100,
+      gridY
+    );
+    drawKVPair(
+      lang === 'id' ? 'KOORDINAT' : 'COORDINATES',
+      coordinates || '-8.20° S, 120.45° E',
+      555,
+      gridY
+    );
 
     // 7. Tsunami Status Advisory Banner
     const tsunamiY = 815;
@@ -183,7 +219,11 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
     ctx.font = 'bold 16px "Courier New", Courier, monospace';
     ctx.fillStyle = isTsunamiThreat ? '#be123c' : '#15803d';
-    ctx.fillText('TSUNAMI THREAT ADVISORY (BMKG TEWS):', 140, tsunamiY + 45);
+    ctx.fillText(
+      lang === 'id' ? 'STATUS PERINGATAN TSUNAMI (BMKG TEWS):' : 'TSUNAMI THREAT ADVISORY (BMKG TEWS):',
+      140,
+      tsunamiY + 45
+    );
 
     ctx.font = 'bold 26px "Inter", sans-serif';
     ctx.fillStyle = isTsunamiThreat ? '#9f1239' : '#166534';
@@ -201,21 +241,49 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
     ctx.font = 'bold 15px "Courier New", Courier, monospace';
     ctx.fillStyle = '#0f2f63';
-    ctx.fillText('SAFETY & MITIGATION PROTOCOL:', 130, footY + 40);
+    ctx.fillText(
+      lang === 'id' ? 'PROTOKOL KESELAMATAN & MITIGASI:' : 'SAFETY & MITIGATION PROTOCOL:',
+      130,
+      footY + 40
+    );
 
     ctx.font = '15px "Courier New", Courier, monospace';
     ctx.fillStyle = '#475569';
-    ctx.fillText('1. Evacuate immediately if near coastline and severe shaking is felt.', 130, footY + 75);
-    ctx.fillText('2. Inspect structural integrity before re-entering compromised buildings.', 130, footY + 105);
-    ctx.fillText('3. Official Emergency Lines: BMKG 196 · BNPB 117 · SAR 115', 130, footY + 135);
+    ctx.fillText(
+      lang === 'id'
+        ? '1. Segera evakuasi menjauhi pantai jika merasakan guncangan kuat.'
+        : '1. Evacuate immediately if near coastline and severe shaking is felt.',
+      130,
+      footY + 75
+    );
+    ctx.fillText(
+      lang === 'id'
+        ? '2. Periksa keutuhan struktur sebelum memasuki kembali bangunan.'
+        : '2. Inspect structural integrity before re-entering compromised buildings.',
+      130,
+      footY + 105
+    );
+    ctx.fillText(
+      lang === 'id'
+        ? '3. Layanan Darurat Resmi: BMKG 196 · BNPB 117 · SAR 115'
+        : '3. Official Emergency Lines: BMKG 196 · BNPB 117 · SAR 115',
+      130,
+      footY + 135
+    );
 
     // Watermark
     ctx.font = '13px "Courier New", Courier, monospace';
     ctx.fillStyle = '#94a3b8';
-    ctx.fillText('Verified from BMKG & USGS official telemetry · Indonesian Crustal Observatory', 100, 1220);
+    ctx.fillText(
+      lang === 'id'
+        ? 'Terverifikasi dari telemetri resmi BMKG & USGS · Observatorium Tektonik Indonesia'
+        : 'Verified from BMKG & USGS official telemetry · Indonesian Crustal Observatory',
+      100,
+      1220
+    );
 
     setDataUrl(canvas.toDataURL('image/png'));
-  }, [isOpen, safeLocation, magnitude, safeDepth, safeTime, safePotensi, coordinates, magNum, isTsunamiThreat]);
+  }, [isOpen, safeLocation, magnitude, safeDepth, safeTime, safePotensi, coordinates, magNum, isTsunamiThreat, lang]);
 
   const handleDownload = () => {
     if (!dataUrl) return;
@@ -279,7 +347,9 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-neutral-200 bg-neutral-50/80 font-mono text-xs">
           <div className="flex items-center gap-2 text-neutral-900 font-bold tracking-wider">
             <Share2 className="w-4 h-4 text-slate-700 shrink-0" />
-            <span className="text-[11px] sm:text-xs">DISASTER INFOGRAPHIC GENERATOR</span>
+            <span className="text-[11px] sm:text-xs">
+              {lang === 'id' ? 'GENERATOR INFOGRAFIS BENCANA' : 'DISASTER INFOGRAPHIC GENERATOR'}
+            </span>
           </div>
 
           <button
@@ -314,7 +384,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         {/* Footer Actions */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-t border-neutral-200 bg-white font-mono text-xs">
           <span className="text-neutral-500 text-[10px] hidden sm:inline">
-            1080×1350 HD · READY TO SHARE
+            {lang === 'id' ? '1080×1350 HD · SIAP DIBAGIKAN' : '1080×1350 HD · READY TO SHARE'}
           </span>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -323,7 +393,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
               className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-xs transition-all border border-neutral-200 cursor-pointer flex-1 sm:flex-initial"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copied ? 'COPIED' : 'COPY'}</span>
+              <span>{copied ? (lang === 'id' ? 'TERSALIN' : 'COPIED') : (lang === 'id' ? 'SALIN' : 'COPY')}</span>
             </button>
 
             <button
@@ -331,7 +401,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-[#0f2f63] hover:bg-[#153e7e] text-white font-bold text-xs transition-all shadow-xs cursor-pointer active:scale-95 flex-1 sm:flex-initial"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>DOWNLOAD PNG</span>
+              <span>{lang === 'id' ? 'UNDUH PNG' : 'DOWNLOAD PNG'}</span>
             </button>
           </div>
         </div>
