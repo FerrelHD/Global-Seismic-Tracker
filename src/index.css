@@ -30,14 +30,20 @@
   --radius-pill: 62.5rem;
 }
 
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   padding: 0;
   background-color: var(--background);
   color: var(--ink);
   font-family: var(--font-sans);
-  overflow-x: hidden;
   user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Modern Minimalist Hairline Scrollbars (Eliminate thick OS bars) */

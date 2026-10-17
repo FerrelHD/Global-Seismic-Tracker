@@ -1,16 +1,13 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
-import Lenis from 'lenis';
 import { VectorGlobe, CameraCoordinates } from './components/ui/VectorGlobe';
 import { ViewportTechnicalFrame } from './components/ui/ViewportTechnicalFrame';
-import { HeroSection } from './components/hero/HeroSection';
 import { LiquidGlassFilter, LiquidCard } from './components/ui/liquid-glass';
 import { FloatingControllerDock } from './components/ui/FloatingControllerDock';
 import { BookmarkDrawer } from './components/ui/BookmarkDrawer';
 import { EventsListDrawer } from './components/ui/EventsListDrawer';
-import { StoryChapterCard } from './components/story/StoryChapterCard';
-import { StoryProgressRail } from './components/story/StoryProgressRail';
 import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
 import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
+import { TectonicEducationModal } from './components/ui/TectonicEducationModal';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode, VolcanoActivity } from './types/seismic';
 import { fetchVolcanoActivity } from './utils/volcanoService';
@@ -55,6 +52,7 @@ import {
   Activity,
   Flame,
   Mountain,
+  BookOpen,
 } from 'lucide-react';
 
 // Geographic Coordinate Bounding Boxes for Indonesian Archipelago Sectors
@@ -81,11 +79,6 @@ export const App: React.FC = () => {
   const [events, setEvents] = useState<SeismicEvent[]>([]);
   const [bmkgAlert, setBmkgAlert] = useState<BMKGAlert | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isCurtainComplete, setIsCurtainComplete] = useState(false);
-
-  const handleCurtainComplete = useCallback(() => {
-    setIsCurtainComplete(true);
-  }, []);
 
   // Realtime Seismic Alert Notification State
   const [activeAlert, setActiveAlert] = useState<AlertEventData | null>(null);
@@ -105,19 +98,9 @@ export const App: React.FC = () => {
   const [eventModalTab, setEventModalTab] = useState<'telemetry' | 'news'>('telemetry');
   const [selectedHotspot, setSelectedHotspot] = useState<WildfireHotspot | null>(null);
 
-  // Scrollytelling & Navigation State
-  const [activeChapterIndex, setActiveChapterIndex] = useState(-1); // -1 = Hero Section
-  const [isObservatoryActive, setIsObservatoryActive] = useState(false);
-  const [isHeroActive, setIsHeroActive] = useState(true);
-  const [heroExitProgress, setHeroExitProgress] = useState(0);
+  // Active Camera & Tectonic Education Modal
   const [cameraCoords, setCameraCoords] = useState<CameraCoordinates>({ lat: 12.0, lon: 115.0 });
-
-  // Spatial continuous scroll translation (in vw units: 0vw = hero center, 20vw = stories right, 0vw = observatory center)
-  const [globeOffsetVw, setGlobeOffsetVw] = useState(0);
-  const [globeScale, setGlobeScale] = useState(1.0);
-  const [scrollRotation, setScrollRotation] = useState({ phi: 0, theta: 0 });
-
-  const lenisRef = useRef<Lenis | null>(null);
+  const [isTectonicModalOpen, setIsTectonicModalOpen] = useState(false);
 
   // Filters & Controls
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,9 +129,6 @@ export const App: React.FC = () => {
   const [volcanoes, setVolcanoes] = useState<VolcanoActivity[]>([]);
   const [selectedVolcano, setSelectedVolcano] = useState<VolcanoActivity | null>(null);
   const [hazardMode, setHazardMode] = useState<HazardMode>('dual');
-  const [observatoryScrollZoom, setObservatoryScrollZoom] = useState<number>(1.0);
-  const [observatoryProgress, setObservatoryProgress] = useState<number>(0);
-  const [obsTopOffset, setObsTopOffset] = useState<number>(0);
 
   // Magnitude Quick Filter: 'all' | 'felt' (>=4.0) | 'significant' (>=5.5)
   const [magCategory, setMagCategory] = useState<'all' | 'felt' | 'significant'>('all');
@@ -324,233 +304,11 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const activeChapterIndexRef = useRef(-1);
-
-  // 3-Phase Continuous Scroll Interpolation Choreography
-  const handleScrollUpdate = useCallback(() => {
-    const heroEl = document.getElementById('hero-section');
-    const obsEl = document.getElementById('observatory-section');
-    if (!heroEl || !obsEl) return;
-
-    const scrollY = window.scrollY;
-    const heroHeight = heroEl.offsetHeight || window.innerHeight;
-    const windowHeight = window.innerHeight;
-
-    // Exit progress for Hero Section (0 at top, 1 when scrolled 380px down)
-    const exitP = Math.max(0, Math.min(1, scrollY / 380));
-    setHeroExitProgress(exitP);
-
-    const isHero = scrollY < heroHeight * 0.55;
-    setIsHeroActive(isHero);
-    if (isHero) {
-      if (activeChapterIndexRef.current !== -1) {
-        activeChapterIndexRef.current = -1;
-        setActiveChapterIndex(-1);
-      }
-    }
-
-    // Phase 1: Leaving Hero into Chapter 1 (0vw center -> 16vw right, zooming in smoothly)
-    if (scrollY < heroHeight) {
-      const p = Math.max(0, Math.min(1, scrollY / (heroHeight * 0.85)));
-      // Ken Perlin's smootherstep for zero acceleration shock at endpoints
-      const smoothP = p * p * p * (p * (p * 6 - 15) + 10);
-      setGlobeOffsetVw(parseFloat((smoothP * 16).toFixed(2)));
-      setGlobeScale(parseFloat((1.0 + smoothP * 0.12).toFixed(3)));
-      setScrollRotation({
-        phi: -smoothP * (Math.PI * 1.35),
-        theta: 0,
-      });
-      setIsObservatoryActive(false);
-
-      if (!isHero && activeChapterIndexRef.current !== 0) {
-        activeChapterIndexRef.current = 0;
-        setActiveChapterIndex(0);
-        if (storyChapters[0]) {
-          setTargetFocus(storyChapters[0].coordinates);
-        }
-      }
-      return;
-    }
-
-    // Phase 2 & 3: Story Chapters & Observatory with Continuous Kinetic Scroll Interpolation
-    // Stable analytical positioning without forced synchronous DOM layout reflows (Zero Layout Thrashing)
-    const sections: { idx: number; centerY: number; offset: number }[] = [];
-    const totalChapters = storyChapters.length;
-    for (let idx = 0; idx < totalChapters; idx++) {
-      const isObs = idx === totalChapters - 1;
-      const sectionTop = heroHeight + idx * windowHeight;
-      const centerY = sectionTop + windowHeight * 0.5;
-      // Even: +16vw (Left card, map right), Odd: -16vw (Right card, map left), Observatory: 0vw
-      const targetOff = isObs ? 0 : (idx % 2 === 1 ? -16 : 16);
-      sections.push({ idx, centerY, offset: targetOff });
-    }
-
-    const viewCenterY = window.scrollY + windowHeight * 0.5;
-
-    if (sections.length > 0) {
-      if (viewCenterY <= sections[0].centerY) {
-        setGlobeOffsetVw(sections[0].offset);
-        if (activeChapterIndexRef.current !== sections[0].idx) {
-          activeChapterIndexRef.current = sections[0].idx;
-          setActiveChapterIndex(sections[0].idx);
-          if (storyChapters[0]) setTargetFocus(storyChapters[0].coordinates);
-        }
-      } else if (viewCenterY >= sections[sections.length - 1].centerY) {
-        setGlobeOffsetVw(sections[sections.length - 1].offset);
-        const lastIdx = sections[sections.length - 1].idx;
-        if (activeChapterIndexRef.current !== lastIdx) {
-          activeChapterIndexRef.current = lastIdx;
-          setActiveChapterIndex(lastIdx);
-        }
-      } else {
-        for (let k = 0; k < sections.length - 1; k++) {
-          if (viewCenterY >= sections[k].centerY && viewCenterY <= sections[k + 1].centerY) {
-            const span = Math.max(1, sections[k + 1].centerY - sections[k].centerY);
-            const rawP = Math.max(0, Math.min(1, (viewCenterY - sections[k].centerY) / span));
-            // Ken Perlin smootherstep for velvety organic transition
-            const smoothP = rawP * rawP * rawP * (rawP * (rawP * 6 - 15) + 10);
-            const interpolatedOffset = sections[k].offset + (sections[k + 1].offset - sections[k].offset) * smoothP;
-            setGlobeOffsetVw(parseFloat(interpolatedOffset.toFixed(2)));
-
-            const activeIdx = rawP >= 0.5 ? sections[k + 1].idx : sections[k].idx;
-            if (activeIdx !== activeChapterIndexRef.current) {
-              activeChapterIndexRef.current = activeIdx;
-              setActiveChapterIndex(activeIdx);
-              if (storyChapters[activeIdx] && activeIdx < storyChapters.length - 1) {
-                setTargetFocus(storyChapters[activeIdx].coordinates);
-              }
-            }
-            break;
-          }
-        }
-      }
-    }
-
-    // Observatory Section Continuous Progress & Scroll Zoom Logic
-    const obsTop = heroHeight + (totalChapters - 1) * windowHeight - scrollY;
-    const obsHeight = 2.2 * windowHeight;
-    let currentObsP = 0;
-    let currentTopOffset = 0;
-
-    if (obsTop <= 0) {
-      // Inside observatory section: full HUD and scroll zoom
-      currentObsP = 1.0;
-      currentTopOffset = 0;
-      setIsObservatoryActive(true);
-
-      const totalTravel = Math.max(1, obsHeight - windowHeight);
-      const scrolledInside = Math.max(0, Math.min(totalTravel, -obsTop));
-      const progressInObs = scrolledInside / totalTravel;
-      const currentZoom = 1.0 + progressInObs * 2.2;
-      setObservatoryScrollZoom(parseFloat(currentZoom.toFixed(2)));
-    } else {
-      // Scrolling up away from observatory section towards Chapter 4
-      currentTopOffset = obsTop;
-      const fadeDistance = 320; // seamless natural fade distance in pixels
-      const exitProgress = Math.max(0, Math.min(1, obsTop / fadeDistance));
-      const p = 1 - exitProgress;
-      const smoothObsP = p * p * p * (p * (p * 6 - 15) + 10); // smootherstep
-      currentObsP = parseFloat(smoothObsP.toFixed(3));
-
-      setIsObservatoryActive(currentObsP > 0.001);
-      setObservatoryScrollZoom(1.0);
-    }
-
-    setObservatoryProgress(currentObsP);
-    setObsTopOffset(currentTopOffset);
-
-    setGlobeScale(1.12);
-    setScrollRotation({
-      phi: -Math.PI * 1.35,
-      theta: 0,
-    });
-  }, [storyChapters]);
-
-  // Initialize Lenis smooth momentum scroll engine
-  useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-    lenisRef.current = lenis;
-
-    lenis.on('scroll', handleScrollUpdate);
-    window.addEventListener('scroll', handleScrollUpdate, { passive: true });
-
-    let rafId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
-    }
-    rafId = requestAnimationFrame(raf);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
-      lenisRef.current = null;
-      window.removeEventListener('scroll', handleScrollUpdate);
-    };
-  }, [handleScrollUpdate]);
-
-  // Lock background scroll when any modal or drawer is open
-  const isAnyModalOpen = Boolean(
-    selectedEvent ||
-    isDrawerOpen ||
-    isFeedOpen ||
-    isShakemapModalOpen ||
-    isInfographicOpen
-  );
-
-  useEffect(() => {
-    if (isAnyModalOpen) {
-      lenisRef.current?.stop();
-      document.body.style.overflow = 'hidden';
-      document.documentElement.style.overflow = 'hidden';
-    } else {
-      lenisRef.current?.start();
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    }
-    return () => {
-      lenisRef.current?.start();
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, [isAnyModalOpen]);
-
-  // Fast Travel Navigation Actions
-  const scrollToHero = () => {
-    setActiveChapterIndex(-1);
-    activeChapterIndexRef.current = -1;
-    lenisRef.current?.scrollTo('#hero-section', { duration: 1.2 });
-  };
-
-  const scrollToStories = () => {
-    setActiveChapterIndex(0);
-    activeChapterIndexRef.current = 0;
-    if (storyChapters[0]) {
-      setGlobeOffsetVw(18);
-      setGlobeScale(1.12);
-      setTargetFocus(storyChapters[0].coordinates);
-    }
-    lenisRef.current?.scrollTo('#chapter-section-0', { duration: 1.2 });
-  };
-
-  const scrollToObservatory = () => {
-    lenisRef.current?.scrollTo('#observatory-section', { duration: 1.4 });
-  };
-
-  const scrollToChapter = (index: number) => {
-    setActiveChapterIndex(index);
-    activeChapterIndexRef.current = index;
-    if (storyChapters[index] && index < storyChapters.length - 1) {
-      setGlobeOffsetVw(index % 2 === 1 ? -18 : 18);
-      setGlobeScale(1.12);
-      setTargetFocus(storyChapters[index].coordinates);
-    }
-    lenisRef.current?.scrollTo(`#chapter-section-${index}`, { duration: 1.1 });
-  };
+  // Camera Recenter to Archipelago Default
+  const handleRecenterIndonesia = useCallback(() => {
+    setTargetFocus(DEFAULT_FOCUS);
+    setResetSignal((prev) => prev + 1);
+  }, []);
 
 
   // Filtered Events Pipeline
@@ -975,7 +733,6 @@ export const App: React.FC = () => {
     (alert: AlertEventData) => {
       setActiveAlert(null);
       setTargetFocus([alert.latitude, alert.longitude]);
-      scrollToObservatory();
       const found = events.find((e) => e.id === alert.id || e.usgs_id === alert.id);
       if (found) {
         setSelectedEvent(found);
@@ -1038,9 +795,8 @@ export const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const effectiveTranslateX = isDesktop ? `${globeOffsetVw}vw` : '0px';
   return (
-    <div className="relative min-h-screen w-full bg-white text-slate-900 selection:bg-[#0f2f63] selection:text-white font-sans">
+    <div className="relative h-screen w-screen overflow-hidden bg-white text-slate-900 selection:bg-[#0f2f63] selection:text-white font-sans">
       {/* 0. REALTIME SEISMIC ALERT TOAST NOTIFICATION */}
       <SeismicAlertToast
         alert={activeAlert}
@@ -1052,32 +808,12 @@ export const App: React.FC = () => {
       {/* 1. Global Liquid Glass SVG Refraction Filter */}
       <LiquidGlassFilter />
 
-      {/* 2. Global Viewport Technical Blueprint Frame (Corner Crop Marks & Live Telemetry) */}
-      <ViewportTechnicalFrame coordinates={cameraCoords} visible={isCurtainComplete} />
+      {/* 2. Global Viewport Technical Blueprint Frame (Corner Crop Marks) */}
+      <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
 
-      {/* 3. FIXED STICKY ARCHITECTURAL NUSANTARA VECTOR MAP LAYER (Pure White Background during Loading) */}
-      <div
-        style={{
-          opacity: isCurtainComplete ? 1 : 0,
-          transform: isCurtainComplete ? 'scale(1)' : 'scale(1.05)',
-          filter: isCurtainComplete ? 'none' : 'blur(4px)',
-          transition:
-            'opacity 1100ms cubic-bezier(0.16, 1, 0.3, 1), transform 1200ms cubic-bezier(0.16, 1, 0.3, 1), filter 1100ms ease-out',
-          transitionDelay: '150ms',
-          willChange: 'opacity, transform, filter',
-        }}
-        className="fixed inset-0 z-10 pointer-events-none flex items-center justify-center pt-14 sm:pt-16 pb-16 sm:pb-20 px-2 sm:px-4 overflow-hidden"
-      >
-        <div
-          style={{
-            transform: `translate3d(${effectiveTranslateX}, 0px, 0) scale(${globeScale})`,
-            willChange: 'transform',
-          }}
-          className={`relative w-full max-w-6xl flex items-center justify-center h-[64vh] max-h-[620px] my-auto ${
-            isObservatoryActive ? 'pointer-events-auto' : 'pointer-events-none'
-          }`}
-        >
-          {/* Architectural Vector Nusantara Map */}
+      {/* 3. ARCHITECTURAL NUSANTARA VECTOR MAP LAYER */}
+      <div className="fixed inset-0 z-10 flex items-center justify-center pt-14 sm:pt-16 pb-16 sm:pb-20 px-2 sm:px-4 overflow-hidden pointer-events-none">
+        <div className="relative w-full max-w-6xl flex items-center justify-center h-[64vh] max-h-[620px] my-auto pointer-events-auto">
           <VectorGlobe
             events={filteredEvents}
             hotspots={filteredHotspots}
@@ -1086,21 +822,21 @@ export const App: React.FC = () => {
             isRotating={isRotating && !isTimeLapseOpen}
             resetSignal={resetSignal}
             targetFocus={targetFocus}
-            onSelectEvent={isObservatoryActive ? setSelectedEvent : undefined}
+            onSelectEvent={setSelectedEvent}
             onUpdateHotspots={setHotspots}
-            onSelectVolcano={isObservatoryActive ? setSelectedVolcano : undefined}
+            onSelectVolcano={setSelectedVolcano}
             selectedVolcano={selectedVolcano}
-            interactive={isObservatoryActive}
+            interactive={true}
             onCameraChange={setCameraCoords}
-            scrollPhi={scrollRotation.phi}
-            scrollTheta={scrollRotation.theta}
+            scrollPhi={0}
+            scrollTheta={0}
             colorMode={colorMode}
             timelapseTimestamp={isTimeLapseOpen ? timelapseTime : null}
-            scrollZoom={isObservatoryActive ? observatoryScrollZoom : null}
+            scrollZoom={null}
             isPanoramic={true}
-            showControls={isObservatoryActive}
-            controlsProgress={observatoryProgress}
-            activeChapterIndex={isObservatoryActive || isHeroActive ? -1 : activeChapterIndex}
+            showControls={true}
+            controlsProgress={1}
+            activeChapterIndex={-1}
             selectedHotspot={selectedHotspot}
             onSelectHotspot={setSelectedHotspot}
             bmkgAlert={bmkgAlert}
@@ -1109,23 +845,14 @@ export const App: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. EDITORIAL FIXED HEADER NAVBAR */}
-      <header
-        style={{
-          transform: isCurtainComplete ? 'translate3d(-50%, 0, 0)' : 'translate3d(-50%, -140%, 0)',
-          opacity: isCurtainComplete ? 1 : 0,
-          transition: 'transform 850ms cubic-bezier(0.16, 1, 0.3, 1), opacity 850ms ease-out',
-          transitionDelay: '350ms',
-          willChange: 'transform, opacity',
-        }}
-        className="fixed top-3.5 sm:top-4 left-1/2 z-40 w-full max-w-6xl px-3 sm:px-4 pointer-events-none select-none"
-      >
+      {/* 4. EDITORIAL FIXED HEADER NAVBAR */}
+      <header className="fixed top-3.5 sm:top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-6xl px-3 sm:px-4 pointer-events-none select-none">
         <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/75 backdrop-blur-md pointer-events-auto">
           <div className="flex items-center justify-between gap-1.5 sm:gap-4 px-2.5 py-1.5 sm:px-4 sm:py-2">
-            {/* Logo + Branding: Sharp, Crisp Typography & Return to Hero Trigger */}
+            {/* Logo + Branding: Click to Recenter to Indonesia */}
             <div
-              onClick={scrollToHero}
-              title={lang === 'id' ? 'Klik untuk kembali ke Bab Cerita / Beranda' : 'Click to return to Stories / Hero'}
+              onClick={handleRecenterIndonesia}
+              title={lang === 'id' ? 'Klik untuk memusatkan kembali peta ke Indonesia' : 'Click to recenter map to Indonesia'}
               className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0 cursor-pointer group"
             >
               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -1147,19 +874,18 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Header Right Actions: Clean, Minimalist & Responsive Dock */}
+            {/* Header Right Actions */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 font-mono text-xs">
-              {/* Go to Map / Observatory button when at Hero level */}
-              {!isObservatoryActive && (
-                <button
-                  type="button"
-                  onClick={scrollToObservatory}
-                  className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 text-white text-[9px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-xs shrink-0"
-                >
-                  <span>{lang === 'id' ? 'PETA' : 'MAP'}</span>
-                  <ArrowDown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-300" />
-                </button>
-              )}
+              {/* Tectonic Education Modal Toggle */}
+              <button
+                type="button"
+                onClick={() => setIsTectonicModalOpen(true)}
+                title={lang === 'id' ? 'Edukasi Zona Tektonik & Sesar Aktif' : 'Active Tectonic & Fault Systems Guide'}
+                className="flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 border border-slate-200/80 text-slate-800 text-[9.5px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+              >
+                <BookOpen className="w-3 h-3 text-[#0f2f63]" />
+                <span className="hidden sm:inline">{lang === 'id' ? 'TEKTONIK' : 'TECTONICS'}</span>
+              </button>
 
               {/* Telemetry Ping Latency & Auto-Refresh Countdown Pill */}
               <button
@@ -1205,7 +931,7 @@ export const App: React.FC = () => {
                 <span className={lang === 'en' ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}>EN</span>
               </button>
 
-              {/* Realtime Live Seismic Alert Notification Toggle (Icon Only) */}
+              {/* Realtime Live Seismic Alert Notification Toggle */}
               <button
                 type="button"
                 onClick={handleToggleAlerts}
@@ -1227,7 +953,7 @@ export const App: React.FC = () => {
                 <Bell className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${alertsEnabled ? 'text-rose-600' : 'text-neutral-500'}`} />
               </button>
 
-              {/* Bookmarks (Icon Only with counter badge) */}
+              {/* Bookmarks */}
               <button
                 type="button"
                 id="bookmarks-btn"
@@ -1243,7 +969,7 @@ export const App: React.FC = () => {
                 )}
               </button>
 
-              {/* Refresh (Icon Only - hidden on mobile to give generous space) */}
+              {/* Refresh */}
               <button
                 type="button"
                 id="refresh-btn"
@@ -1258,253 +984,118 @@ export const App: React.FC = () => {
         </LiquidCard>
       </header>
 
-      {/* 4. STORY PROGRESS RAIL (FIXED RIGHT-HAND STEPPER) */}
-      <StoryProgressRail
-        chapters={storyChapters}
-        activeChapterIndex={activeChapterIndex >= 0 ? activeChapterIndex : 0}
-        onSelectChapter={scrollToChapter}
-        visible={!isObservatoryActive && !isHeroActive && heroExitProgress > 0.5 && activeChapterIndex >= 0}
-      />
+      {/* 5. TOP-LEFT HUD: BMKG EPICENTER CARD & MAJOR HAZARDS HIGHLIGHTS */}
+      <div className="fixed top-18 sm:top-20 left-3 sm:left-6 z-30 flex flex-col items-start gap-2 max-w-[min(94vw,380px)] pointer-events-auto select-none">
+        {bmkgAlert && formattedBMKG && (
+          <EpicenterMapCard
+            location={formattedBMKG.location}
+            coordinates={bmkgAlert.coordinates}
+            magnitude={bmkgAlert.magnitude}
+            depth={formattedBMKG.depth}
+            time={formattedBMKG.time}
+            shortTime={formattedBMKG.shortTime}
+            potensi={formattedBMKG.potensi}
+            lang={lang}
+            onOpenShakemap={() => setIsShakemapModalOpen(true)}
+            onOpenNews={() => {
+              const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
+              const lat = coordsMatch
+                ? parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1)
+                : -6.2;
+              const lon = coordsMatch ? parseFloat(coordsMatch[2]) : 106.8;
+              const syntheticBMKGEvent: SeismicEvent = {
+                id: 'bmkg-autogempa',
+                usgs_id: 'bmkg-autogempa',
+                magnitude: parseFloat(bmkgAlert.magnitude) || 5.0,
+                depth: parseFloat(bmkgAlert.kedalaman) || 10,
+                latitude: lat,
+                longitude: lon,
+                place: bmkgAlert.wilayah || formattedBMKG.location,
+                occurred_at: bmkgAlert.datetime || new Date().toISOString(),
+              };
+              setSelectedEvent(syntheticBMKGEvent);
+              setEventModalTab('news');
+            }}
+            onFocusEpicenter={() => {
+              const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
+              if (coordsMatch) {
+                const lat = parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1);
+                const lon = parseFloat(coordsMatch[2]);
+                setTargetFocus([lat, lon]);
+              }
+            }}
+          />
+        )}
 
-      {/* 5. HERO SECTION (STAGE 0) */}
-      <HeroSection
-        onExploreClick={scrollToStories}
-        onDirectClick={scrollToObservatory}
-        exitProgress={heroExitProgress}
-        totalEvents={events.length}
-        isReady={isCurtainComplete}
-        onIntroComplete={handleCurtainComplete}
-      />
-
-      {/* 6. SCROLLING STORY SECTIONS LAYER */}
-      <div className="relative z-10 w-full pointer-events-none">
-        {storyChapters.map((chapter, index) => {
-          const isFinal = index === storyChapters.length - 1;
-
-          if (isFinal) {
-            // Chapter 5: Full Interactive Observatory Stage
-            return (
-              <section
-                key={chapter.id}
-                id="observatory-section"
-                data-chapter-index={index}
-                className="story-chapter-section relative w-full pointer-events-none"
-                style={{ height: '220vh' }}
+        {/* Quick Focus Major Hazards HUD Strip */}
+        {majorHighlights.length > 0 && (
+          <div
+            style={{
+              maskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
+              WebkitMaskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
+            }}
+            className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2rem)] sm:max-w-md py-1 px-1 pr-6"
+          >
+            <span className="text-[9px] font-mono font-bold tracking-widest text-slate-600 uppercase flex items-center gap-1.5 px-1 shrink-0">
+              <Activity className="w-3 h-3 text-slate-700 shrink-0" />
+              <span>{lang === 'id' ? 'SOROTAN:' : 'MAJOR:'}</span>
+            </span>
+            {majorHighlights.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  setTargetFocus([item.lat, item.lon]);
+                  if (item.type === 'event') {
+                    setSelectedEvent(item.data);
+                  } else if (item.type === 'hotspot') {
+                    setSelectedHotspot(item.data);
+                  } else if (item.type === 'volcano') {
+                    setSelectedVolcano(item.data);
+                  }
+                }}
+                className="group relative hover:z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50/95 hover:bg-white font-mono text-[10px] tracking-wide shadow-2xs border border-slate-200/90 hover:border-slate-300 text-slate-900 transition-all cursor-pointer active:scale-95 backdrop-blur-md shrink-0 sm:shrink"
+                title={
+                  lang === 'id'
+                    ? `Fokus kamera & buka detail ${item.place} (${item.badge})`
+                    : `Focus camera & view details of ${item.place} (${item.badge})`
+                }
               >
-                {/* Sticky Viewport Stage Pinned during Scroll Zoom with Continuous Blur Fade */}
-                <div
-                  style={{
-                    opacity: observatoryProgress,
-                    filter: observatoryProgress < 0.99 ? `blur(${(1 - observatoryProgress) * 6}px)` : 'none',
-                    transform: 'none',
-                    willChange: 'opacity, filter',
-                    visibility: observatoryProgress <= 0.001 ? 'hidden' : 'visible',
-                  }}
-                  className="sticky top-0 h-screen w-full flex flex-col justify-between pt-20 sm:pt-20 pb-6 px-3 sm:px-6 lg:px-12 pointer-events-none z-20"
+                {item.type === 'event' ? (
+                  <Activity className="w-3 h-3 text-rose-700 shrink-0" />
+                ) : item.type === 'volcano' ? (
+                  <Mountain className="w-3 h-3 text-red-700 shrink-0" />
+                ) : (
+                  <Flame className="w-3 h-3 text-amber-700 shrink-0" />
+                )}
+                <span
+                  className={`font-bold ${
+                    item.type === 'event'
+                      ? 'text-rose-800'
+                      : item.type === 'volcano'
+                      ? 'text-red-800'
+                      : 'text-amber-800'
+                  }`}
                 >
-                  {/* Top Row: Left-Aligned Epicenter Card + Right Telemetry & Scroll Zoom Reticle */}
-                  <div className="w-full flex flex-col sm:flex-row items-center sm:items-start justify-between gap-3 pointer-events-none">
-                    {/* Left Side: Interactive BMKG Epicenter Survey Card & Major Hazards Highlights HUD */}
-                    <div className="pointer-events-auto flex flex-col items-start gap-3 max-w-sm w-full sm:w-auto">
-                      {bmkgAlert && formattedBMKG && (
-                        <EpicenterMapCard
-                          location={formattedBMKG.location}
-                          coordinates={bmkgAlert.coordinates}
-                          magnitude={bmkgAlert.magnitude}
-                          depth={formattedBMKG.depth}
-                          time={formattedBMKG.time}
-                          shortTime={formattedBMKG.shortTime}
-                          potensi={formattedBMKG.potensi}
-                          lang={lang}
-                          onOpenShakemap={() => setIsShakemapModalOpen(true)}
-                          onOpenNews={() => {
-                            const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
-                            const lat = coordsMatch
-                              ? parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1)
-                              : -6.2;
-                            const lon = coordsMatch ? parseFloat(coordsMatch[2]) : 106.8;
-                            const syntheticBMKGEvent: SeismicEvent = {
-                              id: 'bmkg-autogempa',
-                              usgs_id: 'bmkg-autogempa',
-                              magnitude: parseFloat(bmkgAlert.magnitude) || 5.0,
-                              depth: parseFloat(bmkgAlert.kedalaman) || 10,
-                              latitude: lat,
-                              longitude: lon,
-                              place: bmkgAlert.wilayah || formattedBMKG.location,
-                              occurred_at: bmkgAlert.datetime || new Date().toISOString(),
-                            };
-                            setSelectedEvent(syntheticBMKGEvent);
-                            setEventModalTab('news');
-                          }}
-                          onFocusEpicenter={() => {
-                            const coordsMatch = bmkgAlert.coordinates.match(/(-?\d+\.?\d*)[^\d]+(-?\d+\.?\d*)/);
-                            if (coordsMatch) {
-                              const lat = parseFloat(coordsMatch[1]) * (bmkgAlert.coordinates.includes('LS') ? -1 : 1);
-                              const lon = parseFloat(coordsMatch[2]);
-                              setTargetFocus([lat, lon]);
-                            }
-                          }}
-                        />
-                      )}
-
-                      {/* Option 1: Quick Focus Major Hazards HUD Strip */}
-                      {majorHighlights.length > 0 && (
-                        <div
-                          style={{
-                            maskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
-                            WebkitMaskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
-                          }}
-                          className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2rem)] sm:max-w-md py-1.5 px-1 pr-6"
-                        >
-                          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-600 uppercase flex items-center gap-1.5 px-1 shrink-0">
-                            <Activity className="w-3 h-3 text-slate-700 shrink-0" />
-                            <span>{lang === 'id' ? 'SOROTAN:' : 'MAJOR:'}</span>
-                          </span>
-                          {majorHighlights.map((item) => (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                setTargetFocus([item.lat, item.lon]);
-                                if (item.type === 'event') {
-                                  setSelectedEvent(item.data);
-                                } else if (item.type === 'hotspot') {
-                                  setSelectedHotspot(item.data);
-                                } else if (item.type === 'volcano') {
-                                  setSelectedVolcano(item.data);
-                                }
-                              }}
-                              className="group relative hover:z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50/95 hover:bg-white font-mono text-[10px] tracking-wide shadow-2xs border border-slate-200/90 hover:border-slate-300 text-slate-900 transition-all cursor-pointer active:scale-95 backdrop-blur-md shrink-0 sm:shrink"
-                              title={
-                                lang === 'id'
-                                  ? `Fokus kamera & buka detail ${item.place} (${item.badge})`
-                                  : `Focus camera & view details of ${item.place} (${item.badge})`
-                              }
-                            >
-                              {item.type === 'event' ? (
-                                <Activity className="w-3 h-3 text-rose-700 shrink-0" />
-                              ) : item.type === 'volcano' ? (
-                                <Mountain className="w-3 h-3 text-red-700 shrink-0" />
-                              ) : (
-                                <Flame className="w-3 h-3 text-amber-700 shrink-0" />
-                              )}
-                              <span
-                                className={`font-bold ${
-                                  item.type === 'event'
-                                    ? 'text-rose-800'
-                                    : item.type === 'volcano'
-                                    ? 'text-red-800'
-                                    : 'text-amber-800'
-                                }`}
-                              >
-                                {item.badge}
-                              </span>
-                              <span className="text-slate-300">·</span>
-                              <span className="font-semibold uppercase text-slate-800 group-hover:text-slate-950">
-                                {item.place}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Right Side: Depth Legend, Live Telemetry Counters & Scroll Zoom Indicator */}
-                    <div className="pointer-events-auto self-end sm:self-auto flex items-center gap-2.5 flex-wrap">
-                      {/* Depth Legend: inline dash markers */}
-                      {colorMode === 'depth' && (
-                        <div className="hidden md:flex items-center gap-3 font-mono text-[9px] tracking-widest text-slate-500 uppercase">
-                          <span className="flex items-center gap-1.5">
-                            <span className="block w-4 h-0.5" style={{ backgroundColor: '#f43f5e' }} />
-                            &lt;70KM
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="block w-4 h-0.5" style={{ backgroundColor: '#f59e0b' }} />
-                            70-300KM
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <span className="block w-4 h-0.5" style={{ backgroundColor: '#06b6d4' }} />
-                            &gt;300KM
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Telemetry Counter: plain clean bordered */}
-                      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200 rounded-md font-mono text-[9.5px] tracking-wider text-slate-600 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-                        {(hazardMode === 'all' || hazardMode === 'dual' || hazardMode === 'seismic') && (
-                          <div className="flex items-center gap-1">
-                            <span className="font-bold text-slate-900 tabular-nums">{filteredEvents.length}</span>
-                            <span>{t.seismicOnly}</span>
-                          </div>
-                        )}
-                        {(hazardMode === 'all' || hazardMode === 'dual') && (
-                          <span className="text-slate-300 px-0.5">/</span>
-                        )}
-                        {(hazardMode === 'all' || hazardMode === 'dual' || hazardMode === 'wildfire') && (
-                          <div className="flex items-center gap-1">
-                            <span className="font-bold text-slate-900 tabular-nums">{filteredHotspots.length}</span>
-                            <span>{t.hotspotsCount}</span>
-                          </div>
-                        )}
-                        {volcanoes.length > 0 && (hazardMode === 'all' || hazardMode === 'dual' || hazardMode === 'volcano') && (
-                          <>
-                            {(hazardMode === 'all' || hazardMode === 'dual') && (
-                              <span className="text-slate-300 px-0.5">/</span>
-                            )}
-                            <div className="flex items-center gap-1">
-                              <span className="font-bold text-rose-600 tabular-nums">{filteredVolcanoes.length}</span>
-                              <span>{t.volcanoOnly}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Center Content: Transparent pass-through exposing the panoramic letterboxed map */}
-                  <div className="flex-1 w-full pointer-events-none" />
-
-                  {/* Bottom spacer for dock clearance */}
-                  <div className="h-16 pointer-events-none" />
-                </div>
-              </section>
-            );
-          }
-
-          // Chapters 1 - 4: Guided Storytelling Stages (Alternating: Even cards Left, Odd cards Right)
-          const isCardOnRight = index % 2 === 1;
-          return (
-            <section
-              key={chapter.id}
-              id={`chapter-section-${index}`}
-              data-chapter-index={index}
-              className={`story-chapter-section min-h-screen w-full flex items-center px-4 sm:px-8 lg:px-16 xl:px-24 py-28 pointer-events-none ${
-                isCardOnRight ? 'justify-end md:pr-20 lg:pr-28' : 'justify-start md:pl-8 lg:pl-16'
-              }`}
-            >
-              <div className="w-full max-w-lg pointer-events-auto">
-                <StoryChapterCard
-                  chapter={chapter}
-                  isActive={activeChapterIndex === index}
-                  onExploreClick={scrollToObservatory}
-                  onFocusSector={(coords) => setTargetFocus(coords)}
-                />
-              </div>
-            </section>
-          );
-        })}
+                  {item.badge}
+                </span>
+                <span className="text-slate-300">·</span>
+                <span className="font-semibold uppercase text-slate-800 group-hover:text-slate-950">
+                  {item.place}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* FLOATING TELEMETRY CONTROLLER DOCK (Fixed Root Viewport Level) */}
+      {/* 6. FLOATING TELEMETRY CONTROLLER DOCK */}
       <FloatingControllerDock
         timeFilter={timeFilter}
         onTimeFilterChange={setTimeFilter}
         hazardMode={hazardMode}
         onHazardModeChange={setHazardMode}
-        onResetView={() => {
-          setTargetFocus([-0.78, 118.0]);
-          setResetSignal((prev) => prev + 1);
-        }}
+        onResetView={handleRecenterIndonesia}
         onOpenFeed={() => setIsFeedOpen(true)}
         onOpenTimeLapse={handleOpenTimeLapse}
         eventCount={
@@ -1514,8 +1105,8 @@ export const App: React.FC = () => {
             ? volcanoes.length
             : filteredEvents.length
         }
-        visible={isObservatoryActive && !isTimeLapseOpen}
-        progress={isTimeLapseOpen ? 0 : observatoryProgress}
+        visible={!isTimeLapseOpen}
+        progress={1}
         lang={lang}
         magCategory={magCategory}
         onMagCategoryChange={setMagCategory}
@@ -1651,6 +1242,15 @@ export const App: React.FC = () => {
           />
         </Suspense>
       )}
+
+      {/* 15. TECTONIC EDUCATION MODAL */}
+      <TectonicEducationModal
+        isOpen={isTectonicModalOpen}
+        onClose={() => setIsTectonicModalOpen(false)}
+        chapters={storyChapters}
+        onFocusSector={(coords) => setTargetFocus(coords)}
+        lang={lang}
+      />
     </div>
   );
 };
