@@ -9,7 +9,6 @@ interface EventsListDrawerProps {
   hotspots?: WildfireHotspot[];
   volcanoes?: VolcanoActivity[];
   activeHazardMode?: HazardMode;
-  selectedRegion: string;
   onSelectEvent: (event: SeismicEvent) => void;
   onSelectHotspot?: (hotspot: WildfireHotspot) => void;
   onSelectVolcano?: (volcano: VolcanoActivity) => void;
@@ -50,7 +49,6 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
   hotspots = [],
   volcanoes = [],
   activeHazardMode = 'all',
-  selectedRegion,
   onSelectEvent,
   onSelectHotspot,
   onSelectVolcano,
@@ -192,7 +190,6 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
 
       {/* Multi-Hazard Telemetry Ledger Drawer */}
       <aside
-        data-lenis-prevent="true"
         onWheel={(e) => e.stopPropagation()}
         className="fixed top-0 left-0 bottom-0 h-full w-full sm:max-w-md z-50 shadow-2xl bg-white/95 backdrop-blur-2xl border-r border-slate-200/80 rounded-none sm:rounded-r-3xl flex flex-col justify-between animate-in slide-in-from-left duration-300 ease-out font-sans overflow-hidden"
       >
@@ -452,8 +449,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
 
         {/* 2. Scrollable Data List */}
         <div
-          data-lenis-prevent="true"
-          onWheel={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
           className="flex-1 min-h-0 overflow-y-auto overscroll-contain select-none divide-y divide-slate-100/80 px-2 py-1"
           style={{
             overscrollBehavior: 'contain',

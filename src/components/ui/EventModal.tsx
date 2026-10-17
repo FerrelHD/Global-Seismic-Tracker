@@ -270,7 +270,6 @@ export const EventModal: React.FC<EventModalProps> = ({
       <div
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
-        data-lenis-prevent="true"
         className="w-full max-w-[560px] max-h-[90dvh] sm:max-h-[88vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
       >

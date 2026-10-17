@@ -2,7 +2,6 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { VolcanoActivity } from '../../types/seismic';
 import {
   X,
-  Flame,
   Wind,
   Mountain,
   Compass,
@@ -13,10 +12,8 @@ import {
   Newspaper,
   Navigation,
   MapPin,
-  CheckCircle2,
   AlertOctagon,
   ShieldCheck,
-  Building2,
   ChevronDown,
   Search,
   Check,
@@ -214,8 +211,6 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        onWheel={(e) => e.stopPropagation()}
-        data-lenis-prevent="true"
         className="w-full max-w-[560px] max-h-[90dvh] sm:max-h-[85vh] overflow-y-auto overscroll-contain touch-pan-y my-auto rounded-2xl sm:rounded-3xl no-scrollbar"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
       >

@@ -4,7 +4,6 @@ import { SeismicEvent } from '../../types/seismic';
 import {
   fetchDisasterNews,
   DisasterNewsResult,
-  DisasterNewsArticle,
   buildDisasterNewsQuery,
   DisasterNewsQueryTarget,
 } from '../../utils/newsService';

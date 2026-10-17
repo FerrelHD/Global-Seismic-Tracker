@@ -1,11 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { X, Download, Copy, Check, Share2, ShieldAlert } from 'lucide-react';
-import { SeismicEvent } from '../../types/seismic';
+import { X, Download, Copy, Check, Share2 } from 'lucide-react';
 
 interface SocialInfographicModalProps {
   isOpen: boolean;
   onClose: () => void;
-  event?: SeismicEvent | null;
   location?: string | null;
   magnitude?: string | number | null;
   depth?: string | number | null;
@@ -18,7 +16,6 @@ interface SocialInfographicModalProps {
 export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
   isOpen,
   onClose,
-  event,
   location = 'Indonesia Archipelago',
   magnitude = '4.5',
   depth = '10 km',
@@ -341,7 +338,6 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
         className="relative w-full max-w-xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-neutral-200 bg-white text-neutral-900"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
-        data-lenis-prevent="true"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-3.5 border-b border-neutral-200 bg-neutral-50/80 font-mono text-xs">
@@ -362,8 +358,7 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
         {/* Body Preview */}
         <div
-          data-lenis-prevent="true"
-          onWheel={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
           className="flex-1 overflow-hidden p-3 sm:p-6 flex flex-col items-center justify-center bg-neutral-100/50"
         >
           {/* Hidden Canvas for High-Res Generation */}

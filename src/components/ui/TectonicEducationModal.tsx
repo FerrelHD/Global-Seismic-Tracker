@@ -18,8 +18,7 @@ export const TectonicEducationModal: React.FC<TectonicEducationModalProps> = ({
   onFocusSector,
   lang = 'id',
 }) => {
-  // Filter for actual tectonic zones (excluding generic chapter 5)
-  const tectonicZones = chapters.filter((ch) => ch.id !== 'chapter-5');
+  const tectonicZones = chapters;
 
   // ESC key listener
   useEffect(() => {

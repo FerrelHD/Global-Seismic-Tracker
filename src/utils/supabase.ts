@@ -1,5 +1,5 @@
-import { createClient, User } from '@supabase/supabase-js';
-import { SeismicEvent, Bookmark, WildfireHotspot } from '../types/seismic';
+import { createClient } from '@supabase/supabase-js';
+import { SeismicEvent, Bookmark } from '../types/seismic';
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -166,30 +166,5 @@ export async function fetchSeismicEvents(): Promise<SeismicEvent[]> {
   }
 }
 
-export async function fetchWildfireHotspots(): Promise<WildfireHotspot[]> {
-  // 1. If Supabase is connected, query synchronized NASA FIRMS table
-  try {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('wildfire_hotspots')
-        .select('*')
-        .gte('latitude', -11.0)
-        .lte('latitude', 6.0)
-        .gte('longitude', 95.0)
-        .lte('longitude', 141.0)
-        .order('detected_at', { ascending: false })
-        .limit(500);
-
-      if (!error && data && data.length > 0) {
-        return data as WildfireHotspot[];
-      }
-    }
-  } catch (err) {
-    console.warn('Supabase wildfire query failed:', err);
-  }
-
-  // 2. Pure real-time: return empty array if no live data is retrieved
-  return [];
-}
 
 

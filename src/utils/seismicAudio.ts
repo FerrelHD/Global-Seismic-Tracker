@@ -113,10 +113,11 @@ export function playSeismicSound(magnitude = 4.5, depth = 10): void {
     // Exponential decay to eliminate digital popping
     gainNode.gain.exponentialRampToValueAtTime(0.0001, t + duration);
 
-    // Filter to keep acoustic warmth (Lowpass)
+    // Filter to keep acoustic warmth (Lowpass damped by hypocenter depth)
     const biquad = ctx.createBiquadFilter();
     biquad.type = 'lowpass';
-    biquad.frequency.setValueAtTime(Math.min(300, baseFreq * 3), t);
+    const depthDamping = Math.max(0.6, 1 - Math.min(depth, 300) / 600);
+    biquad.frequency.setValueAtTime(Math.min(300, baseFreq * 3 * depthDamping), t);
 
     // Connect audio graph
     osc1.connect(gainNode);

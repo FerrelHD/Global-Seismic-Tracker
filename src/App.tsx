@@ -27,7 +27,6 @@ const VolcanoDetailModal = lazy(() =>
 );
 import {
   fetchSeismicEvents,
-  fetchWildfireHotspots,
   fetchBMKGAutogempa,
   BMKGAlert,
   getLocalBookmarks,
@@ -46,8 +45,6 @@ import {
   Globe as GlobeIcon,
   RefreshCw,
   Bookmark as BookmarkIcon,
-  ArrowDown,
-  ArrowUp,
   Bell,
   Activity,
   Flame,
@@ -55,23 +52,6 @@ import {
   BookOpen,
 } from 'lucide-react';
 
-// Geographic Coordinate Bounding Boxes for Indonesian Archipelago Sectors
-// Module-level constant — not recreated on every render
-const REGION_BOUNDS: Record<string, { minLat: number; maxLat: number; minLon: number; maxLon: number }> = {
-  sumatra: { minLat: -6.0, maxLat: 6.0, minLon: 95.0, maxLon: 106.0 },
-  java: { minLat: -11.0, maxLat: -5.5, minLon: 105.0, maxLon: 116.0 },
-  sulawesi: { minLat: -6.0, maxLat: 2.5, minLon: 118.5, maxLon: 125.5 },
-  banda: { minLat: -11.0, maxLat: 2.0, minLon: 119.0, maxLon: 134.0 },
-  papua: { minLat: -10.0, maxLat: 1.0, minLon: 130.0, maxLon: 141.0 },
-};
-
-const REGION_FOCUS_COORDS: Record<string, [number, number]> = {
-  sumatra: [-0.5897, 101.3431],
-  java: [-7.6145, 110.7122],
-  sulawesi: [-1.43, 121.4456],
-  banda: [-5.5, 129.5],
-  papua: [-3.8, 138.5],
-};
 const DEFAULT_FOCUS: [number, number] = [-0.78, 118.0];
 
 export const App: React.FC = () => {
@@ -103,11 +83,9 @@ export const App: React.FC = () => {
   const [isTectonicModalOpen, setIsTectonicModalOpen] = useState(false);
 
   // Filters & Controls
-  const [searchQuery, setSearchQuery] = useState('');
   const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d'>('all');
-  const [depthFilter, setDepthFilter] = useState<'all' | 'shallow' | 'mid' | 'deep'>('all');
-  const [colorMode, setColorMode] = useState<'magnitude' | 'depth'>('magnitude');
-  const [isRotating, setIsRotating] = useState(true);
+  const colorMode: 'magnitude' | 'depth' = 'magnitude';
+  const isRotating = true;
   const [resetSignal, setResetSignal] = useState(0);
   const [targetFocus, setTargetFocus] = useState<[number, number] | null>(null);
 
@@ -288,8 +266,8 @@ export const App: React.FC = () => {
     setBookmarks(getLocalBookmarks());
   }, []);
 
-  // Compute dynamic story chapters from active dataset and active language
-  const storyChapters = useMemo(() => buildStoryChapters(events, lang), [events, lang]);
+  // Compute dynamic story chapters from active language
+  const storyChapters = useMemo(() => buildStoryChapters(lang), [lang]);
 
   // Screen Width state for responsive translation
   const [isDesktop, setIsDesktop] = useState(
@@ -313,26 +291,10 @@ export const App: React.FC = () => {
 
   // Filtered Events Pipeline
 
+  // Filtered Events Pipeline (Time Horizon & Magnitude)
   const filteredEvents = useMemo(() => {
     return events.filter((e) => {
-      if (searchQuery.trim() !== '') {
-        const q = searchQuery.toLowerCase().trim();
-        const bounds = REGION_BOUNDS[q];
-        if (bounds) {
-          // Accurate geographic coordinate matching
-          const inBounds =
-            e.latitude >= bounds.minLat &&
-            e.latitude <= bounds.maxLat &&
-            e.longitude >= bounds.minLon &&
-            e.longitude <= bounds.maxLon;
-          if (!inBounds) return false;
-        } else {
-          // Freeform text search fallback
-          const matchPlace = e.place?.toLowerCase().includes(q) ?? false;
-          if (!matchPlace) return false;
-        }
-      }
-      // Always retain BMKG real-time headline event (Banggai) across magnitude/depth filters
+      // Always retain BMKG real-time headline event (Banggai) across magnitude filters
       if (e.id === 'bmkg-autogempa') {
         return true;
       }
@@ -346,74 +308,13 @@ export const App: React.FC = () => {
         if (timeFilter === '7d' && diffHours > 24 * 7) return false;
       }
 
-      if (depthFilter === 'shallow' && e.depth >= 30) return false;
-      if (depthFilter === 'mid' && (e.depth < 30 || e.depth > 100)) return false;
-      if (depthFilter === 'deep' && e.depth <= 100) return false;
-
       if (magCategory === 'felt' && (e.magnitude ?? 0) < 4.0) return false;
       if (magCategory === 'significant' && (e.magnitude ?? 0) < 5.5) return false;
 
       return true;
     });
-  }, [events, searchQuery, timeFilter, depthFilter, magCategory]);
+  }, [events, timeFilter, magCategory]);
 
-  // Filtered Volcanoes Pipeline (Region Bounds / Search)
-  const filteredVolcanoes = useMemo(() => {
-    if (!volcanoes.length) return [];
-    if (!searchQuery.trim() || searchQuery.toLowerCase().trim() === 'all' || searchQuery.toLowerCase().trim() === 'indonesia') {
-      return volcanoes;
-    }
-    const q = searchQuery.toLowerCase().trim();
-    const bounds = REGION_BOUNDS[q];
-    if (bounds) {
-      return volcanoes.filter(
-        (v) =>
-          v.latitude >= bounds.minLat &&
-          v.latitude <= bounds.maxLat &&
-          v.longitude >= bounds.minLon &&
-          v.longitude <= bounds.maxLon
-      );
-    }
-    return volcanoes.filter(
-      (v) =>
-        v.name.toLowerCase().includes(q) ||
-        v.island.toLowerCase().includes(q)
-    );
-  }, [volcanoes, searchQuery]);
-
-  // Filtered Hotspots Pipeline (Region Bounds / Search)
-  const filteredHotspots = useMemo(() => {
-    if (!hotspots.length) return [];
-    if (!searchQuery.trim() || searchQuery.toLowerCase().trim() === 'all' || searchQuery.toLowerCase().trim() === 'indonesia') {
-      return hotspots;
-    }
-    const q = searchQuery.toLowerCase().trim();
-    const bounds = REGION_BOUNDS[q];
-    if (bounds) {
-      return hotspots.filter(
-        (h) =>
-          h.latitude >= bounds.minLat &&
-          h.latitude <= bounds.maxLat &&
-          h.longitude >= bounds.minLon &&
-          h.longitude <= bounds.maxLon
-      );
-    }
-    return hotspots.filter((h) => h.island.toLowerCase().includes(q));
-  }, [hotspots, searchQuery]);
-
-  // Statistics Pipeline
-  const stats = useMemo(() => {
-    if (filteredEvents.length === 0) {
-      return { count: 0, maxMag: '0.0', avgDepth: '0.0' };
-    }
-    const max = Math.max(...filteredEvents.map((e) => e.magnitude ?? 0));
-    const sumDepth = filteredEvents.reduce((acc, curr) => acc + curr.depth, 0);
-    return {
-      count: filteredEvents.length,
-      maxMag: max.toFixed(1),
-      avgDepth: (sumDepth / filteredEvents.length).toFixed(1),
-    };
-  }, [filteredEvents]);
 
   // Determine time-lapse boundaries based on filteredEvents
   const { timelapseStartTime, timelapseEndTime } = useMemo(() => {
@@ -477,11 +378,6 @@ export const App: React.FC = () => {
     return filteredEvents.filter((e) => new Date(e.occurred_at).getTime() <= timelapseTime).length;
   }, [filteredEvents, isTimeLapseOpen, timelapseTime]);
 
-  // Region Preset Click Handler (Indonesian Archipelago Sectors)
-  const handleRegionChange = (region: string) => {
-    setSearchQuery(region);
-    setTargetFocus(REGION_FOCUS_COORDS[region.toLowerCase()] ?? DEFAULT_FOCUS);
-  };
 
   // Bilingual formatting for BMKG Ground Zero telemetry
   const formattedBMKG = useMemo(() => {
@@ -626,12 +522,12 @@ export const App: React.FC = () => {
 
     // Significant Wildfires: FRP >= 150 MW, or top 1 if >= 80 MW
     const showWildfires = hazardMode === 'dual' || hazardMode === 'all' || hazardMode === 'wildfire';
-    if (showWildfires && filteredHotspots && filteredHotspots.length > 0) {
-      const extreme = filteredHotspots.filter((h) => h.frp >= 150);
+    if (showWildfires && hotspots && hotspots.length > 0) {
+      const extreme = hotspots.filter((h) => h.frp >= 150);
       const selected =
         extreme.length > 0
           ? [...extreme].sort((a, b) => b.frp - a.frp).slice(0, 2)
-          : filteredHotspots.filter((h) => h.frp >= 80).sort((a, b) => b.frp - a.frp).slice(0, 1);
+          : hotspots.filter((h) => h.frp >= 80).sort((a, b) => b.frp - a.frp).slice(0, 1);
 
       selected.forEach((h) => {
         items.push({
@@ -648,9 +544,9 @@ export const App: React.FC = () => {
 
     // Active Volcanic Eruptions & Plumes (Level IV / Level III)
     const showVolcanoes = hazardMode === 'dual' || hazardMode === 'all' || hazardMode === 'volcano';
-    if (showVolcanoes && filteredVolcanoes && filteredVolcanoes.length > 0) {
+    if (showVolcanoes && volcanoes && volcanoes.length > 0) {
       const maxCount = hazardMode === 'volcano' ? 5 : 2;
-      const sortedVolcs = [...filteredVolcanoes].sort((a, b) => {
+      const sortedVolcs = [...volcanoes].sort((a, b) => {
         const score = (l: string) => (l === 'Level IV' ? 4 : l === 'Level III' ? 3 : l === 'Level II' ? 2 : 1);
         return score(b.alert_level) - score(a.alert_level);
       });
@@ -669,7 +565,7 @@ export const App: React.FC = () => {
     }
 
     return items;
-  }, [filteredEvents, filteredHotspots, filteredVolcanoes, hazardMode, cleanPlace]);
+  }, [filteredEvents, hotspots, volcanoes, hazardMode, cleanPlace]);
 
   const isEventBookmarked = useCallback(
     (event: SeismicEvent | null) => {
@@ -816,8 +712,8 @@ export const App: React.FC = () => {
         <div className="relative w-full max-w-6xl flex items-center justify-center h-[64vh] max-h-[620px] my-auto pointer-events-auto">
           <VectorGlobe
             events={filteredEvents}
-            hotspots={filteredHotspots}
-            volcanoes={filteredVolcanoes}
+            hotspots={hotspots}
+            volcanoes={volcanoes}
             hazardMode={hazardMode}
             isRotating={isRotating && !isTimeLapseOpen}
             resetSignal={resetSignal}
@@ -825,21 +721,14 @@ export const App: React.FC = () => {
             onSelectEvent={setSelectedEvent}
             onUpdateHotspots={setHotspots}
             onSelectVolcano={setSelectedVolcano}
-            selectedVolcano={selectedVolcano}
             interactive={true}
             onCameraChange={setCameraCoords}
-            scrollPhi={0}
-            scrollTheta={0}
             colorMode={colorMode}
             timelapseTimestamp={isTimeLapseOpen ? timelapseTime : null}
-            scrollZoom={null}
             isPanoramic={true}
             showControls={true}
-            controlsProgress={1}
-            activeChapterIndex={-1}
             selectedHotspot={selectedHotspot}
             onSelectHotspot={setSelectedHotspot}
-            bmkgAlert={bmkgAlert}
             lang={lang}
           />
         </div>
@@ -1106,7 +995,6 @@ export const App: React.FC = () => {
             : filteredEvents.length
         }
         visible={!isTimeLapseOpen}
-        progress={1}
         lang={lang}
         magCategory={magCategory}
         onMagCategoryChange={setMagCategory}
@@ -1142,7 +1030,6 @@ export const App: React.FC = () => {
         hotspots={hotspots}
         volcanoes={volcanoes}
         activeHazardMode={hazardMode}
-        selectedRegion={searchQuery}
         onSelectEvent={(evt) => {
           setSelectedEvent(evt);
           setTargetFocus([evt.latitude, evt.longitude]);
@@ -1221,7 +1108,6 @@ export const App: React.FC = () => {
         <SocialInfographicModal
           isOpen={isInfographicOpen}
           onClose={() => setIsInfographicOpen(false)}
-          event={infographicEvent || selectedEvent}
           location={infographicEvent?.place || formattedBMKG?.location || 'Indonesia Archipelago'}
           magnitude={infographicEvent ? (infographicEvent.magnitude ?? '5.0') : (bmkgAlert?.magnitude || '5.0')}
           depth={infographicEvent ? `${infographicEvent.depth} km` : (formattedBMKG?.depth || '10 km')}

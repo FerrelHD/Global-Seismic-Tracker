@@ -70,7 +70,6 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
 
       {/* Slide-over Liquid Glass Panel */}
       <aside
-        data-lenis-prevent="true"
         onWheel={(e) => e.stopPropagation()}
         className="fixed top-0 right-0 bottom-0 h-full w-full max-w-md z-50 shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out font-sans overflow-hidden"
       >
@@ -106,8 +105,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
 
         {/* Bookmarks List (Scrollable) */}
         <div
-          data-lenis-prevent="true"
-          onWheel={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
           className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 overscroll-contain"
         >
           {bookmarks.length === 0 ? (

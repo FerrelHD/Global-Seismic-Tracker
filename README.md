@@ -223,9 +223,9 @@ Global-Seismic-Tracker/
 │   │       ├── liquid-glass.tsx             # Frosted glassmorphism card component
 │   │       ├── SeismicAlertToast.tsx        # Live earthquake alert toast banner
 │   │       ├── SocialInfographicModal.tsx   # Emergency disaster broadcast infographic
+│   │       ├── TectonicEducationModal.tsx   # Interactive tectonic plate & active fault guide
 │   │       ├── TimeLapseScrubber.tsx        # 4D 7-day chronological replay scrubber
 │   │       ├── VectorGlobe.tsx              # Main interactive 2D canvas vector map (60 FPS)
-│   │       ├── VirtualSeismogram.tsx        # Synthetic P/S wave oscilloscope
 │   │       └── VolcanoDetailModal.tsx       # PVMBG volcano status & crater proximity calculator
 │   ├── types/
 │   │   └── seismic.ts          # TypeScript interfaces (SeismicEvent, WildfireHotspot, VolcanoActivity)

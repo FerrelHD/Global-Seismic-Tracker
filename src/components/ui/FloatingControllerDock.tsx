@@ -24,24 +24,12 @@ interface FloatingControllerDockProps {
   onOpenTimeLapse?: () => void;
   eventCount?: number;
   visible?: boolean;
-  progress?: number;
   style?: React.CSSProperties;
   lang?: Language;
   magCategory?: 'all' | 'felt' | 'significant';
   onMagCategoryChange?: (cat: 'all' | 'felt' | 'significant') => void;
   isAudioMuted?: boolean;
   onToggleAudio?: () => void;
-  // Deprecated/optional props kept for backwards compatibility
-  searchQuery?: string;
-  onSearchChange?: (val: string) => void;
-  depthFilter?: 'all' | 'shallow' | 'mid' | 'deep';
-  onDepthFilterChange?: (val: 'all' | 'shallow' | 'mid' | 'deep') => void;
-  isRotating?: boolean;
-  onToggleRotation?: () => void;
-  onOpenSeismogram?: () => void;
-  isSeismogramOpen?: boolean;
-  colorMode?: 'magnitude' | 'depth';
-  onColorModeChange?: (mode: 'magnitude' | 'depth') => void;
 }
 
 export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
@@ -54,7 +42,6 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   onOpenTimeLapse,
   eventCount,
   visible = true,
-  progress,
   style,
   lang = 'id',
   magCategory = 'all',
@@ -78,9 +65,6 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
     <div className="w-[1px] h-3.5 bg-slate-300/60 shrink-0 mx-0.5" />
   );
 
-  const effectiveProgress = progress != null ? progress : visible ? 1 : 0;
-  const isScrollDriven = progress != null;
-
   // Determine if magnitude filter is relevant
   const showMagFilter =
     onMagCategoryChange &&
@@ -89,17 +73,10 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
   return (
     <nav
       aria-label="Disaster Telemetry Floating Controller"
-      style={{
-        ...style,
-        opacity: effectiveProgress,
-        filter: effectiveProgress < 0.99 ? `blur(${(1 - effectiveProgress) * 6}px)` : 'none',
-        transform: `translate(-50%, ${(1 - effectiveProgress) * 20}px)`,
-        transition: isScrollDriven ? 'none' : 'opacity 200ms ease-out, filter 200ms ease-out, transform 200ms ease-out',
-        willChange: 'opacity, transform, filter',
-        pointerEvents: effectiveProgress > 0.4 ? 'auto' : 'none',
-        visibility: effectiveProgress <= 0.001 ? 'hidden' : 'visible',
-      }}
-      className="fixed bottom-[max(0.65rem,env(safe-area-inset-bottom,10px))] sm:bottom-5 left-1/2 z-40 select-none w-auto max-w-[calc(100vw-1rem)] px-1 flex flex-col items-center justify-center pointer-events-none"
+      style={style}
+      className={`fixed bottom-[max(0.65rem,env(safe-area-inset-bottom,10px))] sm:bottom-5 left-1/2 -translate-x-1/2 z-40 select-none w-auto max-w-[calc(100vw-1rem)] px-1 flex flex-col items-center justify-center transition-all duration-200 pointer-events-none ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5 invisible'
+      }`}
     >
       {/* 1. Mobile Quick-Action Pill: Putar Ulang & Daftar Kejadian (Positioned above dock on mobile) */}
       {(onOpenTimeLapse || onOpenFeed) && (

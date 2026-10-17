@@ -1,4 +1,3 @@
-import { SeismicEvent } from '../types/seismic';
 import { Language } from './i18n';
 
 export interface StoryChapter {
@@ -14,17 +13,12 @@ export interface StoryChapter {
     label: string;
     value: string;
   }[];
-  event?: SeismicEvent;
 }
 
 /**
- * Derives Indonesian tectonic narrative chapters based on active Nusantara telemetry and selected language.
+ * Derives Indonesian tectonic narrative chapters for education modal based on selected language.
  */
-export function buildStoryChapters(events: SeismicEvent[], lang: Language = 'id'): StoryChapter[] {
-  // Aggregate regional metrics
-  const totalCount = events.length || 380;
-  const maxMag = events.length > 0 ? Math.max(...events.map((e) => e.magnitude ?? 0)).toFixed(1) : '6.4';
-
+export function buildStoryChapters(lang: Language = 'id'): StoryChapter[] {
   const isId = lang === 'id';
 
   if (isId) {
@@ -93,22 +87,6 @@ export function buildStoryChapters(events: SeismicEvent[], lang: Language = 'id'
           { label: 'DEFORMASI', value: 'Sesar Naik Oblik' },
         ],
       },
-      {
-        id: 'chapter-5',
-        chapterNumber: '05',
-        badge: '05 // EKSPLORASI PENUH',
-        plateTag: 'OBSERVATORIUM TELEMETRI REAL-TIME NUSANTARA',
-        title: 'Laboratorium Interaktif 3D',
-        subtitle: 'Navigasi Bebas Sains Kebumian Indonesia Terbuka',
-        description:
-          'Anda telah tiba di laboratorium telemetri langsung. Kontrol penuh rotasi interaktif 3D, zoom kedalaman, penapisan wilayah provinsi, filter waktu, dan marka gempa bumi kini dapat diakses secara menyeluruh.',
-        coordinates: [-0.78, 118.0], // Center of Indonesia
-        stats: [
-          { label: 'JARINGAN AKTIF', value: 'BMKG & USGS' },
-          { label: 'MAGNITUDO MAKS', value: `M${maxMag}` },
-          { label: 'TOTAL DETEKSI', value: `${totalCount}` },
-        ],
-      },
     ];
   }
 
@@ -175,22 +153,6 @@ export function buildStoryChapters(events: SeismicEvent[], lang: Language = 'id'
         { label: 'CONVERGENCE', value: '10.5 cm/yr' },
         { label: 'OROGENIC BELT', value: 'Central Range' },
         { label: 'DEFORMATION', value: 'Oblique Thrust' },
-      ],
-    },
-    {
-      id: 'chapter-5',
-      chapterNumber: '05',
-      badge: '05 // FULL EXPLORATION',
-      plateTag: 'NUSANTARA REAL-TIME OBSERVATORY',
-      title: 'Interactive 3D Observatory',
-      subtitle: 'Free Nusantara Planetary Navigation Unlocked',
-      description:
-        'You have reached the live telemetry laboratory. Full interactive rotation, zoom, region scrubbers, time filters, and event bookmarking are now accessible across all Indonesian provinces.',
-      coordinates: [-0.78, 118.0], // Center of Indonesia
-      stats: [
-        { label: 'ACTIVE STATIONS', value: 'BMKG & USGS' },
-        { label: 'PEAK MAGNITUDE', value: `M${maxMag}` },
-        { label: 'ACTIVE SHOCKS', value: `${totalCount}` },
       ],
     },
   ];

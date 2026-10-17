@@ -66,7 +66,6 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
         className="relative w-full max-w-3xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl overflow-hidden border border-slate-200 bg-[#fafafa] text-slate-900 my-auto"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
-        data-lenis-prevent="true"
       >
         {/* 1. Swiss Editorial Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200/90 bg-white font-mono text-xs">
@@ -98,8 +97,7 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
 
         {/* 2. Main Body: Scientific Document Layout */}
         <div
-          data-lenis-prevent="true"
-          onWheel={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
           className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-4 sm:space-y-6"
         >
           {/* Header Title & Date */}
