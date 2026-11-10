@@ -47,6 +47,12 @@ const BASE_CENTER_LAT = -2.2;
 const BASE_SPAN_LON = 48.0; // 94°E to 142°E
 const BASE_SPAN_LAT = 19.0; // -12°S to 7°N
 
+function getBaseScale(w: number, h: number): number {
+  const isMobile = w < 640;
+  const paddingX = isMobile ? 24 : 0;
+  return Math.min((w - paddingX) / BASE_SPAN_LON, h / BASE_SPAN_LAT);
+}
+
 
 function cleanPlace(place: string | null): string {
   if (!place) return 'EPICENTER';
@@ -245,7 +251,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
 
   // Convert (Lon, Lat) to current canvas screen coordinates [px, py]
   const projectCoords = useCallback((lon: number, lat: number, w: number, h: number): [number, number] => {
-    const baseScale = Math.min(w / BASE_SPAN_LON, h / BASE_SPAN_LAT);
+    const baseScale = getBaseScale(w, h);
     const scale = baseScale * zoomRef.current;
     const px = w / 2 + (lon - panLonRef.current) * scale;
     const py = h / 2 - (lat - panLatRef.current) * scale;
@@ -460,7 +466,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
           const dy = midY - dragStartRef.current.y;
 
           const rect = container.getBoundingClientRect();
-          const baseScale = Math.min(rect.width / BASE_SPAN_LON, rect.height / BASE_SPAN_LAT);
+          const baseScale = getBaseScale(rect.width, rect.height);
           const scale = baseScale * zoomRef.current;
 
           targetPanLonRef.current = panAtDragStartRef.current.lon - dx / scale;
@@ -479,7 +485,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
           }
 
           const rect = container.getBoundingClientRect();
-          const baseScale = Math.min(rect.width / BASE_SPAN_LON, rect.height / BASE_SPAN_LAT);
+          const baseScale = getBaseScale(rect.width, rect.height);
           const scale = baseScale * zoomRef.current;
 
           targetPanLonRef.current = panAtDragStartRef.current.lon - dx / scale;
@@ -498,7 +504,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
       }
 
       const rect = container.getBoundingClientRect();
-      const baseScale = Math.min(rect.width / BASE_SPAN_LON, rect.height / BASE_SPAN_LAT);
+      const baseScale = getBaseScale(rect.width, rect.height);
       const scale = baseScale * zoomRef.current;
 
       targetPanLonRef.current = panAtDragStartRef.current.lon - dx / scale;
@@ -638,7 +644,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
         ctx.scale(dpr, dpr);
 
         const project = (lon: number, lat: number): [number, number] => {
-          const baseScale = Math.min(w / BASE_SPAN_LON, h / BASE_SPAN_LAT);
+          const baseScale = getBaseScale(w, h);
           const scale = baseScale * zoomRef.current;
           const px = w / 2 + (lon - panLonRef.current) * scale;
           const py = h / 2 - (lat - panLatRef.current) * scale;
@@ -1144,10 +1150,10 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
         cursor: interactive ? 'grab' : 'default',
         touchAction: interactive ? 'none' : 'auto',
         maskImage: isPanoramic
-          ? 'radial-gradient(ellipse 90% 75% at 50% 50%, black 50%, rgba(0,0,0,0.85) 68%, rgba(0,0,0,0.2) 88%, transparent 100%)'
+          ? 'radial-gradient(ellipse 96% 88% at 50% 50%, black 65%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.2) 96%, transparent 100%)'
           : 'none',
         WebkitMaskImage: isPanoramic
-          ? 'radial-gradient(ellipse 90% 75% at 50% 50%, black 50%, rgba(0,0,0,0.85) 68%, rgba(0,0,0,0.2) 88%, transparent 100%)'
+          ? 'radial-gradient(ellipse 96% 88% at 50% 50%, black 65%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.2) 96%, transparent 100%)'
           : 'none',
       }}
       className={`relative w-full h-full select-none flex items-center justify-center will-change-transform ${className}`}
