@@ -73,9 +73,9 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
         onWheel={(e) => e.stopPropagation()}
         className="fixed top-0 right-0 bottom-0 h-full w-full max-w-md z-50 shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300 ease-out font-sans overflow-hidden"
       >
-        <LiquidCard interactive={false} className="h-full w-full border-l border-white/80 rounded-l-3xl overflow-hidden">
+        <LiquidCard interactive={false} className="h-full w-full border-l border-white/80 rounded-none sm:rounded-l-3xl overflow-hidden">
         {/* Header (Fixed at top) */}
-        <div className="shrink-0 p-6 border-b border-slate-100 flex items-center justify-between bg-white/40">
+        <div className="shrink-0 p-4 sm:p-6 pt-[max(1rem,env(safe-area-inset-top,16px))] sm:pt-6 border-b border-slate-100 flex items-center justify-between bg-white/40">
           <div className="flex items-center gap-2.5">
             <BookmarkIcon className="w-5 h-5 text-slate-800 shrink-0" />
             <div>
@@ -106,7 +106,7 @@ export const BookmarkDrawer: React.FC<BookmarkDrawerProps> = ({
         {/* Bookmarks List (Scrollable) */}
         <div
             onWheel={(e) => e.stopPropagation()}
-          className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 overscroll-contain"
+          className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom,16px))] space-y-4 overscroll-contain"
         >
           {bookmarks.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">

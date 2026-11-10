@@ -58,12 +58,12 @@ export const BMKGShakemapModal: React.FC<BMKGShakemapModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 md:p-8 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-6 md:p-8 pt-[max(0.75rem,env(safe-area-inset-top,10px))] pb-[max(0.75rem,env(safe-area-inset-bottom,10px))] bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200 select-none"
       onClick={onClose}
       onWheel={(e) => e.stopPropagation()}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl overflow-hidden border border-slate-200 bg-[#fafafa] text-slate-900 my-auto"
+        className="relative w-full max-w-3xl max-h-[92dvh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl overflow-hidden border border-slate-200 bg-[#fafafa] text-slate-900 my-auto"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >

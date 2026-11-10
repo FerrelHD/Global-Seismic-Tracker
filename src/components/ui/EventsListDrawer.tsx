@@ -194,7 +194,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
         className="fixed top-0 left-0 bottom-0 h-full w-full sm:max-w-md z-50 shadow-2xl bg-white/95 backdrop-blur-2xl border-r border-slate-200/80 rounded-none sm:rounded-r-3xl flex flex-col justify-between animate-in slide-in-from-left duration-300 ease-out font-sans overflow-hidden"
       >
         {/* 1. Header: Clean Category Tabs & Live Status */}
-        <div className="shrink-0 px-4 sm:px-5 pt-[max(1rem,env(safe-area-inset-top))] sm:pt-5 pb-3 border-b border-slate-200/70 bg-white/70">
+        <div className="shrink-0 px-4 sm:px-5 pt-[max(1rem,env(safe-area-inset-top,16px))] sm:pt-5 pb-3 border-b border-slate-200/70 bg-white/70">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#0f2f63] shrink-0 animate-pulse" />
@@ -450,7 +450,7 @@ export const EventsListDrawer: React.FC<EventsListDrawerProps> = ({
         {/* 2. Scrollable Data List */}
         <div
             onWheel={(e) => e.stopPropagation()}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain select-none divide-y divide-slate-100/80 px-2 py-1"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain select-none divide-y divide-slate-100/80 px-2 py-1 pb-[max(1.5rem,env(safe-area-inset-bottom,16px))]"
           style={{
             overscrollBehavior: 'contain',
             WebkitOverflowScrolling: 'touch',

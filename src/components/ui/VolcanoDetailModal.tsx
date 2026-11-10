@@ -207,7 +207,7 @@ export const VolcanoDetailModal: React.FC<VolcanoDetailModalProps> = ({
       aria-label={`Detail status vulkanik ${volcano.name}`}
       onClick={onClose}
       onWheel={(e) => e.stopPropagation()}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2.5 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top,10px))] pb-[max(0.75rem,env(safe-area-inset-bottom,10px))] bg-slate-950/25 backdrop-blur-xs select-none animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}

@@ -56,7 +56,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
   const speedOptions = [1, 5, 15, 45];
 
   return (
-    <div className="fixed bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none pointer-events-auto w-[min(94vw,760px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none pointer-events-auto w-[min(94vw,760px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
       <LiquidCard className="rounded-2xl sm:rounded-full shadow-2xl p-2.5 sm:px-5 sm:py-3 border border-slate-200/90">
         <div className="flex flex-col gap-2">
           {/* Top Row: Info & Controls */}
@@ -128,7 +128,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
               />
             </div>
 
-            {/* Native Invisible Range Input Overlaid for Seamless Touch/Drag */}
+            {/* Native Invisible Range Input Overlaid for Seamless Touch/Drag (expanded hit target) */}
             <input
               type="range"
               min={startTime}
@@ -137,7 +137,7 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
               value={currentTime}
               onChange={(e) => onScrub(Number(e.target.value))}
               aria-label="Time scrubber"
-              className="absolute inset-x-0 w-full h-4 opacity-0 cursor-pointer z-10"
+              className="absolute inset-x-0 w-full h-8 -top-2 opacity-0 cursor-pointer z-10 touch-pan-x"
             />
 
             {/* Visual Custom Playhead Thumb */}

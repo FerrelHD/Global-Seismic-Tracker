@@ -330,12 +330,12 @@ export const SocialInfographicModal: React.FC<SocialInfographicModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-6 pt-[max(0.75rem,env(safe-area-inset-top,10px))] pb-[max(0.75rem,env(safe-area-inset-bottom,10px))] bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200 select-none"
       onClick={onClose}
       onWheel={(e) => e.stopPropagation()}
     >
       <div
-        className="relative w-full max-w-xl max-h-[92vh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-neutral-200 bg-white text-neutral-900"
+        className="relative w-full max-w-xl max-h-[92dvh] flex flex-col pointer-events-auto shadow-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-neutral-200 bg-white text-neutral-900"
         onClick={(e) => e.stopPropagation()}
         onWheel={(e) => e.stopPropagation()}
       >

@@ -35,7 +35,7 @@ export const TectonicEducationModal: React.FC<TectonicEducationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-5 pt-[max(0.75rem,env(safe-area-inset-top,10px))] pb-[max(0.75rem,env(safe-area-inset-bottom,10px))] select-none animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -43,7 +43,7 @@ export const TectonicEducationModal: React.FC<TectonicEducationModalProps> = ({
       />
 
       {/* Modal Dialog Card */}
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden z-10 animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-4xl max-h-[90dvh] bg-white/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden z-10 animate-in zoom-in-95 duration-200">
         {/* 1. Header */}
         <div className="shrink-0 px-5 sm:px-7 py-4 border-b border-slate-200/80 bg-slate-50/70 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
