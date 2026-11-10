@@ -692,7 +692,7 @@ export const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-white text-slate-900 selection:bg-[#0f2f63] selection:text-white font-sans">
+    <div className="relative h-[100dvh] w-full max-w-[100vw] overflow-hidden bg-white text-slate-900 selection:bg-[#0f2f63] selection:text-white font-sans">
       {/* 0. REALTIME SEISMIC ALERT TOAST NOTIFICATION */}
       <SeismicAlertToast
         alert={activeAlert}
@@ -708,8 +708,8 @@ export const App: React.FC = () => {
       <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
 
       {/* 3. ARCHITECTURAL NUSANTARA VECTOR MAP LAYER */}
-      <div className="fixed inset-0 z-10 flex items-center justify-center pt-14 sm:pt-16 pb-16 sm:pb-20 px-2 sm:px-4 overflow-hidden pointer-events-none">
-        <div className="relative w-full max-w-6xl flex items-center justify-center h-[64vh] max-h-[620px] my-auto pointer-events-auto">
+      <div className="fixed inset-0 z-10 flex items-center justify-center overflow-hidden pointer-events-none sm:pt-16 sm:pb-20 sm:px-4">
+        <div className="relative w-full h-full sm:max-w-6xl sm:h-[64vh] sm:max-h-[620px] flex items-center justify-center my-auto pointer-events-auto">
           <VectorGlobe
             events={filteredEvents}
             hotspots={hotspots}
