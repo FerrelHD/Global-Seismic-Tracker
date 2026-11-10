@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from 'framer-motion';
-import { ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
+import { ShieldAlert, ChevronDown, ChevronUp, X, Activity } from 'lucide-react';
 
 interface EpicenterMapCardProps {
   location?: string;
@@ -37,6 +38,8 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showTsunamiGuide, setShowTsunamiGuide] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const isTsunamiActive = (potensi || '').toLowerCase().includes('berpotensi tsunami') && !(potensi || '').toLowerCase().includes('tidak');
 
   const [isMobile, setIsMobile] = useState(false);
 
@@ -101,15 +104,9 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
           transformStyle: 'preserve-3d',
         }}
         animate={{
-          width: isExpanded
-            ? isMobile
-              ? 'calc(100vw - 2rem)'
-              : 365
-            : isMobile
-            ? 'calc(100vw - 2.5rem)'
-            : 270,
-          height: isExpanded ? 355 : isMobile ? 46 : 130,
-          borderRadius: isMobile && !isExpanded ? 9999 : 16,
+          width: isMobile ? 'auto' : isExpanded ? 365 : 270,
+          height: isMobile ? 42 : isExpanded ? 355 : 130,
+          borderRadius: isMobile || !isExpanded ? 9999 : 16,
         }}
         transition={{
           type: 'spring',
@@ -120,9 +117,9 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
         {/* Subtle Frosted Inner Vignette Gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-slate-100/60 pointer-events-none" />
 
-        {/* EXPANDED VIEW: High-Detail Seismic Bathymetry & Epicenter Radar Blueprint */}
+        {/* EXPANDED VIEW (Desktop only): High-Detail Seismic Bathymetry & Epicenter Radar Blueprint */}
         <AnimatePresence>
-          {isExpanded && (
+          {!isMobile && isExpanded && (
             <motion.div
               className="absolute inset-0 pointer-events-none"
               initial={{ opacity: 0 }}
@@ -297,7 +294,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
         </motion.div>
 
         {/* Card Foreground Content */}
-        {isMobile && !isExpanded ? (
+        {isMobile ? (
           /* Mobile Collapsed State: Sleek Slim Capsule (Dynamic Island Style) */
           <div className="relative z-10 h-full flex items-center justify-between px-3.5 py-1.5 gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -546,6 +543,174 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
         >
           {lang === 'id' ? 'Klik untuk inspeksi episenter' : 'Click to inspect epicenter'}
         </motion.p>
+      )}
+
+      {/* Mobile Bottom Sheet Portal */}
+      {isMobile && typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isExpanded && (
+            <div className="fixed inset-0 z-50 flex flex-col justify-end pointer-events-auto">
+              {/* Backdrop */}
+              <motion.div
+                className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsExpanded(false);
+                }}
+              />
+
+              {/* Sheet container */}
+              <motion.div
+                className="relative z-10 w-full max-h-[82dvh] overflow-y-auto bg-white/95 backdrop-blur-2xl rounded-t-3xl border-t border-slate-200/90 shadow-2xl p-4 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom,16px))] text-slate-900 overscroll-contain no-scrollbar"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Pull Handle */}
+                <div className="w-10 h-1.5 rounded-full bg-slate-300 mx-auto mb-3" />
+
+                {/* Sheet Header */}
+                <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shrink-0" />
+                      <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase font-semibold">
+                        {lang === 'id' ? 'PUSAT GEMPA TERKINI (BMKG)' : 'BMKG GROUND ZERO'}
+                      </span>
+                    </div>
+                    <h2 className="text-base font-bold text-slate-950 uppercase tracking-tight truncate">
+                      {location}
+                    </h2>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200/90 font-mono text-xs font-black text-slate-900">
+                      M{magnitude}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsExpanded(false)}
+                      className="p-1.5 rounded-full text-slate-400 hover:text-slate-950 hover:bg-slate-100 transition-colors"
+                      title={lang === 'id' ? 'Tutup' : 'Close'}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Telemetry Metrics */}
+                <div className="py-3 space-y-2 font-mono text-[11px] text-slate-600 border-b border-slate-100">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-slate-400 uppercase">{lang === 'id' ? 'WAKTU KEJADIAN' : 'EVENT TIMESTAMP'}</span>
+                    <span className="text-slate-900 font-bold">{time}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-slate-400 uppercase">{lang === 'id' ? 'KOORDINAT' : 'COORDINATES'}</span>
+                    <span className="text-slate-800 font-semibold">{coordinates}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-slate-400 uppercase">{lang === 'id' ? 'KEDALAMAN' : 'HYPOCENTER DEPTH'}</span>
+                    <span className="text-slate-800 font-semibold">{depth}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-2 pt-1">
+                    <span className="text-slate-400 uppercase text-[10px] shrink-0">{lang === 'id' ? 'POTENSI TSUNAMI' : 'TSUNAMI STATUS'}</span>
+                    <span className={`font-bold text-right leading-tight ${isTsunamiActive ? 'text-rose-600 animate-pulse' : 'text-emerald-600'}`}>
+                      {potensi}
+                    </span>
+                  </div>
+
+                  {/* 20-20-20 Accordion */}
+                  <div className="pt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowTsunamiGuide((prev) => !prev)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100/90 border border-slate-200/80 font-mono text-[10px] text-slate-700 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5 font-semibold">
+                        <ShieldAlert className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>{lang === 'id' ? 'Protokol Evakuasi 20-20-20' : '20-20-20 Evacuation Rule'}</span>
+                      </span>
+                      {showTsunamiGuide ? <ChevronUp className="w-3.5 h-3.5 text-slate-400" /> : <ChevronDown className="w-3.5 h-3.5 text-slate-400" />}
+                    </button>
+                    {showTsunamiGuide && (
+                      <div className="mt-1.5 p-2.5 rounded-xl bg-amber-50/90 border border-amber-200/80 text-[9.5px] font-mono text-amber-950 space-y-1 leading-relaxed">
+                        <p className="font-bold text-amber-900">
+                          {lang === 'id' ? 'PANDUAN MANDIRI PESISIR (BMKG):' : 'COASTAL EMERGENCY GUIDELINE:'}
+                        </p>
+                        <p>{lang === 'id' ? '• 20 Detik: Jika gempa terasa mengguncang kuat ≥ 20 detik' : '• 20 Sec: If strong shaking lasts ≥ 20 seconds'}</p>
+                        <p>{lang === 'id' ? '• 20 Menit: Waktu evakuasi maksimal sebelum gelombang tiba' : '• 20 Min: Evacuation window before first wave'}</p>
+                        <p>{lang === 'id' ? '• 20 Meter: Jauhi pesisir menuju ketinggian minimal 20m' : '• 20 Meters: Evacuate inland to at least 20m elevation'}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons in Mobile Sheet */}
+                <div className="pt-3.5 grid grid-cols-2 gap-2 font-mono">
+                  {onOpenShakemap && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExpanded(false);
+                        onOpenShakemap();
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-[11px] font-bold tracking-wider border border-slate-200/80 cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                      <span>SHAKEMAP</span>
+                    </button>
+                  )}
+
+                  {onOpenNews && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExpanded(false);
+                        onOpenNews();
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-[11px] font-bold tracking-wider border border-slate-200/80 cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                      <span>{lang === 'id' ? 'BERITA' : 'NEWS'}</span>
+                    </button>
+                  )}
+
+                  {onOpenInfographic && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExpanded(false);
+                        onOpenInfographic();
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-semibold tracking-wider border border-slate-200/80 cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      <span>{lang === 'id' ? 'BAGIKAN' : 'SHARE'}</span>
+                    </button>
+                  )}
+
+                  {onFocusEpicenter && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExpanded(false);
+                        onFocusEpicenter();
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-950 text-white text-[11px] font-bold tracking-wider cursor-pointer shadow-xs active:scale-95"
+                    >
+                      <span>{lang === 'id' ? '⌖ FOKUS' : '⌖ FOCUS'}</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
     </motion.div>
   );

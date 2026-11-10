@@ -874,7 +874,7 @@ export const App: React.FC = () => {
       </header>
 
       {/* 5. TOP-LEFT HUD: BMKG EPICENTER CARD & MAJOR HAZARDS HIGHLIGHTS */}
-      <div className="fixed top-18 sm:top-20 left-3 sm:left-6 z-30 flex flex-col items-start gap-2 max-w-[min(94vw,380px)] pointer-events-auto select-none">
+      <div className="fixed top-[calc(max(0.6rem,env(safe-area-inset-top,8px))+3.25rem)] sm:top-20 left-2.5 sm:left-6 z-30 flex flex-col items-start gap-1.5 max-w-[calc(100vw-1.25rem)] sm:max-w-md pointer-events-auto select-none">
         {bmkgAlert && formattedBMKG && (
           <EpicenterMapCard
             location={formattedBMKG.location}
@@ -923,7 +923,7 @@ export const App: React.FC = () => {
               maskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
               WebkitMaskImage: isDesktop ? 'none' : 'linear-gradient(to right, black 80%, transparent 100%)',
             }}
-            className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-2rem)] sm:max-w-md py-1 px-1 pr-6"
+            className="flex items-center gap-1.5 flex-nowrap sm:flex-wrap overflow-x-auto sm:overflow-visible no-scrollbar max-w-[calc(100vw-1.5rem)] sm:max-w-md py-0.5 px-0.5 pr-6"
           >
             <span className="text-[9px] font-mono font-bold tracking-widest text-slate-600 uppercase flex items-center gap-1.5 px-1 shrink-0">
               <Activity className="w-3 h-3 text-slate-700 shrink-0" />
