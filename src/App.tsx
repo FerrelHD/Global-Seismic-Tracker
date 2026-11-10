@@ -735,9 +735,9 @@ export const App: React.FC = () => {
       </div>
 
       {/* 4. EDITORIAL FIXED HEADER NAVBAR */}
-      <header className="fixed top-3.5 sm:top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-6xl px-3 sm:px-4 pointer-events-none select-none">
-        <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/75 backdrop-blur-md pointer-events-auto">
-          <div className="flex items-center justify-between gap-1.5 sm:gap-4 px-2.5 py-1.5 sm:px-4 sm:py-2">
+      <header className="fixed top-[max(0.6rem,env(safe-area-inset-top,8px))] left-1/2 -translate-x-1/2 z-40 w-full max-w-6xl px-2.5 sm:px-4 pointer-events-none select-none">
+        <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/80 backdrop-blur-md pointer-events-auto">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-4 sm:py-2">
             {/* Logo + Branding: Click to Recenter to Indonesia */}
             <div
               onClick={handleRecenterIndonesia}
@@ -748,7 +748,7 @@ export const App: React.FC = () => {
                 <GlobeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1.5 text-[10px] sm:text-sm">
+                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1 text-[11px] sm:text-sm">
                   <span className="whitespace-nowrap font-extrabold tracking-tight">
                     {lang === 'id' ? 'OBSERVATORIUM' : 'SEISMIC'}
                   </span>
@@ -770,10 +770,10 @@ export const App: React.FC = () => {
                 type="button"
                 onClick={() => setIsTectonicModalOpen(true)}
                 title={lang === 'id' ? 'Edukasi Zona Tektonik & Sesar Aktif' : 'Active Tectonic & Fault Systems Guide'}
-                className="flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 border border-slate-200/80 text-slate-800 text-[9.5px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 border border-slate-200/80 text-slate-800 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
               >
-                <BookOpen className="w-3 h-3 text-[#0f2f63]" />
-                <span className="hidden sm:inline">{lang === 'id' ? 'TEKTONIK' : 'TECTONICS'}</span>
+                <BookOpen className="w-3.5 h-3.5 text-[#0f2f63]" />
+                <span className="hidden md:inline">{lang === 'id' ? 'TEKTONIK' : 'TECTONICS'}</span>
               </button>
 
               {/* Telemetry Ping Latency & Auto-Refresh Countdown Pill */}
@@ -785,11 +785,11 @@ export const App: React.FC = () => {
                     ? `Latensi Data: ${pingLatencyMs ? `${pingLatencyMs}ms` : 'Mengukur...'} • Auto-refresh dalam ${syncCountdown}s (Klik untuk refresh manual)`
                     : `Data Latency: ${pingLatencyMs ? `${pingLatencyMs}ms` : 'Measuring...'} • Auto-refresh in ${syncCountdown}s (Click to refresh now)`
                 }
-                className="flex items-center gap-1 sm:gap-1.5 px-1.5 py-0.5 sm:px-2 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[9px] sm:text-[11px] font-medium tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 text-slate-700"
+                className="flex items-center gap-1 sm:gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[10px] sm:text-[11px] font-medium tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 text-slate-700"
               >
-                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2 shrink-0">
+                <span className="relative flex h-2 w-2 shrink-0">
                   <span
-                    className={`relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 ${
+                    className={`relative inline-flex rounded-full h-2 w-2 ${
                       pingLatencyMs && pingLatencyMs < 400 ? 'bg-emerald-500' : 'bg-amber-500'
                     }`}
                   />
@@ -798,11 +798,11 @@ export const App: React.FC = () => {
                   {pingLatencyMs ? `${pingLatencyMs}ms` : 'LIVE'}
                 </span>
                 <span className="text-slate-300 font-light hidden sm:inline">/</span>
-                <span className="tabular-nums font-bold text-slate-600">
+                <span className="tabular-nums font-bold text-slate-700">
                   {syncCountdown}s
                 </span>
                 <RefreshCw
-                  className={`w-2 h-2 sm:w-2.5 sm:h-2.5 text-slate-500 transition-transform ${
+                  className={`w-2.5 h-2.5 text-slate-500 transition-transform ${
                     isManualSyncing ? 'animate-spin text-slate-900' : ''
                   }`}
                 />
@@ -813,7 +813,7 @@ export const App: React.FC = () => {
                 type="button"
                 onClick={toggleLanguage}
                 title={lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia'}
-                className="flex items-center gap-0.5 px-1.5 py-0.5 sm:px-2 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[9.5px] sm:text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                className="flex items-center gap-0.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-200/80 font-mono text-[10px] sm:text-[11px] font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
               >
                 <span className={lang === 'id' ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}>ID</span>
                 <span className="text-slate-300 font-light">/</span>
@@ -839,7 +839,7 @@ export const App: React.FC = () => {
                     : 'bg-neutral-100/80 text-neutral-500 border-neutral-200/80 hover:bg-neutral-200/90'
                 }`}
               >
-                <Bell className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${alertsEnabled ? 'text-rose-600' : 'text-neutral-500'}`} />
+                <Bell className={`w-3.5 h-3.5 ${alertsEnabled ? 'text-rose-600' : 'text-neutral-500'}`} />
               </button>
 
               {/* Bookmarks */}
@@ -850,15 +850,15 @@ export const App: React.FC = () => {
                 title={t.saved}
                 className="relative p-1.5 sm:p-2 rounded-full bg-neutral-100/80 hover:bg-neutral-200/90 border border-neutral-200/80 text-neutral-700 hover:text-neutral-950 transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 flex items-center justify-center"
               >
-                <BookmarkIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-neutral-600 shrink-0" />
+                <BookmarkIcon className="w-3.5 h-3.5 text-neutral-600 shrink-0" />
                 {bookmarks.length > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#0f2f63] text-white text-[8px] sm:text-[8.5px] font-mono font-bold leading-none shadow-xs">
+                  <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-[#0f2f63] text-white text-[8px] font-mono font-bold leading-none shadow-xs">
                     {bookmarks.length}
                   </span>
                 )}
               </button>
 
-              {/* Refresh */}
+              {/* Refresh (Desktop only) */}
               <button
                 type="button"
                 id="refresh-btn"
