@@ -11,6 +11,7 @@ import {
 } from '../../utils/geoProximity';
 import { Wind, RefreshCw, Flame, X, MapPin, Navigation, Loader2, Activity, Newspaper } from 'lucide-react';
 import { DisasterNewsVerification } from './DisasterNewsVerification';
+import { renderStoryTectonicOverlay } from '../../utils/tectonicOverlay';
 
 export interface CameraCoordinates {
   lat: number;
@@ -39,6 +40,9 @@ interface VectorGlobeProps {
   lang?: 'id' | 'en';
   selectedHotspot?: WildfireHotspot | null;
   onSelectHotspot?: (h: WildfireHotspot | null) => void;
+  storyActive?: boolean;
+  storyChapterIndex?: number;
+  storyZoom?: number | null;
 }
 
 // Bounding box for Indonesian Archipelago (Nusantara)
@@ -88,6 +92,9 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
   lang = 'id',
   selectedHotspot: externalSelectedHotspot,
   onSelectHotspot,
+  storyActive = false,
+  storyChapterIndex = -1,
+  storyZoom = null,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +110,8 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
 
   const zoomRef = useRef(1.0);
   const targetZoomRef = useRef(1.0);
+  const centerXRatioRef = useRef(0.5);
+  const centerYRatioRef = useRef(0.5);
   const [displayZoom, setDisplayZoom] = useState(1.0);
 
   // Manual Drag Pan state
@@ -181,6 +190,12 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
   const onCameraChangeRef = useRef(onCameraChange);
   onCameraChangeRef.current = onCameraChange;
 
+  const storyActiveRef = useRef(storyActive);
+  storyActiveRef.current = storyActive;
+
+  const storyChapterRef = useRef(storyChapterIndex);
+  storyChapterRef.current = storyChapterIndex;
+
 
   // Fetch Open-Meteo Wind Telemetry
   useEffect(() => {
@@ -237,8 +252,15 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
     const [lat, lon] = targetFocus;
     targetPanLatRef.current = lat;
     targetPanLonRef.current = lon;
-    targetZoomRef.current = 1.85;
-  }, [targetFocus]);
+    targetZoomRef.current = storyActive && typeof storyZoom === 'number' ? storyZoom : 1.85;
+  }, [targetFocus, storyActive, storyZoom]);
+
+  // Sync Story Mode zoom updates cleanly
+  useEffect(() => {
+    if (storyActive && typeof storyZoom === 'number') {
+      targetZoomRef.current = storyZoom;
+    }
+  }, [storyActive, storyZoom]);
 
   // Handle Reset Signal - Reset to Full Nusantara Overview
   useEffect(() => {
@@ -248,13 +270,12 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
     targetZoomRef.current = 1.0;
   }, [resetSignal]);
 
-
   // Convert (Lon, Lat) to current canvas screen coordinates [px, py]
   const projectCoords = useCallback((lon: number, lat: number, w: number, h: number): [number, number] => {
     const baseScale = getBaseScale(w, h);
     const scale = baseScale * zoomRef.current;
-    const px = w / 2 + (lon - panLonRef.current) * scale;
-    const py = h / 2 - (lat - panLatRef.current) * scale;
+    const px = w * centerXRatioRef.current + (lon - panLonRef.current) * scale;
+    const py = h * centerYRatioRef.current - (lat - panLatRef.current) * scale;
     return [px, py];
   }, []);
 
@@ -263,10 +284,17 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
+    if (!interactive) {
+      hoveredEventRef.current = null;
+      if (tooltipRef.current) tooltipRef.current.style.display = 'none';
+      return;
+    }
+
     let scheduled = false;
     let lastPointerEvent: PointerEvent | null = null;
 
     const checkProximity = (e: PointerEvent) => {
+      if (!interactive) return;
       const rect = container.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -389,12 +417,12 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
       container.removeEventListener('pointermove', onPointerMove);
       container.removeEventListener('pointerleave', onPointerLeave);
     };
-  }, [events, projectCoords]);
+  }, [events, projectCoords, interactive]);
 
   // Pointer Drag Pan, Mouse Wheel Zoom, Multi-Touch Pinch Zoom, and Click Select
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || !interactive) return;
 
     let hasDragged = false;
     const activePointers = new Map<number, { x: number; y: number }>();
@@ -608,7 +636,13 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
 
     function render() {
       if (!document.hidden && canvas && ctx && containerRef.current) {
-        // Smooth camera lerp
+        // Smooth camera & Story Mode viewport center framing lerp
+        const isStoryFraming = storyActiveRef.current && storyChapterRef.current >= 1 && storyChapterRef.current <= 4;
+        const targetCx = isStoryFraming && window.innerWidth >= 640 ? 0.67 : 0.5;
+        const targetCy = isStoryFraming && window.innerWidth < 640 ? 0.27 : 0.5;
+        centerXRatioRef.current += (targetCx - centerXRatioRef.current) * 0.08;
+        centerYRatioRef.current += (targetCy - centerYRatioRef.current) * 0.08;
+
         panLonRef.current += (targetPanLonRef.current - panLonRef.current) * 0.08;
         panLatRef.current += (targetPanLatRef.current - panLatRef.current) * 0.08;
         zoomRef.current += (targetZoomRef.current - zoomRef.current) * 0.10;
@@ -646,14 +680,14 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
         const project = (lon: number, lat: number): [number, number] => {
           const baseScale = getBaseScale(w, h);
           const scale = baseScale * zoomRef.current;
-          const px = w / 2 + (lon - panLonRef.current) * scale;
-          const py = h / 2 - (lat - panLatRef.current) * scale;
+          const px = w * centerXRatioRef.current + (lon - panLonRef.current) * scale;
+          const py = h * centerYRatioRef.current - (lat - panLatRef.current) * scale;
           return [px, py];
         };
 
         // Offscreen Base Map Caching (Graticules + Landmasses + Subduction Trench)
         // Eliminates re-projecting thousands of GeoJSON vertices every frame at 60fps
-        const baseMapKey = `${Math.round(w * dpr)}_${Math.round(h * dpr)}_${zoomRef.current.toFixed(4)}_${panLonRef.current.toFixed(4)}_${panLatRef.current.toFixed(4)}_${worldData.length}_${islandsData.length}`;
+        const baseMapKey = `${Math.round(w * dpr)}_${Math.round(h * dpr)}_${zoomRef.current.toFixed(4)}_${panLonRef.current.toFixed(4)}_${panLatRef.current.toFixed(4)}_${centerXRatioRef.current.toFixed(3)}_${centerYRatioRef.current.toFixed(3)}_${worldData.length}_${islandsData.length}`;
 
         if (!offscreenCanvasRef.current) {
           offscreenCanvasRef.current = document.createElement('canvas');
@@ -1129,6 +1163,10 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
           }
         }
 
+        // 5. Dynamic Story Mode Tectonic Fault & Subduction Overlay
+        if (storyActiveRef.current && storyChapterRef.current >= 1 && storyChapterRef.current <= 4) {
+          renderStoryTectonicOverlay(ctx, project, storyChapterRef.current, performance.now());
+        }
 
         ctx.restore();
 
@@ -1149,6 +1187,7 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
       style={{
         cursor: interactive ? 'grab' : 'default',
         touchAction: interactive ? 'none' : 'auto',
+        pointerEvents: interactive ? 'auto' : 'none',
         maskImage: isPanoramic
           ? 'radial-gradient(ellipse 96% 88% at 50% 50%, black 65%, rgba(0,0,0,0.85) 85%, rgba(0,0,0,0.2) 96%, transparent 100%)'
           : 'none',
