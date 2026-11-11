@@ -106,7 +106,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
         animate={{
           width: isMobile ? 'auto' : isExpanded ? 365 : 270,
           height: isMobile ? 42 : isExpanded ? 355 : 130,
-          borderRadius: isMobile || !isExpanded ? 9999 : 16,
+          borderRadius: isMobile && !isExpanded ? 9999 : 16,
         }}
         transition={{
           type: 'spring',
