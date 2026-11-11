@@ -7,7 +7,7 @@ import { BookmarkDrawer } from './components/ui/BookmarkDrawer';
 import { EventsListDrawer } from './components/ui/EventsListDrawer';
 import { EpicenterMapCard } from './components/ui/EpicenterMapCard';
 import { TimeLapseScrubber } from './components/ui/TimeLapseScrubber';
-import { TectonicEducationModal } from './components/ui/TectonicEducationModal';
+import { StoryModeOverlay } from './components/story/StoryModeOverlay';
 import { buildStoryChapters } from './utils/storyAnalytics';
 import { SeismicEvent, Bookmark, WildfireHotspot, HazardMode, VolcanoActivity } from './types/seismic';
 import { fetchVolcanoActivity } from './utils/volcanoService';
@@ -50,6 +50,7 @@ import {
   Flame,
   Mountain,
   BookOpen,
+  X,
 } from 'lucide-react';
 
 const DEFAULT_FOCUS: [number, number] = [-0.78, 118.0];
@@ -78,9 +79,10 @@ export const App: React.FC = () => {
   const [eventModalTab, setEventModalTab] = useState<'telemetry' | 'news'>('telemetry');
   const [selectedHotspot, setSelectedHotspot] = useState<WildfireHotspot | null>(null);
 
-  // Active Camera & Tectonic Education Modal
+  // Active Camera & Story Expedition Mode State
   const [cameraCoords, setCameraCoords] = useState<CameraCoordinates>({ lat: 12.0, lon: 115.0 });
-  const [isTectonicModalOpen, setIsTectonicModalOpen] = useState(false);
+  const [isStoryMode, setIsStoryMode] = useState(false);
+  const [storyStage, setStoryStage] = useState(0); // 0 = Prolog, 1..4 = Chapters, 5 = Epilog
 
   // Filters & Controls
   const [timeFilter, setTimeFilter] = useState<'all' | '24h' | '7d'>('all');
@@ -266,9 +268,6 @@ export const App: React.FC = () => {
     setBookmarks(getLocalBookmarks());
   }, []);
 
-  // Compute dynamic story chapters from active language
-  const storyChapters = useMemo(() => buildStoryChapters(lang), [lang]);
-
   // Screen Width state for responsive translation
   const [isDesktop, setIsDesktop] = useState(
     typeof window !== 'undefined' ? window.innerWidth >= 1024 : true
@@ -287,9 +286,6 @@ export const App: React.FC = () => {
     setTargetFocus(DEFAULT_FOCUS);
     setResetSignal((prev) => prev + 1);
   }, []);
-
-
-  // Filtered Events Pipeline
 
   // Filtered Events Pipeline (Time Horizon & Magnitude)
   const filteredEvents = useMemo(() => {
@@ -314,6 +310,64 @@ export const App: React.FC = () => {
       return true;
     });
   }, [events, timeFilter, magCategory]);
+
+  // Compute dynamic story chapters with live corridor telemetry
+  const storyChapters = useMemo(
+    () => buildStoryChapters(filteredEvents, volcanoes, lang),
+    [filteredEvents, volcanoes, lang]
+  );
+
+  // Prolog telemetry summary & synchronized story camera target
+  const prologStats = useMemo(() => {
+    const maxVal =
+      filteredEvents.length > 0
+        ? Math.max(...filteredEvents.map((e) => e.magnitude ?? 0))
+        : 0;
+    const activeVolcanoes = volcanoes.filter(
+      (v) => v.alert_level === 'Level III' || v.alert_level === 'Level IV'
+    ).length;
+
+    return {
+      totalQuakes: filteredEvents.length,
+      maxMag: maxVal > 0 ? `M${maxVal.toFixed(1)}` : '—',
+      activeVolcanoCount: activeVolcanoes,
+    };
+  }, [filteredEvents, volcanoes]);
+
+  const { storyFocus, storyZoom } = useMemo(() => {
+    if (!isStoryMode) {
+      return { storyFocus: null as [number, number] | null, storyZoom: null as number | null };
+    }
+    if (storyStage === 0) {
+      return { storyFocus: [-2.2, 118.0] as [number, number], storyZoom: 1.02 };
+    }
+    const ch = storyChapters[storyStage - 1];
+    if (ch) {
+      return {
+        storyFocus: [ch.coordinates[0], ch.coordinates[1]] as [number, number],
+        storyZoom: ch.zoom,
+      };
+    }
+    return { storyFocus: [-2.2, 118.0] as [number, number], storyZoom: 1.02 };
+  }, [isStoryMode, storyStage, storyChapters]);
+
+  const handleEnterStoryMode = useCallback(() => {
+    setIsTimeLapseOpen(false);
+    setIsTimeLapsePlaying(false);
+    setIsFeedOpen(false);
+    setIsDrawerOpen(false);
+    setSelectedEvent(null);
+    setSelectedVolcano(null);
+    setSelectedHotspot(null);
+    setStoryStage(0);
+    setIsStoryMode(true);
+  }, []);
+
+  const handleExitStoryMode = useCallback(() => {
+    setIsStoryMode(false);
+    setStoryStage(0);
+    setResetSignal((prev) => prev + 1);
+  }, []);
 
 
   // Determine time-lapse boundaries based on filteredEvents
@@ -628,6 +682,7 @@ export const App: React.FC = () => {
   const handleLocateAlert = useCallback(
     (alert: AlertEventData) => {
       setActiveAlert(null);
+      setIsStoryMode(false);
       setTargetFocus([alert.latitude, alert.longitude]);
       const found = events.find((e) => e.id === alert.id || e.usgs_id === alert.id);
       if (found) {
@@ -708,8 +763,18 @@ export const App: React.FC = () => {
       <ViewportTechnicalFrame coordinates={cameraCoords} visible={true} />
 
       {/* 3. ARCHITECTURAL NUSANTARA VECTOR MAP LAYER */}
-      <div className="fixed inset-0 z-10 flex items-center justify-center overflow-hidden pointer-events-none sm:pt-16 sm:pb-20 sm:px-4">
-        <div className="relative w-full h-full sm:max-w-6xl sm:h-[64vh] sm:max-h-[620px] flex items-center justify-center my-auto pointer-events-auto">
+      <div
+        className={`fixed inset-0 z-10 flex items-center justify-center overflow-hidden pointer-events-none transition-all duration-700 ${
+          isStoryMode ? 'sm:pt-14 sm:pb-6 sm:px-2' : 'sm:pt-16 sm:pb-20 sm:px-4'
+        }`}
+      >
+        <div
+          className={`relative w-full h-full flex items-center justify-center my-auto transition-all duration-700 ${
+            isStoryMode
+              ? 'pointer-events-none sm:max-w-[1440px] sm:h-[78vh] sm:max-h-[760px]'
+              : 'pointer-events-auto sm:max-w-6xl sm:h-[64vh] sm:max-h-[620px]'
+          }`}
+        >
           <VectorGlobe
             events={filteredEvents}
             hotspots={hotspots}
@@ -717,18 +782,21 @@ export const App: React.FC = () => {
             hazardMode={hazardMode}
             isRotating={isRotating && !isTimeLapseOpen}
             resetSignal={resetSignal}
-            targetFocus={targetFocus}
-            onSelectEvent={setSelectedEvent}
+            targetFocus={isStoryMode ? storyFocus : targetFocus}
+            onSelectEvent={isStoryMode ? undefined : setSelectedEvent}
             onUpdateHotspots={setHotspots}
-            onSelectVolcano={setSelectedVolcano}
-            interactive={true}
+            onSelectVolcano={isStoryMode ? undefined : setSelectedVolcano}
+            interactive={!isStoryMode}
             onCameraChange={setCameraCoords}
             colorMode={colorMode}
             timelapseTimestamp={isTimeLapseOpen ? timelapseTime : null}
             isPanoramic={true}
-            showControls={true}
-            selectedHotspot={selectedHotspot}
-            onSelectHotspot={setSelectedHotspot}
+            showControls={!isStoryMode}
+            selectedHotspot={isStoryMode ? null : selectedHotspot}
+            onSelectHotspot={isStoryMode ? undefined : setSelectedHotspot}
+            storyActive={isStoryMode}
+            storyChapterIndex={isStoryMode ? storyStage : -1}
+            storyZoom={isStoryMode ? storyZoom : null}
             lang={lang}
           />
         </div>
@@ -738,10 +806,18 @@ export const App: React.FC = () => {
       <header className="fixed top-[max(0.6rem,env(safe-area-inset-top,8px))] left-1/2 -translate-x-1/2 z-40 w-full max-w-6xl px-2.5 sm:px-4 pointer-events-none select-none">
         <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/80 backdrop-blur-md pointer-events-auto">
           <div className="flex items-center justify-between gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-4 sm:py-2">
-            {/* Logo + Branding: Click to Recenter to Indonesia */}
+            {/* Logo + Branding: Click to Exit Story Mode or Recenter Indonesia */}
             <div
-              onClick={handleRecenterIndonesia}
-              title={lang === 'id' ? 'Klik untuk memusatkan kembali peta ke Indonesia' : 'Click to recenter map to Indonesia'}
+              onClick={isStoryMode ? handleExitStoryMode : handleRecenterIndonesia}
+              title={
+                isStoryMode
+                  ? lang === 'id'
+                    ? 'Keluar Story Mode & kembali ke Peta Live'
+                    : 'Exit Story Mode & return to Live Map'
+                  : lang === 'id'
+                  ? 'Klik untuk memusatkan kembali peta ke Indonesia'
+                  : 'Click to recenter map to Indonesia'
+              }
               className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0 cursor-pointer group"
             >
               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
@@ -765,15 +841,36 @@ export const App: React.FC = () => {
 
             {/* Header Right Actions */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 font-mono text-xs">
-              {/* Tectonic Education Modal Toggle */}
+              {/* Story Expedition Mode Toggle */}
               <button
                 type="button"
-                onClick={() => setIsTectonicModalOpen(true)}
-                title={lang === 'id' ? 'Edukasi Zona Tektonik & Sesar Aktif' : 'Active Tectonic & Fault Systems Guide'}
-                className="flex items-center gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/90 border border-slate-200/80 text-slate-800 text-[10px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0"
+                onClick={() => (isStoryMode ? handleExitStoryMode() : handleEnterStoryMode())}
+                title={
+                  isStoryMode
+                    ? lang === 'id'
+                      ? 'Kembali ke Peta Observatorium Interaktif'
+                      : 'Return to Interactive Observatory Map'
+                    : lang === 'id'
+                    ? 'Jelajahi Mode Cerita Tektonik Nusantara (Story Scrolling)'
+                    : 'Explore Nusantara Tectonic Story Expedition'
+                }
+                className={`flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-full border text-[10px] sm:text-[11px] font-mono font-bold tracking-wider transition-all cursor-pointer active:scale-95 shadow-2xs shrink-0 ${
+                  isStoryMode
+                    ? 'bg-[#0f2f63] hover:bg-[#153e7e] border-[#0f2f63] text-white'
+                    : 'bg-slate-100 hover:bg-slate-200/90 border-slate-200/80 text-slate-800'
+                }`}
               >
-                <BookOpen className="w-3.5 h-3.5 text-[#0f2f63]" />
-                <span className="hidden md:inline">{lang === 'id' ? 'TEKTONIK' : 'TECTONICS'}</span>
+                {isStoryMode ? (
+                  <>
+                    <X className="w-3.5 h-3.5 text-white shrink-0" />
+                    <span>{lang === 'id' ? 'PETA LIVE' : 'LIVE MAP'}</span>
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="w-3.5 h-3.5 text-[#0f2f63] shrink-0" />
+                    <span className="hidden md:inline">{lang === 'id' ? 'EKSPEDISI' : 'STORY'}</span>
+                  </>
+                )}
               </button>
 
               {/* Telemetry Ping Latency & Auto-Refresh Countdown Pill */}
@@ -874,7 +971,13 @@ export const App: React.FC = () => {
       </header>
 
       {/* 5. TOP-LEFT HUD: BMKG EPICENTER CARD & MAJOR HAZARDS HIGHLIGHTS */}
-      <div className="fixed top-[calc(max(0.6rem,env(safe-area-inset-top,8px))+3.25rem)] sm:top-20 left-2.5 sm:left-6 z-30 flex flex-col items-start gap-1.5 max-w-[calc(100vw-1.25rem)] sm:max-w-md pointer-events-auto select-none">
+      <div
+        className={`fixed top-[calc(max(0.6rem,env(safe-area-inset-top,8px))+3.25rem)] sm:top-20 left-2.5 sm:left-6 z-30 flex flex-col items-start gap-1.5 max-w-[calc(100vw-1.25rem)] sm:max-w-md select-none transition-all duration-300 ${
+          isStoryMode
+            ? 'opacity-0 -translate-y-3 pointer-events-none invisible'
+            : 'opacity-100 translate-y-0 pointer-events-auto'
+        }`}
+      >
         {bmkgAlert && formattedBMKG && (
           <EpicenterMapCard
             location={formattedBMKG.location}
@@ -994,7 +1097,7 @@ export const App: React.FC = () => {
             ? volcanoes.length
             : filteredEvents.length
         }
-        visible={!isTimeLapseOpen}
+        visible={!isTimeLapseOpen && !isStoryMode}
         lang={lang}
         magCategory={magCategory}
         onMagCategoryChange={setMagCategory}
@@ -1129,12 +1232,17 @@ export const App: React.FC = () => {
         </Suspense>
       )}
 
-      {/* 15. TECTONIC EDUCATION MODAL */}
-      <TectonicEducationModal
-        isOpen={isTectonicModalOpen}
-        onClose={() => setIsTectonicModalOpen(false)}
+      {/* 15. AWWWARDS DUAL-MODE STORY EXPEDITION OVERLAY */}
+      <StoryModeOverlay
+        isOpen={isStoryMode}
         chapters={storyChapters}
-        onFocusSector={(coords) => setTargetFocus(coords)}
+        activeStage={storyStage}
+        onStageChange={setStoryStage}
+        onClose={handleExitStoryMode}
+        totalQuakes={prologStats.totalQuakes}
+        maxMag={prologStats.maxMag}
+        activeVolcanoCount={prologStats.activeVolcanoCount}
+        hotspotCount={hotspots.length}
         lang={lang}
       />
     </div>
