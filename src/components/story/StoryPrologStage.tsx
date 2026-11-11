@@ -92,7 +92,7 @@ export const StoryPrologStage: React.FC<StoryPrologStageProps> = ({
                 {totalQuakes}
               </span>
               <span className="text-xs font-semibold text-[#0f2f63]">
-                {maxMag !== '—' ? maxMag : ''}
+                {maxMag && maxMag !== 'N/A' ? maxMag : ''}
               </span>
             </div>
           </div>

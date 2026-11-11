@@ -329,7 +329,7 @@ export const App: React.FC = () => {
 
     return {
       totalQuakes: filteredEvents.length,
-      maxMag: maxVal > 0 ? `M${maxVal.toFixed(1)}` : '—',
+      maxMag: maxVal > 0 ? `M${maxVal.toFixed(1)}` : 'N/A',
       activeVolcanoCount: activeVolcanoes,
     };
   }, [filteredEvents, volcanoes]);
