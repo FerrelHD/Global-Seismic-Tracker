@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronUp, ChevronDown, X } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 import { StoryChapter } from '../../utils/storyAnalytics';
 import { Language } from '../../utils/i18n';
 
@@ -18,14 +18,15 @@ export const StoryProgressRail: React.FC<StoryProgressRailProps> = ({
   onExit,
   lang,
 }) => {
-  const totalStages = chapters.length + 1; // 0 (Prolog) + 5 chapters (4 tectonic + 1 epilog)
+  const isId = lang === 'id';
+  const totalStages = chapters.length + 1;
 
   const stageItems = [
-    { index: 0, code: '00', label: lang === 'id' ? 'PROLOG' : 'PROLOGUE' },
+    { index: 0, code: '00', label: isId ? 'Prolog' : 'Prologue' },
     ...chapters.map((ch, idx) => ({
       index: idx + 1,
       code: ch.chapterNumber,
-      label: ch.title.replace(/^The\s+/i, '').replace(/^Sistem\s+/i, '').toUpperCase(),
+      label: ch.title.replace(/^The\s+/i, '').replace(/^Sistem\s+/i, ''),
     })),
   ];
 
@@ -34,24 +35,12 @@ export const StoryProgressRail: React.FC<StoryProgressRailProps> = ({
 
   return (
     <>
-      {/* Desktop Right-Hand Swiss Editorial Stepper Rail */}
+      {/* Desktop: Bare Vertical Architectural Survey Ruler (Zero Card Container) */}
       <aside
-        aria-label={lang === 'id' ? 'Navigasi Bab Cerita Tektonik' : 'Tectonic Story Chapter Navigation'}
-        className="fixed right-4 lg:right-7 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-end gap-2 select-none pointer-events-auto"
+        aria-label={isId ? 'Indeks bab cerita tektonik' : 'Tectonic story chapter index'}
+        className="fixed right-5 lg:right-8 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-end gap-5 select-none pointer-events-auto"
       >
-        {/* Step Up */}
-        <button
-          type="button"
-          onClick={handlePrev}
-          disabled={activeStage <= 0}
-          title={lang === 'id' ? 'Bab Sebelumnya' : 'Previous Chapter'}
-          className="p-1.5 rounded-full bg-white/90 hover:bg-white border border-slate-200/90 text-slate-600 hover:text-slate-950 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
-        >
-          <ChevronUp className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Chapter Dots & Labels */}
-        <div className="flex flex-col items-end gap-1.5 py-2.5 px-2.5 rounded-2xl bg-white/85 backdrop-blur-xl border border-slate-200/80 shadow-lg">
+        <div className="flex flex-col items-end gap-0.5">
           {stageItems.map((item) => {
             const isActive = item.index === activeStage;
             return (
@@ -59,68 +48,95 @@ export const StoryProgressRail: React.FC<StoryProgressRailProps> = ({
                 key={item.code}
                 type="button"
                 onClick={() => onSelectStage(item.index)}
-                className="group flex items-center gap-2.5 py-1 px-1 cursor-pointer focus:outline-none"
-                title={item.label}
+                aria-current={isActive ? 'step' : undefined}
+                className="group flex items-center gap-3 py-1.5 pl-2 pr-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] rounded-sm"
+                title={`${item.code} ${item.label}`}
               >
                 <span
-                  className={`font-mono text-[9.5px] tracking-widest uppercase transition-all duration-200 max-w-[130px] truncate ${
+                  className={`font-mono text-[10px] tracking-wider uppercase transition-all duration-200 whitespace-nowrap ${
                     isActive
-                      ? 'text-slate-950 font-bold opacity-100 translate-x-0'
-                      : 'text-slate-400 font-medium opacity-75 group-hover:opacity-100 group-hover:text-slate-800'
+                      ? 'text-slate-950 font-bold opacity-100 translate-x-0 bg-white/85 px-1.5 py-0.5 rounded-xs'
+                      : 'text-slate-600 font-medium opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 translate-x-1 group-hover:translate-x-0 bg-white/85 px-1.5 py-0.5 rounded-xs'
                   }`}
                 >
+                  <span className={isActive ? 'text-[#0f2f63] mr-1.5' : 'text-slate-400 mr-1.5'}>
+                    {item.code}
+                  </span>
                   {item.label}
                 </span>
 
                 <span
-                  className={`flex items-center justify-center rounded-full font-mono text-[9px] font-bold transition-all duration-300 ${
+                  className={`block transition-all duration-300 ${
                     isActive
-                      ? 'w-6 h-6 bg-[#0f2f63] text-white shadow-xs scale-105'
-                      : 'w-5 h-5 bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-900'
+                      ? 'w-7 h-[2px] bg-[#0f2f63]'
+                      : 'w-3 h-[1.5px] bg-slate-900/25 group-hover:w-5 group-hover:bg-slate-900/70'
                   }`}
-                >
-                  {item.code}
-                </span>
+                />
               </button>
             );
           })}
         </div>
 
-        {/* Step Down */}
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={activeStage >= totalStages - 1}
-          title={lang === 'id' ? 'Bab Berikutnya' : 'Next Chapter'}
-          className="p-1.5 rounded-full bg-white/90 hover:bg-white border border-slate-200/90 text-slate-600 hover:text-slate-950 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer"
-        >
-          <ChevronDown className="w-3.5 h-3.5" />
-        </button>
+        {/* Minimal Step & Exit Controls */}
+        <div className="flex items-center gap-1 font-mono">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={activeStage <= 0}
+            aria-label={isId ? 'Bab sebelumnya' : 'Previous chapter'}
+            className="w-8 h-8 flex items-center justify-center rounded-md bg-white/95 border border-slate-900/15 text-slate-700 hover:text-slate-950 hover:border-slate-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63]"
+          >
+            <ChevronUp className="w-4 h-4" strokeWidth={1.75} />
+          </button>
 
-        {/* Quick Exit Button */}
-        <button
-          type="button"
-          onClick={onExit}
-          className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950 hover:bg-slate-800 text-white font-mono text-[9.5px] font-bold tracking-wider uppercase shadow-md transition-all cursor-pointer active:scale-95"
-        >
-          <X className="w-3 h-3" />
-          <span>{lang === 'id' ? 'PETA LIVE' : 'LIVE MAP'}</span>
-        </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={activeStage >= totalStages - 1}
+            aria-label={isId ? 'Bab berikutnya' : 'Next chapter'}
+            className="w-8 h-8 flex items-center justify-center rounded-md bg-white/95 border border-slate-900/15 text-slate-700 hover:text-slate-950 hover:border-slate-900/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63]"
+          >
+            <ChevronDown className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+
+          <button
+            type="button"
+            onClick={onExit}
+            className="h-8 px-2.5 rounded-md bg-[#0f2f63] hover:bg-[#153e7e] text-white text-[10px] font-semibold tracking-wider uppercase transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2"
+          >
+            {isId ? 'Peta' : 'Map'}
+          </button>
+        </div>
       </aside>
 
-      {/* Mobile Bottom Floating Navigation & Exit Pill */}
-      <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] left-1/2 -translate-x-1/2 z-40 flex md:hidden items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/92 backdrop-blur-xl border border-slate-200/90 shadow-xl select-none pointer-events-auto">
-        <button
-          type="button"
-          onClick={handlePrev}
-          disabled={activeStage <= 0}
-          aria-label="Previous Stage"
-          className="p-1.5 rounded-full bg-slate-100 text-slate-700 disabled:opacity-30 cursor-pointer active:scale-95"
-        >
-          <ChevronUp className="w-3.5 h-3.5" />
-        </button>
+      {/* Mobile: Sharp Architectural Bottom Index Bar */}
+      <nav
+        aria-label={isId ? 'Navigasi bab mobile' : 'Mobile chapter navigation'}
+        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] inset-x-4 z-40 flex md:hidden items-center justify-between gap-2 px-2 py-1 rounded-md bg-white/95 border border-slate-900/15 shadow-sm select-none pointer-events-auto"
+      >
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={activeStage <= 0}
+            aria-label={isId ? 'Bab sebelumnya' : 'Previous chapter'}
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-sm text-slate-800 hover:bg-slate-100 disabled:opacity-30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63]"
+          >
+            <ChevronUp className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={activeStage >= totalStages - 1}
+            aria-label={isId ? 'Bab berikutnya' : 'Next chapter'}
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-sm text-slate-800 hover:bg-slate-100 disabled:opacity-30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63]"
+          >
+            <ChevronDown className="w-4 h-4" strokeWidth={1.75} />
+          </button>
+        </div>
 
-        <div className="flex items-center gap-1 px-1">
+        {/* Hairline Ruler Ticks */}
+        <div className="flex items-center gap-1.5 px-1">
           {stageItems.map((item) => {
             const isActive = item.index === activeStage;
             return (
@@ -128,36 +144,28 @@ export const StoryProgressRail: React.FC<StoryProgressRailProps> = ({
                 key={item.code}
                 type="button"
                 onClick={() => onSelectStage(item.index)}
-                aria-label={item.label}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  isActive ? 'w-5 bg-[#0f2f63]' : 'w-1.5 bg-slate-300'
-                }`}
-              />
+                aria-label={`${item.code} ${item.label}`}
+                aria-current={isActive ? 'step' : undefined}
+                className="py-3 px-0.5 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0f2f63]"
+              >
+                <span
+                  className={`block h-[2px] transition-all duration-300 ${
+                    isActive ? 'w-5 bg-[#0f2f63]' : 'w-2 bg-slate-900/20'
+                  }`}
+                />
+              </button>
             );
           })}
         </div>
 
         <button
           type="button"
-          onClick={handleNext}
-          disabled={activeStage >= totalStages - 1}
-          aria-label="Next Stage"
-          className="p-1.5 rounded-full bg-slate-100 text-slate-700 disabled:opacity-30 cursor-pointer active:scale-95"
-        >
-          <ChevronDown className="w-3.5 h-3.5" />
-        </button>
-
-        <div className="w-px h-4 bg-slate-200 mx-0.5" />
-
-        <button
-          type="button"
           onClick={onExit}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#0f2f63] text-white font-mono text-[9.5px] font-bold tracking-wider uppercase cursor-pointer active:scale-95"
+          className="min-h-[40px] px-3 rounded-sm bg-[#0f2f63] hover:bg-[#153e7e] text-white font-mono text-[10.5px] font-semibold tracking-wider uppercase cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63]"
         >
-          <X className="w-3 h-3" />
-          <span>{lang === 'id' ? 'PETA' : 'MAP'}</span>
+          {isId ? 'Peta' : 'Map'}
         </button>
-      </div>
+      </nav>
     </>
   );
 };
