@@ -765,14 +765,16 @@ export const App: React.FC = () => {
       {/* 3. ARCHITECTURAL NUSANTARA VECTOR MAP LAYER */}
       <div
         className={`fixed inset-0 z-10 flex items-center justify-center overflow-hidden pointer-events-none transition-all duration-700 ${
-          isStoryMode ? 'sm:pt-14 sm:pb-6 sm:px-2' : 'sm:pt-16 sm:pb-20 sm:px-4'
+          isStoryMode
+            ? 'sm:pt-14 sm:pb-6 sm:px-2 short:pt-12 short:pb-3'
+            : 'sm:pt-16 sm:pb-20 sm:px-4 short:pt-12 short:pb-14'
         }`}
       >
         <div
           className={`relative w-full h-full flex items-center justify-center my-auto transition-all duration-700 ${
             isStoryMode
-              ? 'pointer-events-none sm:max-w-[1440px] sm:h-[78vh] sm:max-h-[760px]'
-              : 'pointer-events-auto sm:max-w-6xl sm:h-[64vh] sm:max-h-[620px]'
+              ? 'pointer-events-none sm:max-w-[1440px] sm:h-[78dvh] sm:max-h-[760px] short:h-[86dvh]'
+              : 'pointer-events-auto sm:max-w-6xl sm:h-[64dvh] sm:max-h-[620px] short:h-[82dvh]'
           }`}
         >
           <VectorGlobe
@@ -803,9 +805,9 @@ export const App: React.FC = () => {
       </div>
 
       {/* 4. EDITORIAL FIXED HEADER NAVBAR */}
-      <header className="fixed top-[max(0.6rem,env(safe-area-inset-top,8px))] left-1/2 -translate-x-1/2 z-40 w-full max-w-6xl px-2.5 sm:px-4 pointer-events-none select-none">
+      <header className="fixed top-[max(0.5rem,env(safe-area-inset-top,6px))] short:top-2 left-1/2 -translate-x-1/2 z-40 w-full max-w-6xl px-2 min-[375px]:px-2.5 sm:px-4 pointer-events-none select-none">
         <LiquidCard className="rounded-2xl sm:rounded-full shadow-lg border border-neutral-200/80 bg-white/80 backdrop-blur-md pointer-events-auto">
-          <div className="flex items-center justify-between gap-1.5 sm:gap-4 px-2 py-1.5 sm:px-4 sm:py-2">
+          <div className="flex items-center justify-between gap-1 min-[375px]:gap-1.5 sm:gap-3 lg:gap-4 px-2 py-1.5 sm:px-4 sm:py-2 short:py-1">
             {/* Logo + Branding: Click to Exit Story Mode or Recenter Indonesia */}
             <div
               onClick={isStoryMode ? handleExitStoryMode : handleRecenterIndonesia}
@@ -818,14 +820,14 @@ export const App: React.FC = () => {
                   ? 'Klik untuk memusatkan kembali peta ke Indonesia'
                   : 'Click to recenter map to Indonesia'
               }
-              className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0 cursor-pointer group"
+              className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink cursor-pointer group"
             >
               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#0f2f63] text-white flex items-center justify-center shadow-xs shrink-0 group-hover:scale-105 transition-transform">
                 <GlobeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
               <div className="min-w-0">
-                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1 text-[11px] sm:text-sm">
-                  <span className="whitespace-nowrap font-extrabold tracking-tight">
+                <h1 className="font-bold tracking-wider uppercase font-sans text-neutral-900 leading-none flex items-center gap-x-1 text-[10.5px] min-[375px]:text-[11px] sm:text-sm">
+                  <span className="truncate font-extrabold tracking-tight">
                     {lang === 'id' ? 'OBSERVATORIUM' : 'SEISMIC'}
                   </span>
                   <span className="text-neutral-400 font-normal hidden sm:inline">//</span>
@@ -868,7 +870,7 @@ export const App: React.FC = () => {
                 ) : (
                   <>
                     <BookOpen className="w-3.5 h-3.5 text-[#0f2f63] shrink-0" />
-                    <span className="hidden md:inline">{lang === 'id' ? 'EKSPEDISI' : 'STORY'}</span>
+                    <span className="hidden sm:inline">{lang === 'id' ? 'EKSPEDISI' : 'STORY'}</span>
                   </>
                 )}
               </button>
@@ -972,7 +974,7 @@ export const App: React.FC = () => {
 
       {/* 5. TOP-LEFT HUD: BMKG EPICENTER CARD & MAJOR HAZARDS HIGHLIGHTS */}
       <div
-        className={`fixed top-[calc(max(0.6rem,env(safe-area-inset-top,8px))+3.25rem)] sm:top-20 left-2.5 sm:left-6 z-30 flex flex-col items-start gap-1.5 max-w-[calc(100vw-1.25rem)] sm:max-w-md select-none transition-all duration-300 ${
+        className={`fixed top-[calc(max(0.5rem,env(safe-area-inset-top,6px))+3.25rem)] sm:top-20 short:top-14 left-2.5 sm:left-6 z-30 flex flex-col items-start gap-1.5 max-w-[calc(100vw-1.25rem)] sm:max-w-md select-none transition-all duration-300 ${
           isStoryMode
             ? 'opacity-0 -translate-y-3 pointer-events-none invisible'
             : 'opacity-100 translate-y-0 pointer-events-auto'
