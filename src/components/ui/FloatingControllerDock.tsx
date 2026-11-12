@@ -87,7 +87,7 @@ export const FloatingControllerDock: React.FC<FloatingControllerDockProps> = ({
     <nav
       aria-label="Disaster Telemetry Floating Controller"
       style={style}
-      className={`fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] sm:bottom-5 left-1/2 -translate-x-1/2 z-40 select-none w-auto max-w-[calc(100vw-1.25rem)] px-1 flex flex-col items-center justify-center transition-all duration-200 pointer-events-none ${
+      className={`fixed bottom-[max(0.6rem,env(safe-area-inset-bottom,10px))] sm:bottom-5 short:bottom-2.5 left-1/2 -translate-x-1/2 z-40 select-none w-auto max-w-[calc(100vw-1.25rem)] px-1 flex flex-col items-center justify-center transition-all duration-200 pointer-events-none ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5 invisible'
       }`}
     >
