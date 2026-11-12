@@ -56,11 +56,11 @@ export const TimeLapseScrubber: React.FC<TimeLapseScrubberProps> = ({
   const speedOptions = [1, 5, 15, 45];
 
   return (
-    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] sm:bottom-6 left-1/2 -translate-x-1/2 z-40 select-none pointer-events-auto w-[min(94vw,760px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] sm:bottom-6 short:bottom-2.5 left-1/2 -translate-x-1/2 z-40 select-none pointer-events-auto w-[min(94vw,760px)] animate-in fade-in slide-in-from-bottom-4 duration-300">
       <LiquidCard className="rounded-2xl sm:rounded-full shadow-2xl p-2.5 sm:px-5 sm:py-3 border border-slate-200/90">
         <div className="flex flex-col gap-2">
           {/* Top Row: Info & Controls */}
-          <div className="flex items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 text-xs font-mono">
             {/* Play/Pause Button */}
             <div className="flex items-center gap-2">
               <button
