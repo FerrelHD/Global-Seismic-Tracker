@@ -2,6 +2,16 @@
 
 @import "tailwindcss";
 
+@custom-variant short (@media (max-height: 560px));
+@custom-variant story-split {
+  @media (min-width: 1024px) {
+    @slot;
+  }
+  @media (min-width: 640px) and (orientation: landscape) and (max-height: 620px) {
+    @slot;
+  }
+}
+
 @theme {
   --font-display: "Onest", "Cabinet Grotesk", Geist, system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
