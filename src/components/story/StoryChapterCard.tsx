@@ -33,30 +33,30 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
   return (
     <section
       data-story-stage={stageIndex}
-      className="h-[100dvh] w-full flex flex-col justify-end sm:justify-center pt-16 sm:pt-24 pb-[max(4.5rem,env(safe-area-inset-bottom,18px))] sm:pb-12 px-4 sm:px-8 lg:px-14 relative pointer-events-none select-none overflow-hidden"
+      className="h-[100dvh] w-full flex flex-col justify-end story-split:justify-center pt-14 sm:pt-20 story-split:pt-24 short:pt-14 pb-[max(4.75rem,env(safe-area-inset-bottom,20px))] story-split:pb-10 short:pb-3 px-4 sm:px-8 lg:px-14 relative pointer-events-none select-none overflow-hidden"
     >
-      {/* Desktop directional scrim keeping right 55% map open while grounding left typography */}
+      {/* Side-split directional scrim for desktop & landscape mobile */}
       <div
-        className="hidden sm:block absolute inset-y-0 left-0 w-[62%] lg:w-[54%] bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none"
+        className="hidden story-split:block absolute inset-y-0 left-0 w-[62%] lg:w-[54%] bg-gradient-to-r from-white via-white/90 to-transparent pointer-events-none"
         aria-hidden="true"
       />
 
-      {/* Mobile bottom paper scrim leaving upper ~42% viewport unobstructed for focused map */}
+      {/* Portrait mobile & portrait tablet bottom paper scrim leaving upper map unobstructed */}
       <div
-        className="sm:hidden absolute inset-x-0 bottom-0 h-[62dvh] bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"
+        className="story-split:hidden absolute inset-x-0 bottom-0 h-[62dvh] sm:h-[56dvh] bg-gradient-to-t from-white via-white/95 to-transparent pointer-events-none"
         aria-hidden="true"
       />
 
       <article
-        className={`relative z-10 pointer-events-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] w-full sm:max-w-[440px] lg:max-w-[470px] ${
+        className={`relative z-10 pointer-events-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] w-full sm:max-w-[560px] sm:mx-auto story-split:mx-0 story-split:max-w-[400px] lg:max-w-[470px] max-h-full overflow-y-auto no-scrollbar ${
           isActive
             ? 'opacity-100 translate-y-0'
             : 'opacity-25 translate-y-5'
         }`}
       >
         {/* 1. Bare Typographic Chapter Index & Coordinates */}
-        <div className="border-t border-slate-900/20 pt-2.5 sm:pt-3 flex items-baseline justify-between gap-3">
-          <div className="font-mono text-[10.5px] sm:text-[11px] font-semibold tracking-widest text-slate-700 uppercase truncate">
+        <div className="border-t border-slate-900/20 pt-2 sm:pt-3 short:pt-2 flex items-baseline justify-between gap-3">
+          <div className="font-mono text-[10px] sm:text-[11px] font-semibold tracking-widest text-slate-700 uppercase truncate">
             <span className="text-[#0f2f63] font-bold mr-2 tabular-nums">
               {chapter.chapterNumber}
             </span>
@@ -69,12 +69,12 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
 
         {/* 2. Asymmetric Focal Datum (for Tectonic Chapters 01-04) */}
         {!isEpilog ? (
-          <div className="mt-3 sm:mt-5 flex items-baseline justify-between gap-4 border-b border-slate-900/12 pb-2.5 sm:pb-3.5">
+          <div className="mt-2.5 sm:mt-4 story-split:mt-5 short:mt-2 flex items-baseline justify-between gap-4 border-b border-slate-900/12 pb-2 sm:pb-3.5 short:pb-1.5">
             <div className="flex items-baseline gap-1.5 font-sans">
-              <span className="text-3xl sm:text-5xl font-black tracking-tight text-[#0f2f63] tabular-nums leading-none">
+              <span className="text-2xl sm:text-4xl lg:text-5xl short:text-2xl font-black tracking-tight text-[#0f2f63] tabular-nums leading-none">
                 {chapter.focalMetric.value}
               </span>
-              <span className="font-mono text-xs sm:text-sm font-semibold text-slate-600">
+              <span className="font-mono text-[11px] sm:text-sm short:text-xs font-semibold text-slate-600">
                 {chapter.focalMetric.unit}
               </span>
             </div>
@@ -83,7 +83,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
             </span>
           </div>
         ) : (
-          <div className="mt-3 sm:mt-5 border-b border-slate-900/12 pb-2.5 sm:pb-3">
+          <div className="mt-2.5 sm:mt-4 story-split:mt-5 short:mt-2 border-b border-slate-900/12 pb-2 sm:pb-3 short:pb-1.5">
             <span className="font-mono text-[10px] sm:text-[11px] font-semibold tracking-wider text-[#0f2f63] uppercase">
               {chapter.plateTag}
             </span>
@@ -91,25 +91,25 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
         )}
 
         {/* 3. Title & Geological Context */}
-        <div className="mt-3 sm:mt-4">
-          <h3 className="font-sans font-black text-xl sm:text-3xl text-slate-950 tracking-[-0.025em] leading-[1.05]">
+        <div className="mt-2.5 sm:mt-3.5 short:mt-2">
+          <h3 className="font-sans font-black text-lg sm:text-2xl lg:text-3xl short:text-lg text-slate-950 tracking-[-0.025em] leading-[1.05]">
             {chapter.title}
           </h3>
-          <p className="font-mono text-[10.5px] sm:text-xs text-slate-500 mt-1 truncate">
+          <p className="font-mono text-[10px] sm:text-xs text-slate-500 mt-1 truncate">
             {isEpilog ? chapter.subtitle : chapter.plateTag || chapter.subtitle}
           </p>
         </div>
 
         {/* 4. Narrative Body */}
-        <p className="mt-2.5 sm:mt-3.5 text-xs sm:text-[14px] font-sans text-slate-700 leading-relaxed max-w-[52ch] line-clamp-3 sm:line-clamp-none">
+        <p className="mt-2 sm:mt-3 short:mt-1.5 text-xs sm:text-[14px] short:text-xs font-sans text-slate-700 leading-relaxed short:leading-snug max-w-[52ch] line-clamp-3 sm:line-clamp-none short:line-clamp-2">
           {chapter.description}
         </p>
 
         {/* 5. Hairline Technical & Live Corridor Specification Table */}
-        <dl className="mt-3 sm:mt-5 border-t border-b border-slate-900/12 divide-y divide-slate-900/10 font-mono text-[10.5px] sm:text-xs">
+        <dl className="mt-2.5 sm:mt-4 story-split:mt-5 short:mt-2 border-t border-b border-slate-900/12 divide-y divide-slate-900/10 font-mono text-[10px] sm:text-xs">
           {chapter.stats.map((stat) => (
-            <div key={stat.label} className="py-1.5 sm:py-2 flex items-center justify-between gap-4">
-              <dt className="text-slate-500 uppercase tracking-wide text-[9.5px] sm:text-[10.5px]">
+            <div key={stat.label} className="py-1.5 sm:py-2 short:py-1 flex items-center justify-between gap-4">
+              <dt className="text-slate-500 uppercase tracking-wide text-[9px] sm:text-[10.5px]">
                 {stat.label}
               </dt>
               <dd className="font-semibold text-slate-950 text-right tabular-nums">
@@ -119,8 +119,8 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
           ))}
 
           {!isEpilog && (
-            <div className="py-1.5 sm:py-2 flex items-center justify-between gap-4">
-              <dt className="text-slate-500 uppercase tracking-wide text-[9.5px] sm:text-[10.5px]">
+            <div className="py-1.5 sm:py-2 short:py-1 flex items-center justify-between gap-4">
+              <dt className="text-slate-500 uppercase tracking-wide text-[9px] sm:text-[10.5px]">
                 {isId ? 'Terpantau saat ini' : 'Live in corridor'}
               </dt>
               <dd className="font-semibold text-[#0f2f63] text-right tabular-nums">
@@ -135,13 +135,13 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
         </dl>
 
         {/* 6. Editorial Action Controls (44px tap target, crisp radius) */}
-        <div className="mt-3.5 sm:mt-5 flex items-center gap-3 font-mono">
+        <div className="mt-3 sm:mt-4 story-split:mt-5 short:mt-2.5 flex flex-wrap items-center gap-2.5 sm:gap-3 font-mono">
           {isEpilog ? (
             <>
               <button
                 type="button"
                 onClick={onExit}
-                className="min-h-[44px] px-5 py-2.5 rounded-md bg-[#0f2f63] hover:bg-[#153e7e] text-white text-xs font-semibold tracking-wider uppercase transition-all duration-150 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2"
+                className="min-h-[44px] short:min-h-[38px] px-4 sm:px-5 py-2 rounded-md bg-[#0f2f63] hover:bg-[#153e7e] text-white text-[11px] sm:text-xs font-semibold tracking-wider uppercase transition-all duration-150 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2"
               >
                 {isId ? 'Buka peta observatorium' : 'Open observatory map'}
               </button>
@@ -149,7 +149,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
               <button
                 type="button"
                 onClick={onReplay}
-                className="min-h-[44px] px-3 py-2 text-xs font-medium text-slate-700 hover:text-slate-950 underline underline-offset-4 decoration-slate-400 hover:decoration-slate-950 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2 rounded-md"
+                className="min-h-[44px] short:min-h-[38px] px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-slate-700 hover:text-slate-950 underline underline-offset-4 decoration-slate-400 hover:decoration-slate-950 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2 rounded-md"
               >
                 {isId ? 'Ulangi dari awal' : 'Replay story'}
               </button>
@@ -159,7 +159,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
               <button
                 type="button"
                 onClick={onNextStage}
-                className="min-h-[44px] px-5 py-2.5 rounded-md bg-slate-950 hover:bg-slate-800 text-white text-xs font-semibold tracking-wider uppercase transition-all duration-150 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                className="min-h-[44px] short:min-h-[38px] px-4 sm:px-5 py-2 rounded-md bg-slate-950 hover:bg-slate-800 text-white text-[11px] sm:text-xs font-semibold tracking-wider uppercase transition-all duration-150 cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
               >
                 {stageIndex === 4
                   ? isId
@@ -173,7 +173,7 @@ export const StoryChapterCard: React.FC<StoryChapterCardProps> = ({
               <button
                 type="button"
                 onClick={onExit}
-                className="min-h-[44px] px-3 py-2 text-xs font-medium text-slate-600 hover:text-slate-950 underline underline-offset-4 decoration-slate-300 hover:decoration-slate-950 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2 rounded-md"
+                className="min-h-[44px] short:min-h-[38px] px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-medium text-slate-600 hover:text-slate-950 underline underline-offset-4 decoration-slate-300 hover:decoration-slate-950 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f2f63] focus-visible:ring-offset-2 rounded-md"
               >
                 {isId ? 'Keluar ke peta' : 'Exit to map'}
               </button>
