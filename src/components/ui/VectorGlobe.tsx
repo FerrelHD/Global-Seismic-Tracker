@@ -52,8 +52,7 @@ const BASE_SPAN_LON = 48.0; // 94°E to 142°E
 const BASE_SPAN_LAT = 19.0; // -12°S to 7°N
 
 function getBaseScale(w: number, h: number): number {
-  const isMobile = w < 640;
-  const paddingX = isMobile ? 24 : 0;
+  const paddingX = w < 640 ? 24 : w < 1024 ? 16 : 0;
   return Math.min((w - paddingX) / BASE_SPAN_LON, h / BASE_SPAN_LAT);
 }
 
@@ -637,9 +636,14 @@ const VectorGlobeComponent: React.FC<VectorGlobeProps> = ({
     function render() {
       if (!document.hidden && canvas && ctx && containerRef.current) {
         // Smooth camera & Story Mode viewport center framing lerp
+        // Portrait phones & portrait tablets (<1024px portrait) use top-half map framing;
+        // Desktop (>=1024px) & landscape phones (>=640px landscape & <=620px tall) use right-half framing.
         const isStoryFraming = storyActiveRef.current && storyChapterRef.current >= 1 && storyChapterRef.current <= 4;
-        const targetCx = isStoryFraming && window.innerWidth >= 640 ? 0.67 : 0.5;
-        const targetCy = isStoryFraming && window.innerWidth < 640 ? 0.27 : 0.5;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const useSideSplit = vw >= 1024 || (vw >= 640 && vw > vh && vh <= 620);
+        const targetCx = isStoryFraming && useSideSplit ? 0.67 : 0.5;
+        const targetCy = isStoryFraming && !useSideSplit ? (vw >= 640 ? 0.31 : 0.27) : 0.5;
         centerXRatioRef.current += (targetCx - centerXRatioRef.current) * 0.08;
         centerYRatioRef.current += (targetCy - centerYRatioRef.current) * 0.08;
 
