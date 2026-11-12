@@ -45,7 +45,7 @@ export const EpicenterMapCard: React.FC<EpicenterMapCardProps> = ({
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      setIsMobile(window.innerWidth < 640 || window.innerHeight < 540);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
