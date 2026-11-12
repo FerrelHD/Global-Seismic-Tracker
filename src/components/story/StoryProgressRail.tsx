@@ -35,12 +35,12 @@ export const StoryProgressRail: React.FC<StoryProgressRailProps> = ({
 
   return (
     <>
-      {/* Desktop: Bare Vertical Architectural Survey Ruler (Zero Card Container) */}
+      {/* Desktop & Side-Split: Bare Vertical Architectural Survey Ruler */}
       <aside
         aria-label={isId ? 'Indeks bab cerita tektonik' : 'Tectonic story chapter index'}
-        className="fixed right-5 lg:right-8 top-1/2 -translate-y-1/2 z-40 hidden md:flex flex-col items-end gap-5 select-none pointer-events-auto"
+        className="fixed right-4 lg:right-8 top-1/2 -translate-y-1/2 short:top-auto short:bottom-3 short:translate-y-0 z-40 hidden story-split:flex flex-col items-end gap-4 lg:gap-5 select-none pointer-events-auto"
       >
-        <div className="flex flex-col items-end gap-0.5">
+        <div className="flex flex-col items-end gap-0.5 short:hidden">
           {stageItems.map((item) => {
             const isActive = item.index === activeStage;
             return (
@@ -109,10 +109,10 @@ export const StoryProgressRail: React.FC<StoryProgressRailProps> = ({
         </div>
       </aside>
 
-      {/* Mobile: Sharp Architectural Bottom Index Bar */}
+      {/* Portrait Phone & Portrait Tablet: Sharp Architectural Bottom Index Bar */}
       <nav
         aria-label={isId ? 'Navigasi bab mobile' : 'Mobile chapter navigation'}
-        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] inset-x-4 z-40 flex md:hidden items-center justify-between gap-2 px-2 py-1 rounded-md bg-white/95 border border-slate-900/15 shadow-sm select-none pointer-events-auto"
+        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom,12px))] inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-full sm:max-w-lg z-40 flex story-split:hidden items-center justify-between gap-2 px-2 py-1 rounded-md bg-white/95 border border-slate-900/15 shadow-sm select-none pointer-events-auto"
       >
         <div className="flex items-center gap-1">
           <button
