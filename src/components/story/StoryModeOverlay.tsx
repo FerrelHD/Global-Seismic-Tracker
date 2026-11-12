@@ -114,13 +114,24 @@ export const StoryModeOverlay: React.FC<StoryModeOverlayProps> = ({
     syncSnapPoints();
     snap.currentSnapIndex = 0;
 
+    let lastReportedStage = 0;
+    let hasObservedResize = false;
     const ro = new ResizeObserver(() => {
       syncSnapPoints();
       lenis.resize();
+      if (hasObservedResize) {
+        const newStageH = wrapper.clientHeight || window.innerHeight;
+        const currStage = snap.currentSnapIndex ?? lastReportedStage;
+        snap.currentSnapIndex = currStage;
+        lenis.scrollTo(Math.round(currStage * newStageH), {
+          immediate: true,
+          force: true,
+        });
+      }
+      hasObservedResize = true;
     });
     ro.observe(wrapper);
 
-    let lastReportedStage = 0;
     const handleScroll = ({ scroll }: { scroll: number }) => {
       const stageH = wrapper.clientHeight || window.innerHeight;
       if (stageH <= 0) return;
